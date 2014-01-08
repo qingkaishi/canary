@@ -2,3 +2,4 @@
 *.o
 *.log
 Release+Asserts
+pecan_log_analyzer
