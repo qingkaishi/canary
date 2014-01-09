@@ -24,7 +24,6 @@ void AAAnalyzer::start_intra_procedure_analysis() {
 
 void AAAnalyzer::end_intra_procedure_analysis() {
     this->destroyFunctionGroups();
-    this->handle_hanging_pointers();
 }
 
 void AAAnalyzer::start_inter_procedure_analysis() {
@@ -207,30 +206,57 @@ static DyckVertex* addPtrOffset(DyckVertex* val, int offset, DyckGraph* dgraph) 
 
 /// return the structure's field vertex
 
-DyckVertex* AAAnalyzer::addField(DyckVertex* val, int fieldIndex) {
+DyckVertex* AAAnalyzer::addField(DyckVertex* val, int fieldIndex, DyckVertex* field) {
     if (fieldIndex >= -1) {
         errs() << "ERROR in addField: " << fieldIndex << "\n";
         exit(1);
     }
-
-    DyckVertex * dv = dgraph->retrieveDyckVertex(NULL).first; //init(NULL, dgraph);
-    val->getRepresentative()->addTarget(dv, (void*) (fieldIndex));
-    return dv;
+    
+    DyckVertex* valrep = val->getRepresentative();
+    
+    if(field == NULL){
+        set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (fieldIndex));
+        if(valrepset!=NULL && !valrepset->empty()){
+            field = *(valrepset->begin());
+        } else {
+            field = dgraph->retrieveDyckVertex(NULL).first;
+            valrep->addTarget(field, (void*) (fieldIndex));
+        }
+    } else {
+        valrep->addTarget(field, (void*) (fieldIndex));
+    }
+    
+    return field;
 }
 
-/// return the ptr vertex
+/// if one of add and val is null, create and return it
+/// otherwise return the ptr;
 
 DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
-    if (address == NULL) {
-        address = dgraph->retrieveDyckVertex(NULL).first; //init(NULL, dgraph);
+    if(address == NULL && val == NULL){
+        errs() << "ERROR in addPtrTo\n";
+        exit(1);
+    } else if(address == NULL){
+        address = dgraph->retrieveDyckVertex(NULL).first;
         address->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
-
-        hanging_ptr_map.insert(pair<DyckVertex*, DyckVertex*>(address, val->getRepresentative()));
         return address;
+    } else if(val == NULL){
+        DyckVertex* addrep = address->getRepresentative();
+        set<DyckVertex*>* derefset = addrep->getOutVertices((void*)DEREF_LABEL);
+        if(derefset != NULL && !derefset->empty()){
+            val = *(derefset->begin());
+        } else {
+            val = dgraph->retrieveDyckVertex(NULL).first;
+            addrep->addTarget(val, (void*) DEREF_LABEL);
+        }
+        
+        return val;
     } else {
-        address->getRepresentative()->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
-        return address->getRepresentative();
+        DyckVertex* addrep = address->getRepresentative();
+        addrep->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
+        return addrep;
     }
+    
 }
 
 /// make them alias
@@ -259,18 +285,20 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
         }
 
         if ((*preGTI)->isStructTy()) {
-            // field index need not be the same as original value
-            // make it be a negative integer
-            ConstantInt * ci = cast<ConstantInt>(idx);
+            DyckVertex* theStruct = this->addPtrTo(current, NULL);
 
+            ConstantInt * ci = cast<ConstantInt>(idx);
             if (ci == NULL) {
                 errs() << ("ERROR: when dealing with gep: \n");
                 errs() << *gep << "\n";
                 exit(1);
             }
-
+            // field index need not be the same as original value
+            // make it be a negative integer
             int fieldIdx = (int) (*(ci->getValue().getRawData()));
-            current = addField(current, -2 - fieldIdx);
+            DyckVertex* field = this->addField(theStruct, -2 - fieldIdx, NULL);
+
+            current = this->addPtrTo(NULL, field);
         } else if ((*preGTI)->isPointerTy() || (*preGTI)->isArrayTy()) {
 #ifndef ARRAY_SIMPLIFIED
             current = addPtrOffset(current, getConstantIntRawData(cast<ConstantInt>(idx)) * dl.getTypeAllocSize(*GTI), dgraph);
@@ -351,16 +379,14 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
         }
 #endif
     } else if (isa<ConstantStruct>(v)) {
-        DyckVertex* ptr = addPtrTo(NULL, vdv);
-        DyckVertex* current = ptr;
+        //DyckVertex* ptr = addPtrTo(NULL, vdv);
+        //DyckVertex* current = ptr;
 
         Constant * vAgg = (Constant*) v;
         int numElmt = vAgg->getNumOperands();
         for (int i = 0; i < numElmt; i++) {
             Value * vi = vAgg->getOperand(i);
-
-            DyckVertex* viptr = addField(current, -2 - i);
-            addPtrTo(viptr, wrapValue(vi));
+            addField(vdv, -2 - i, wrapValue(vi));
         }
     } else if (isa<GlobalValue>(v)) {
         if (isa<GlobalVariable>(v)) {
@@ -431,11 +457,8 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
             DyckVertex* src_ptr_ver = wrapValue(src_ptr);
             DyckVertex* dst_ptr_ver = wrapValue(dst_ptr);
 
-            DyckVertex* src_ver = dgraph->retrieveDyckVertex(NULL).first; //init(NULL, dgraph);
-            DyckVertex* dst_ver = dgraph->retrieveDyckVertex(NULL).first; //init(NULL, dgraph);
-
-            addPtrTo(src_ptr_ver, src_ver);
-            addPtrTo(dst_ptr_ver, dst_ver);
+            DyckVertex* src_ver = addPtrTo(src_ptr_ver, NULL);
+            DyckVertex* dst_ver = addPtrTo(dst_ptr_ver, NULL);
 
             makeAlias(src_ver, dst_ver);
         }
@@ -524,6 +547,9 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
         case Instruction::Invoke:
         {
             InvokeInst * invoke = (InvokeInst*) inst;
+            LandingPadInst* lpd = invoke->getLandingPadInst();
+            parent_func->addLandingPad(invoke, lpd);
+
             Value * cv = invoke->getCalledValue();
 
             if (isa<Function>(cv)) {
@@ -571,15 +597,13 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             // aggregate operations
         case Instruction::ExtractValue:
         {
-            //outs()<<"[&&&&&] "<<*inst<<"\n\n";
             Value * agg = ((ExtractValueInst*) inst)->getAggregateOperand();
             DyckVertex* aggV = wrapValue(agg);
-            DyckVertex* aggPtr = addPtrTo(NULL, aggV);
 
             Type* aggTy = agg->getType();
 
             ArrayRef<unsigned> indices = ((ExtractValueInst*) inst)->getIndices();
-            DyckVertex* current = aggPtr;
+            DyckVertex* current = NULL;
 
             for (unsigned int i = 0; i < indices.size(); i++) {
                 if (isa<CompositeType>(aggTy) && aggTy->isSized()) {
@@ -588,32 +612,58 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
 #ifndef ARRAY_SIMPLIFIED
                         current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
 #endif
+                        if(i == indices.size() - 1){
+                            if(current == NULL) {
+                                this->makeAlias(aggV, wrapValue(inst));
+                            } else {
+                                this->addPtrTo(current, wrapValue(inst));
+                            }
+                        }
                     } else {
                         aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-                        current = addField(current, -2 - (int) indices[i]);
+
+                        if (current == NULL) {
+                            if (i != indices.size() - 1) {
+                                DyckVertex* field = this->addField(aggV, -2 - (int) indices[i], NULL);
+                                current = this->addPtrTo(NULL, field);
+                            } else {
+                                this->addField(aggV, -2 - (int) indices[i], wrapValue(inst));
+                            }
+                        } else {
+                            if (i != indices.size() - 1) {
+                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
+                                DyckVertex* field = addField(theStruct, -2 - (int) indices[i], NULL);
+                                current = this->addPtrTo(NULL, field);
+                            } else {
+                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
+                                this->addField(theStruct, -2 - (int) indices[i], wrapValue(inst));
+                            }
+                        }
                     }
                 } else {
                     break;
                 }
             }
-            addPtrTo(current, wrapValue(inst));
         }
             break;
         case Instruction::InsertValue:
         {
             DyckVertex* resultV = wrapValue(inst);
             Value * agg = ((InsertValueInst*) inst)->getAggregateOperand();
-            if (!isa<UndefValue>(*agg)) {
+            if (!isa<UndefValue>(agg)) {
                 makeAlias(resultV, wrapValue(agg));
             }
+            
+            Value * val = ((InsertValueInst*) inst)->getInsertedValueOperand();
+            DyckVertex* insertedVal = wrapValue(val);
 
-            DyckVertex* aggPtr = addPtrTo(NULL, resultV);
+            //DyckVertex* aggPtr = addPtrTo(NULL, resultV);
 
             Type *aggTy = inst->getType();
 
             ArrayRef<unsigned> indices = ((InsertValueInst*) inst)->getIndices();
 
-            DyckVertex* current = aggPtr;
+            DyckVertex* current = NULL;
 
             for (unsigned int i = 0; i < indices.size(); i++) {
                 if (isa<CompositeType>(aggTy) && aggTy->isSized()) {
@@ -622,16 +672,37 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
 #ifndef ARRAY_SIMPLIFIED
                         current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
 #endif
+                        if(i == indices.size() - 1){
+                            if(current == NULL) {
+                                this->makeAlias(resultV, insertedVal);
+                            } else {
+                                this->addPtrTo(current, insertedVal);
+                            }
+                        }
                     } else {
                         aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-                        current = addField(current, -2 - (int) indices[i]);
+                        if (current == NULL) {
+                            if (i != indices.size() - 1) {
+                                DyckVertex* field = this->addField(resultV, -2 - (int) indices[i], NULL);
+                                current = this->addPtrTo(NULL, field);
+                            } else {
+                                this->addField(resultV, -2 - (int) indices[i], insertedVal);
+                            }
+                        } else {
+                            if (i != indices.size() - 1) {
+                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
+                                DyckVertex* field = addField(theStruct, -2 - (int) indices[i], NULL);
+                                current = this->addPtrTo(NULL, field);
+                            } else {
+                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
+                                this->addField(theStruct, -2 - (int) indices[i], insertedVal);
+                            }
+                        }
                     }
                 } else {
                     break;
                 }
             }
-            Value * val = ((InsertValueInst*) inst)->getInsertedValueOperand();
-            addPtrTo(current, wrapValue(val));
         }
             break;
 
@@ -780,12 +851,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             addPtrTo(wrapValue(ptrVaarg), vaarg);
         }
             break;
-        case Instruction::LandingPad:
-        {
-            Value* lpad = inst;
-            parent_func->addLandingPad(lpad);
-        }
-            break;
+        case Instruction::LandingPad: // handled with invoke inst
         case Instruction::ICmp:
         case Instruction::FCmp:
         default:
@@ -797,18 +863,17 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
 
 void AAAnalyzer::handle_common_function_call(Value* ci, FunctionWrapper* caller, FunctionWrapper* callee) {
     //landingpad<->resume
-    set<Value*>& lps = caller->getLandingPads();
-    set<Value*>& res = callee->getResumes();
-    set<Value*>::iterator lpsIt = lps.begin();
-    while (lpsIt != lps.end()) {
-        DyckVertex*lpsV = wrapValue(*lpsIt);
+    Value* lpd = caller->getLandingPad(ci);
+    if (lpd != NULL) {
+        DyckVertex* lpdVertex = wrapValue(lpd);
+        set<Value*>& res = callee->getResumes();
         set<Value*>::iterator resIt = res.begin();
         while (resIt != res.end()) {
-            makeAlias(wrapValue(*resIt), lpsV);
+            makeAlias(wrapValue(*resIt), lpdVertex);
             resIt++;
         }
-        lpsIt++;
     }
+
     //return<->call
     set<Value*>& rets = callee->getReturns();
     set<Value*>::iterator retIt = rets.begin();
@@ -954,42 +1019,3 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
     return ret;
 }
-
-void AAAnalyzer::handle_hanging_pointers() {
-    // outs() << hanging_ptr_map->size() << " hanging ptrs\n";
-    map<DyckVertex*, DyckVertex*>::iterator mit = hanging_ptr_map.begin();
-    while (mit != hanging_ptr_map.end()) {
-        DyckVertex* ptr = mit->first->getRepresentative();
-        DyckVertex* obj = mit->second->getRepresentative();
-
-        set<DyckVertex*> versCopy;
-        set<DyckVertex*>* inptrset = obj->getInVertices((void*) DEREF_LABEL);
-        set<DyckVertex*>::iterator ipsIt = inptrset->begin();
-        while (ipsIt != inptrset->end()) {
-            DyckVertex * optr = (*ipsIt)->getRepresentative();
-            if (!hanging_ptr_map.count(optr)) {
-                versCopy.insert(optr);
-            }
-            ipsIt++;
-        }
-
-        int idx = 0;
-        int size = versCopy.size();
-        ipsIt = versCopy.begin();
-        while (ipsIt != versCopy.end()) {
-            if (idx < size - 1) {
-                DyckVertex* clonePtr = ptr->clone();
-                dgraph->addVertex(clonePtr);
-                makeAlias(*ipsIt, clonePtr);
-            } else {
-                makeAlias(*ipsIt, ptr);
-            }
-            ipsIt++;
-            idx++;
-        }
-        mit++;
-    }
-
-    hanging_ptr_map.clear();
-}
-

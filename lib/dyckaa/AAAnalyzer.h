@@ -30,7 +30,6 @@ private:
     DyckGraph* dgraph;
 
 private:
-    map<DyckVertex *, DyckVertex* > hanging_ptr_map;
     map<Type*, FunctionTypeNode*> functionTyNodeMap;
     set<FunctionTypeNode *> tyroots;
 
@@ -61,15 +60,13 @@ private:
     void handle_common_function_call(Value* ci, FunctionWrapper* caller, FunctionWrapper* callee);
     void storeCandidateFunctions(FunctionWrapper* parent, Value * call, Value * cv);
 
-    void handle_hanging_pointers();
-
 private:
     bool isCompatible(FunctionType * t1, FunctionType * t2);
     void initFunctionGroups();
     void destroyFunctionGroups();
 
 private:
-    DyckVertex* addField(DyckVertex* val, int fieldIndex);
+    DyckVertex* addField(DyckVertex* val, int fieldIndex, DyckVertex* field);
     DyckVertex* addPtrTo(DyckVertex* address, DyckVertex* val);
     void makeAlias(DyckVertex* x, DyckVertex* y);
 

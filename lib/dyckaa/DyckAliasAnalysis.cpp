@@ -121,10 +121,25 @@ namespace {
 
             if (VA == VB) {
                 return MayAlias;
-            } else if (dyck_graph->havePathsWithoutLabel(VA, VB, (void*) DEREF_LABEL)) {
-                return PartialAlias;
             } else {
-                return NoAlias;
+                set<DyckVertex*>* VAderefset = VA->getOutVertices((void*) DEREF_LABEL);
+                if(VAderefset == NULL || VAderefset->empty()){
+                    return NoAlias;
+                }
+                
+                set<DyckVertex*>* VBderefset = VB->getOutVertices((void*) DEREF_LABEL);
+                if(VBderefset == NULL || VBderefset->empty()){
+                    return NoAlias;
+                }
+                
+                DyckVertex* VAderef = (*(VAderefset->begin()))->getRepresentative();
+                DyckVertex* VBderef = (*(VBderefset->begin()))->getRepresentative();
+                
+                if (dyck_graph->havePathsWithoutLabel(VAderef, VBderef, (void*) DEREF_LABEL)) {
+                    return PartialAlias;
+                } else {
+                    return NoAlias;
+                }
             }
         }
 
@@ -351,7 +366,7 @@ namespace {
 
         if (InterAAEval) {
             set<DyckVertex*>& allreps = dyck_graph->getRepresentatives();
-            
+
             FILE * log = fopen("distribution.log", "w+");
 
             vector<unsigned long> aliasSetSizes;
@@ -364,7 +379,8 @@ namespace {
 
                 set<DyckVertex*>::iterator asIt = aliasset->begin();
                 while (asIt != aliasset->end()) {
-                    if ((*asIt)->getValue() != NULL) {
+                    Value * val = ((Value*)(*asIt)->getValue());
+                    if (val != NULL && val->getType()->isPointerTy()) {
                         size++;
                     }
 
@@ -393,6 +409,7 @@ namespace {
 
             double percentOfNoAlias = noAliasNum / (double) pairNum * 100;
 
+            fclose(log);
             errs() << "===== Alias Analysis Evaluator Report =====\n";
             errs() << "   " << pairNum << " Total Alias Queries Performed\n";
             errs() << "   " << noAliasNum << " no alias responses (" << (unsigned long) percentOfNoAlias << "%)\n\n";

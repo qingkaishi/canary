@@ -59,7 +59,7 @@ private:
     vector<Value*> va_args;
     
     set<Value*> resumes;
-    set<Value*> lpads;
+    map<Value*, Value*> lpads; // invoke <-> lpad
 
     // call instructions in the function
     set<CommonCall *> callInsts; //Common CallInst/InvokeInst
@@ -83,7 +83,7 @@ public:
 
     void addResume(Value * res);
 
-    void addLandingPad(Value * lpad);
+    void addLandingPad(Value * invoke, Value * lpad);
 
     void addRet(Value * ret);
 
@@ -99,7 +99,7 @@ public:
 
     set<Value*>& getResumes();
 
-    set<Value*>& getLandingPads();
+    Value* getLandingPad(Value * invoke);
 };
 
 

@@ -70,8 +70,8 @@ void FunctionWrapper::addResume(Value * res) {
     resumes.insert(res);
 }
 
-void FunctionWrapper::addLandingPad(Value * lpad) {
-    lpads.insert(lpad);
+void FunctionWrapper::addLandingPad(Value * invoke, Value * lpad) {
+    lpads.insert(pair<Value*, Value*>(invoke, lpad));
 }
 
 void FunctionWrapper::addRet(Value * ret) {
@@ -102,6 +102,9 @@ set<Value*>& FunctionWrapper::getResumes() {
     return resumes;
 }
 
-set<Value*>& FunctionWrapper::getLandingPads() {
-    return lpads;
+Value* FunctionWrapper::getLandingPad(Value * invoke) {
+    if(lpads.count(invoke)){
+        return lpads[invoke];
+    }
+    return NULL;
 }
