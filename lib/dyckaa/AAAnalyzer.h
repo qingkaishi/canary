@@ -37,9 +37,12 @@ private:
     map<Function*, FunctionWrapper *> wrapped_functions_map;
     set<FunctionWrapper*> wrapped_functions;
     vector<CallInst*> tempCalls;
+    
+private:
+    bool recordCGInfo;
 
 public:
-    AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d);
+    AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG = false);
     ~AAAnalyzer();
 
     void start_intra_procedure_analysis();
@@ -52,6 +55,9 @@ public:
     bool inter_procedure_analysis();
 
     void getValuesEscapedFromThreadCreate(set<Value*>* ret);
+    
+    void printCallGraph(const string& mIdentifier);
+    void printFunctionPointersInformation(const string& mIdentifier);
 
 private:
     void handle_inst(Instruction *inst, FunctionWrapper * parent);
@@ -61,7 +67,7 @@ private:
     void storeCandidateFunctions(FunctionWrapper* parent, Value * call, Value * cv);
 
 private:
-    bool isCompatible(FunctionType * t1, FunctionType * t2);
+    int isCompatible(FunctionType * t1, FunctionType * t2);
     void initFunctionGroups();
     void destroyFunctionGroups();
 

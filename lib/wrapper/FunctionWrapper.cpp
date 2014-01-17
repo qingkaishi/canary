@@ -3,25 +3,13 @@
 CommonCall::CommonCall(Function* f, Value* ci) {
     this->callee = f;
     this->ret = ci;
-
-    if (isa<CallInst>(ci)) {
-        unsigned num = ((CallInst*) ci)->getNumArgOperands();
-        for (unsigned i = 0; i < num; i++) {
-            this->args.push_back(((CallInst*) ci)->getArgOperand(i));
-        }
-    } else if (isa<InvokeInst>(ci)) {
-        unsigned num = ((InvokeInst*) ci)->getNumArgOperands();
-        for (unsigned i = 0; i < num; i++) {
-            this->args.push_back(((InvokeInst*) ci)->getArgOperand(i));
-        }
-    } else {
-        outs() << "Error in CommonCall\n";
-        outs() << *ci;
-    }
 }
+
+int FunctionWrapper::global_idx = 0;
 
 FunctionWrapper::FunctionWrapper(Function *f) {
     llvm_function = f;
+    idx = global_idx++;
 
     iplist<Argument>& alt = f->getArgumentList();
     iplist<Argument>::iterator it = alt.begin();
@@ -38,6 +26,28 @@ FunctionWrapper::~FunctionWrapper() {
         delete (it->second);
         it++;
     }
+    
+    it = fpMapForCG.begin();
+    while (it != fpMapForCG.end()) {
+        delete (it->second);
+        it++;
+    }
+    
+    set<CommonCall *>::iterator cit =  callInsts.begin();
+    while(cit!=callInsts.end()){
+        delete *cit;
+        cit++;
+    }
+    
+    cit =  callInstsForCG.begin();
+    while(cit!=callInstsForCG.end()){
+        delete *cit;
+        cit++;
+    }
+}
+
+int FunctionWrapper::getIndex(){
+    return idx;
 }
 
 void FunctionWrapper::setCandidateFunctions(Value * ci, set<Function*>& fs) {
@@ -107,4 +117,22 @@ Value* FunctionWrapper::getLandingPad(Value * invoke) {
         return lpads[invoke];
     }
     return NULL;
+}
+
+set<CommonCall *>* FunctionWrapper::getCommonCallInstsForCG() {
+    return &callInstsForCG;
+}
+
+set<Function*>* FunctionWrapper::getFPCallInstsForCG(Value * ci){
+    if(fpMapForCG.count(ci)){
+        return fpMapForCG[ci];
+    } else {
+        set<Function*> * ciset = new set<Function*>;
+        fpMapForCG.insert(pair<Value*, set<Function*> *>(ci, ciset));
+        return ciset;
+    }
+}
+    
+map<Value *, set<Function*>*>* FunctionWrapper::getFPCallInstsForCG(){
+    return &fpMapForCG;
 }

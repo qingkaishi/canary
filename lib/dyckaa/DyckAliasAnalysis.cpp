@@ -44,8 +44,16 @@ PecanTransformer("pecan-transformer", cl::init(false), cl::Hidden,
         cl::desc("Transform programs using pecan transformer."));
 
 static cl::opt<bool>
+DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
+        cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
+
+static cl::opt<bool>
 InterAAEval("inter-aa-eval", cl::init(false), cl::Hidden,
         cl::desc("Inter-procedure alias analysis evaluator."));
+
+static cl::opt<bool>
+CountFP("count-fp", cl::init(false), cl::Hidden,
+        cl::desc("Calculate how many function pointers point to."));
 
 static const Function *getParent(const Value *V) {
     if (const Instruction * inst = dyn_cast<Instruction>(V))
@@ -260,7 +268,7 @@ namespace {
     bool DyckAliasAnalysis::runOnModule(Module &M) {
         InitializeAliasAnalysis(this);
 
-        AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph);
+        AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph, DotCallGraph||CountFP);
 
         /// step 1: intra-procedure analysis
         aaa->start_intra_procedure_analysis();
@@ -273,19 +281,20 @@ namespace {
         aaa->start_inter_procedure_analysis();
         outs() << "Start inter-procedure analysis...\n";
         int itTimes = 0;
-        bool first = true;
         while (1) {
-            outs() << "Iterating... " << ++itTimes << "             \r";
-
-            bool finished = aaa->inter_procedure_analysis();
-
-            if (finished && !first) {
+            bool finished = dyck_graph->qirunAlgorithm();
+            
+            if(finished){
                 break;
             }
+            
+            outs() << "Iterating... " << ++itTimes << "             \r";
+            
+            finished = aaa->inter_procedure_analysis();
 
-            first = false;
-
-            dyck_graph->qirunAlgorithm();
+            if (finished) {
+                break;
+            }
         }
         outs() << "\nDone!\n\n";
         aaa->end_inter_procedure_analysis();
@@ -294,6 +303,19 @@ namespace {
         /* do something others if needed */
         if (PecanTransformer || LeapTransformer) {
             aaa->getValuesEscapedFromThreadCreate(&thread_escapes_pts);
+        }
+        
+        /* call graph */
+        if(DotCallGraph) {
+            outs() << "Printing call graph...\n";
+            aaa->printCallGraph(M.getModuleIdentifier());
+            outs() << "Done!\n\n";
+        }
+        
+        if(CountFP){
+            outs() << "Printing function pointer information...\n";
+            aaa->printFunctionPointersInformation(M.getModuleIdentifier());
+            outs() << "Done!\n\n";
         }
 
         delete aaa;

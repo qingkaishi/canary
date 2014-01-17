@@ -137,7 +137,9 @@ void DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
     y->setRepresentative(x);
 }
 
-void DyckGraph::qirunAlgorithm() {
+bool DyckGraph::qirunAlgorithm() {
+    bool ret = true;
+    
     multimap<DyckVertex*, void*> worklist;
 
     set<DyckVertex*>::iterator vit = reps.begin();
@@ -152,6 +154,10 @@ void DyckGraph::qirunAlgorithm() {
         }
 
         vit++;
+    }
+    
+    if(!worklist.empty()){
+        ret = false;
     }
 
     while (!worklist.empty()) {
@@ -248,6 +254,8 @@ void DyckGraph::qirunAlgorithm() {
             yilit++;
         }
     }
+    
+    return ret;
 }
 
 pair<DyckVertex*, bool> DyckGraph::retrieveDyckVertex(void* value, const char* name) {

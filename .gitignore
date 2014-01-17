@@ -3,3 +3,5 @@
 *.log
 Release+Asserts
 pecan_log_analyzer
+nbproject
+alias-Makefile.mk

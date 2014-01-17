@@ -2,13 +2,20 @@
 
 #define ARRAY_SIMPLIFIED
 
-AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d) {
+AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG) {
     module = m;
     aa = a;
     dgraph = d;
+
+    recordCGInfo = CG;
 }
 
 AAAnalyzer::~AAAnalyzer() {
+    for (unsigned int i = 0; i < tempCalls.size(); i++) {
+        // this is necessary
+        tempCalls[i]->eraseFromParent();
+    }
+
     set<FunctionWrapper*>::iterator it = wrapped_functions.begin();
     while (it != wrapped_functions.end()) {
         delete (*it);
@@ -31,10 +38,6 @@ void AAAnalyzer::start_inter_procedure_analysis() {
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
-    for (unsigned int i = 0; i < tempCalls.size(); i++) {
-        // this is necessary
-        tempCalls[i]->eraseFromParent();
-    }
 }
 
 bool AAAnalyzer::intra_procedure_analysis() {
@@ -99,31 +102,227 @@ void AAAnalyzer::getValuesEscapedFromThreadCreate(set<Value*>* ret) {
     }
 }
 
+//// call graph printer
+
+void AAAnalyzer::printCallGraph(const string& mIdentifier) {
+    string dotfilename("");
+    dotfilename.append(mIdentifier);
+    dotfilename.append(".maycg.dot");
+
+    FILE * fout = fopen(dotfilename.data(), "w+");
+    fprintf(fout, "digraph maycg {\n");
+
+    for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+        Function* f = iterF;
+        if (f->isIntrinsic()) {
+            continue;
+        }
+
+        if (wrapped_functions_map.count(f)) {
+            FunctionWrapper * fw = wrapped_functions_map[f];
+            fprintf(fout, "\tf%d[label=\"%s\"]\n", fw->getIndex(), f->getName().data());
+        } else {
+            errs() << "ERROR in printCG when declare functions.\n";
+            exit(-1);
+        }
+    }
+
+    set<FunctionWrapper*>::iterator fwIt = wrapped_functions.begin();
+    while (fwIt != wrapped_functions.end()) {
+        FunctionWrapper* fw = *fwIt;
+        set<CommonCall*>* commonCalls = fw->getCommonCallInstsForCG();
+        set<CommonCall*>::iterator comIt = commonCalls->begin();
+        while (comIt != commonCalls->end()) {
+            CommonCall* cc = *comIt;
+
+            if (wrapped_functions_map.count(cc->callee)) {
+                Value * ci = cc->ret;
+                std::string s;
+                raw_string_ostream rso(s);
+                rso << *(ci);
+                string& edgelabel = rso.str();
+                for (unsigned int i = 0; i < edgelabel.length(); i++) {
+                    if (edgelabel[i] == '\"') {
+                        edgelabel[i] = '`';
+                    }
+
+                    if (edgelabel[i] == '\n') {
+                        edgelabel[i] = ' ';
+                    }
+                }
+                fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[cc->callee]->getIndex(), edgelabel.data());
+            } else {
+                errs() << "ERROR in printCG when print common function calls.\n";
+                exit(-1);
+            }
+            comIt++;
+        }
+
+        map<Value *, set<Function*>*>* fpCallsMap = fw->getFPCallInstsForCG();
+        map<Value *, set<Function*>*>::iterator fpIt = fpCallsMap->begin();
+        while (fpIt != fpCallsMap->end()) {
+            Value * callInst = fpIt->first;
+            set<Function*>* mayCalled = fpIt->second;
+            
+            Value* calledValue = NULL;
+            if(isa<CallInst>(callInst)){
+                calledValue=((CallInst*)callInst)->getCalledValue();
+            }else if(isa<InvokeInst>(callInst)){
+                calledValue=((InvokeInst*)callInst)->getCalledValue();
+            }
+
+            std::string s;
+            raw_string_ostream rso(s);
+            rso << *(callInst);
+            string& edgelabel = rso.str(); // edge label is the call inst
+            for (unsigned int i = 0; i < edgelabel.length(); i++) {
+                if (edgelabel[i] == '\"') {
+                    edgelabel[i] = '`';
+                }
+
+                if (edgelabel[i] == '\n') {
+                    edgelabel[i] = ' ';
+                }
+            }
+
+            set<Function*>::iterator mcIt = mayCalled->begin();
+            while (mcIt != mayCalled->end()) {
+                Function * mcf = *mcIt;
+                if (wrapped_functions_map.count(mcf)) {
+
+                    int clevel = this->isCompatible((FunctionType*) (mcf->getType()->getPointerElementType()), (FunctionType*) (calledValue->getType()->getPointerElementType()));
+                    fprintf(fout, "\tf%d->f%d[label=\"%s\"] // confidence-level = %d\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex(), edgelabel.data(), clevel);
+                } else {
+                    errs() << "ERROR in printCG when print fp calls.\n";
+                    exit(-1);
+                }
+
+                mcIt++;
+            }
+
+            fpIt++;
+        }
+
+
+        fwIt++;
+    }
+
+    fprintf(fout, "}\n");
+    fclose(fout);
+}
+
+// fp info
+
+void AAAnalyzer::printFunctionPointersInformation(const string& mIdentifier) {
+    string dotfilename("");
+    dotfilename.append(mIdentifier);
+    dotfilename.append(".fp.txt");
+
+    FILE * fout = fopen(dotfilename.data(), "w+");
+
+    set<FunctionWrapper*>::iterator fwIt = wrapped_functions.begin();
+    while (fwIt != wrapped_functions.end()) {
+        FunctionWrapper* fw = *fwIt;
+
+        map<Value *, set<Function*>*>* fpCallsMap = fw->getFPCallInstsForCG();
+        map<Value *, set<Function*>*>::iterator fpIt = fpCallsMap->begin();
+        while (fpIt != fpCallsMap->end()) {
+            /*Value * callInst = fpIt->first;
+            std::string s;
+            raw_string_ostream rso(s);
+            rso << *(callInst);
+            string& edgelabel = rso.str();
+            for (unsigned int i = 0; i < edgelabel.length(); i++) {
+                if (edgelabel[i] == '\"') {
+                    edgelabel[i] = '`';
+                }
+
+                if (edgelabel[i] == '\n') {
+                    edgelabel[i] = ' ';
+                }
+            }
+            fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
+             */
+            set<Function*>* mayCalled = fpIt->second;
+            fprintf(fout, "%d\n", mayCalled->size()); //number of functions
+
+            // what functions?
+            set<Function*>::iterator mcIt = mayCalled->begin();
+            while (mcIt != mayCalled->end()) {
+                // Function * mcf = *mcIt;
+                //fprintf(fout, "%s\n", mcf->getName().data());
+
+                mcIt++;
+            }
+
+            //fprintf(fout, "\n");
+
+            fpIt++;
+        }
+
+
+        fwIt++;
+    }
+
+    fclose(fout);
+}
+
 //// The followings are private functions
 
-bool AAAnalyzer::isCompatible(FunctionType * t1, FunctionType * t2) {
+int AAAnalyzer::isCompatible(FunctionType * t1, FunctionType * t2) {
     if (t1 == t2) {
-        return true;
+        return 1;
     }
 
     if (t1->isVarArg() != t2->isVarArg()) {
-        return false;
+        return 0;
     }
 
     Type* retty1 = t1->getReturnType();
     Type* retty2 = t2->getReturnType();
 
     if (retty1->isVoidTy() != retty2->isVoidTy()) {
-        return false;
+        return 0;
     }
 
     unsigned pn1 = t1->getNumParams();
     unsigned pn2 = t2->getNumParams();
 
     if (pn1 == pn2) {
-        return true;
+        bool level2 = true;
+        for (unsigned i = 0; i < pn1; i++) {
+            if (aa->getTypeStoreSize(t1->getParamType(i))
+                    != aa->getTypeStoreSize(t2->getParamType(i))) {
+                level2 = false;
+                break;
+            }
+        }
+
+        if (level2)
+            return 2;
+
+        bool level3 = true;
+        for (unsigned i = 0; i < pn1; i++) {
+            Type* tp1 = t1->getParamType(i);
+            Type* tp2 = t2->getParamType(i);
+
+            if (tp1->isIntegerTy() != tp2->isIntegerTy()) {
+                level3 = false;
+                break;
+            }
+
+            if (tp1->isPointerTy() != tp2->isPointerTy()) {
+                level3 = false;
+                break;
+            }
+        }
+
+        if (level3)
+            return 3;
+
+        return 4;
     } else {
-        return false;
+        return 0;
     }
 }
 
@@ -211,12 +410,12 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, int fieldIndex, DyckVertex* fi
         errs() << "ERROR in addField: " << fieldIndex << "\n";
         exit(1);
     }
-    
+
     DyckVertex* valrep = val->getRepresentative();
-    
-    if(field == NULL){
+
+    if (field == NULL) {
         set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (fieldIndex));
-        if(valrepset!=NULL && !valrepset->empty()){
+        if (valrepset != NULL && !valrepset->empty()) {
             field = *(valrepset->begin());
         } else {
             field = dgraph->retrieveDyckVertex(NULL).first;
@@ -225,7 +424,7 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, int fieldIndex, DyckVertex* fi
     } else {
         valrep->addTarget(field, (void*) (fieldIndex));
     }
-    
+
     return field;
 }
 
@@ -233,30 +432,30 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, int fieldIndex, DyckVertex* fi
 /// otherwise return the ptr;
 
 DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
-    if(address == NULL && val == NULL){
+    if (address == NULL && val == NULL) {
         errs() << "ERROR in addPtrTo\n";
         exit(1);
-    } else if(address == NULL){
+    } else if (address == NULL) {
         address = dgraph->retrieveDyckVertex(NULL).first;
         address->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
         return address;
-    } else if(val == NULL){
+    } else if (val == NULL) {
         DyckVertex* addrep = address->getRepresentative();
-        set<DyckVertex*>* derefset = addrep->getOutVertices((void*)DEREF_LABEL);
-        if(derefset != NULL && !derefset->empty()){
+        set<DyckVertex*>* derefset = addrep->getOutVertices((void*) DEREF_LABEL);
+        if (derefset != NULL && !derefset->empty()) {
             val = *(derefset->begin());
         } else {
             val = dgraph->retrieveDyckVertex(NULL).first;
             addrep->addTarget(val, (void*) DEREF_LABEL);
         }
-        
+
         return val;
     } else {
         DyckVertex* addrep = address->getRepresentative();
         addrep->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
         return addrep;
     }
-    
+
 }
 
 /// make them alias
@@ -285,6 +484,8 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
         }
 
         if ((*preGTI)->isStructTy()) {
+            // example: gep y 0 constIdx
+            // s1: y--deref-->?1--(-2-constIdx)-->?2
             DyckVertex* theStruct = this->addPtrTo(current, NULL);
 
             ConstantInt * ci = cast<ConstantInt>(idx);
@@ -298,7 +499,15 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
             int fieldIdx = (int) (*(ci->getValue().getRawData()));
             DyckVertex* field = this->addField(theStruct, -2 - fieldIdx, NULL);
 
-            current = this->addPtrTo(NULL, field);
+            // s2: ?3--deref-->?2
+            DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
+
+            /// the label representation and feature impl is temporal. @FIXME
+            // s3: y--2-->?3
+            current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (fieldIdx));
+
+            // update current
+            current = fieldPtr;
         } else if ((*preGTI)->isPointerTy() || (*preGTI)->isArrayTy()) {
 #ifndef ARRAY_SIMPLIFIED
             current = addPtrOffset(current, getConstantIntRawData(cast<ConstantInt>(idx)) * dl.getTypeAllocSize(*GTI), dgraph);
@@ -603,7 +812,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             Type* aggTy = agg->getType();
 
             ArrayRef<unsigned> indices = ((ExtractValueInst*) inst)->getIndices();
-            DyckVertex* current = NULL;
+            DyckVertex* currentStruct = aggV;
 
             for (unsigned int i = 0; i < indices.size(); i++) {
                 if (isa<CompositeType>(aggTy) && aggTy->isSized()) {
@@ -612,32 +821,16 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
 #ifndef ARRAY_SIMPLIFIED
                         current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
 #endif
-                        if(i == indices.size() - 1){
-                            if(current == NULL) {
-                                this->makeAlias(aggV, wrapValue(inst));
-                            } else {
-                                this->addPtrTo(current, wrapValue(inst));
-                            }
+                        if (i == indices.size() - 1) {
+                            this->makeAlias(currentStruct, wrapValue(inst));
                         }
                     } else {
                         aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
 
-                        if (current == NULL) {
-                            if (i != indices.size() - 1) {
-                                DyckVertex* field = this->addField(aggV, -2 - (int) indices[i], NULL);
-                                current = this->addPtrTo(NULL, field);
-                            } else {
-                                this->addField(aggV, -2 - (int) indices[i], wrapValue(inst));
-                            }
+                        if (i != indices.size() - 1) {
+                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], NULL);
                         } else {
-                            if (i != indices.size() - 1) {
-                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
-                                DyckVertex* field = addField(theStruct, -2 - (int) indices[i], NULL);
-                                current = this->addPtrTo(NULL, field);
-                            } else {
-                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
-                                this->addField(theStruct, -2 - (int) indices[i], wrapValue(inst));
-                            }
+                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], wrapValue(inst));
                         }
                     }
                 } else {
@@ -653,17 +846,15 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             if (!isa<UndefValue>(agg)) {
                 makeAlias(resultV, wrapValue(agg));
             }
-            
+
             Value * val = ((InsertValueInst*) inst)->getInsertedValueOperand();
             DyckVertex* insertedVal = wrapValue(val);
-
-            //DyckVertex* aggPtr = addPtrTo(NULL, resultV);
 
             Type *aggTy = inst->getType();
 
             ArrayRef<unsigned> indices = ((InsertValueInst*) inst)->getIndices();
 
-            DyckVertex* current = NULL;
+            DyckVertex* currentStruct = resultV;
 
             for (unsigned int i = 0; i < indices.size(); i++) {
                 if (isa<CompositeType>(aggTy) && aggTy->isSized()) {
@@ -672,31 +863,16 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
 #ifndef ARRAY_SIMPLIFIED
                         current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
 #endif
-                        if(i == indices.size() - 1){
-                            if(current == NULL) {
-                                this->makeAlias(resultV, insertedVal);
-                            } else {
-                                this->addPtrTo(current, insertedVal);
-                            }
+                        if (i == indices.size() - 1) {
+                            this->makeAlias(currentStruct, insertedVal);
                         }
                     } else {
                         aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-                        if (current == NULL) {
-                            if (i != indices.size() - 1) {
-                                DyckVertex* field = this->addField(resultV, -2 - (int) indices[i], NULL);
-                                current = this->addPtrTo(NULL, field);
-                            } else {
-                                this->addField(resultV, -2 - (int) indices[i], insertedVal);
-                            }
+
+                        if (i != indices.size() - 1) {
+                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], NULL);
                         } else {
-                            if (i != indices.size() - 1) {
-                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
-                                DyckVertex* field = addField(theStruct, -2 - (int) indices[i], NULL);
-                                current = this->addPtrTo(NULL, field);
-                            } else {
-                                DyckVertex* theStruct = this->addPtrTo(current, NULL);
-                                this->addField(theStruct, -2 - (int) indices[i], insertedVal);
-                            }
+                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], insertedVal);
                         }
                     }
                 } else {
@@ -898,10 +1074,10 @@ void AAAnalyzer::handle_common_function_call(Value* ci, FunctionWrapper* caller,
         vector<Value*>::iterator pit = parameters.begin();
         while (pit != parameters.end()) {
             if (numOfArgOp <= argIdx) {
-                errs() << "ERROR when match args and parameters\n";
+                errs() << "Warning the number of args is less than that of parameters\n";
                 errs() << func->getName() << "\n";
                 errs() << *ci << "\n";
-                exit(-1);
+                break; //exit(-1);
             }
 
             Value * arg = NULL;
@@ -948,6 +1124,10 @@ void AAAnalyzer::handle_common_function_call(Value* ci, FunctionWrapper* caller,
 bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
     bool ret = false;
 
+    set<CommonCall*>* commonCalls = NULL;
+    if (recordCGInfo) {
+        commonCalls = caller->getCommonCallInstsForCG();
+    }
     set<CommonCall*>& callInsts = caller->getCommonCallInsts();
     set<CommonCall*>::iterator cit = callInsts.begin();
     while (cit != callInsts.end()) {
@@ -958,7 +1138,11 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
             //(*cit)->ret is the return value, it is also the call inst
             handle_common_function_call((*cit)->ret, caller, (wrapped_functions_map)[cv]);
 
-            delete *cit;
+            if (recordCGInfo) {
+                commonCalls->insert(*cit);
+            } else {
+                delete *cit;
+            }
 
             callInsts.erase(cit);
         } else {
@@ -976,6 +1160,11 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         Value * inst = mit->first;
         set<Function*>* cands = mit->second;
 
+        set<Function*>* maycallfuncs = NULL;
+        if (recordCGInfo) {
+            maycallfuncs = caller->getFPCallInstsForCG(mit->first);
+        }
+
         // cv, numOfArguments
         int numOfArguments = 0;
         Value * cv = NULL;
@@ -990,9 +1179,13 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         set<Function*>* funcs = cands;
         set<Function*>::iterator pfit = funcs->begin();
         while (pfit != funcs->end()) {
-            if (aa->alias(*pfit, cv) != AliasAnalysis::NoAlias) {
+            if (aa->alias(*pfit, cv) == AliasAnalysis::MayAlias) {
                 ret = true;
                 handle_common_function_call(inst, caller, (wrapped_functions_map)[*pfit]);
+
+                if (recordCGInfo) {
+                    maycallfuncs->insert(*pfit);
+                }
 
                 if (numOfArguments == 4 && (*pfit)->getName().str() == "pthread_create") {
                     // create a new call instruction, and record it.

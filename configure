@@ -2686,6 +2686,18 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $llvm_config_path" >&5
 $as_echo "$llvm_config_path" >&6; }
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for passes declaration" >&5
+$as_echo_n "checking for passes declaration... " >&6; }
+if grep -q -F "ModulePass *createDyckAliasAnalysisPass();" "`llvm-config --includedir`/llvm/Analysis/Passes.h"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	as_fn_error $? "Please add \"ModulePass *createDyckAliasAnalysisPass();\" into llvm/Analysis/Passes.h." "$LINENO" 5
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking LLVM package version" >&5
 $as_echo_n "checking LLVM package version... " >&6; }
 if test "$llvm_config_path" != no ; then
@@ -9287,7 +9299,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9290 "configure"
+#line 9302 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H

@@ -25,6 +25,16 @@ if ! test -f "$llvm_config_path" ; then
 fi
 AC_MSG_RESULT([$llvm_config_path])
 
+dnl Try to determine whether the alias analysis has been declared.
+AC_MSG_CHECKING([for passes declaration])
+if grep -q -F "ModulePass *createDyckAliasAnalysisPass();" "`llvm-config --includedir`/llvm/Analysis/Passes.h"
+then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+	AC_MSG_ERROR([Please add "ModulePass *createDyckAliasAnalysisPass();" into llvm/Analysis/Passes.h.])
+fi
+
 dnl Determine the LLVM version, which may be required by the current Makefile
 dnl rules.
 AC_MSG_CHECKING([LLVM package version])

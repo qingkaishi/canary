@@ -613,7 +613,7 @@ S["ENABLE_VISIBILITY_INLINES_HIDDEN"]="1"
 S["OCAML_LIBDIR"]=""
 S["ALL_BINDINGS"]="ocaml"
 S["BINDINGS_TO_BUILD"]=""
-S["LLVM_CONFIGTIME"]="Sun Jan  5 16:08:22 CST 2014"
+S["LLVM_CONFIGTIME"]="Sat Jan 11 11:17:47 CST 2014"
 S["LLVM_MANDIR"]="/usr/local/man"
 S["LLVM_INFODIR"]="/usr/local/info"
 S["LLVM_INCLUDEDIR"]="/usr/local/include"
@@ -792,8 +792,8 @@ S["DEFS"]="-DPACKAGE_NAME=\\\"\\[ALIAS\\]\\\" -DPACKAGE_TARNAME=\\\"--alias--\\\
 "ISINF_IN_CMATH=1 -DHAVE_STD_ISINF_IN_CMATH=1 -DHAVE_STDLIB_H=1 -DHAVE_UNISTD_H=1 -DHAVE_SYS_PARAM_H=1 -DHAVE_GETPAGESIZE=1 -DHAVE_MMAP=1 -DHAVE_MMAP"\
 "_FILE=/\\*\\*/ -DLLVM_HAS_ATOMICS=1 -DHAVE___DSO_HANDLE=1 -DLLVM_PREFIX=\\\"/usr/local\\\" -DLLVM_BINDIR=\\\"/usr/local/bin\\\" -DLLVM_LIBDIR=\\\"/usr/local/lib"\
 "\\\" -DLLVM_DATADIR=\\\"/usr/local/share/llvm\\\" -DLLVM_DOCSDIR=\\\"/usr/local/share/doc/llvm\\\" -DLLVM_ETCDIR=\\\"/usr/local/etc/llvm\\\" -DLLVM_INCLUDEDIR=\\\"/"\
-"usr/local/include\\\" -DLLVM_INFODIR=\\\"/usr/local/info\\\" -DLLVM_MANDIR=\\\"/usr/local/man\\\" -DLLVM_CONFIGTIME=\\\"Sun\\ Jan\\ \\ 5\\ 16:08:22\\ CST\\ 2014\\\" -DL"\
-"LVM_DEFAULT_TARGET_TRIPLE=\\\"i686-pc-linux-gnu\\\""
+"usr/local/include\\\" -DLLVM_INFODIR=\\\"/usr/local/info\\\" -DLLVM_MANDIR=\\\"/usr/local/man\\\" -DLLVM_CONFIGTIME=\\\"Sat\\ Jan\\ 11\\ 11:17:47\\ CST\\ 2014\\\" -DLL"\
+"VM_DEFAULT_TARGET_TRIPLE=\\\"i686-pc-linux-gnu\\\""
 S["mandir"]="${datarootdir}/man"
 S["localedir"]="${datarootdir}/locale"
 S["libdir"]="${exec_prefix}/lib"

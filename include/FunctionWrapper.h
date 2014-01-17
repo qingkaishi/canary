@@ -44,7 +44,6 @@ using namespace std;
 class CommonCall{
 public:
     Value * ret;
-    vector<Value *> args;
     Function * callee;
     
     CommonCall(Function * f, Value* ci);
@@ -52,6 +51,8 @@ public:
 
 class FunctionWrapper {
 private:
+    int idx;
+    
     Function * llvm_function;
     set<Value*> rets;
 
@@ -65,11 +66,19 @@ private:
     set<CommonCall *> callInsts; //Common CallInst/InvokeInst
     map<Value *, set<Function*>*> ci_cand_map; // call insts <-> candidate for fps
     
+    set<CommonCall *> callInstsForCG;
+    map<Value *, set<Function*>*> fpMapForCG;
+    
+private:
+    static int global_idx;
+    
 public:
 
     FunctionWrapper(Function *f);
     
     ~FunctionWrapper();
+    
+    int getIndex();
 
     void setCandidateFunctions(Value * ci, set<Function*>& fs);
     
@@ -100,6 +109,12 @@ public:
     set<Value*>& getResumes();
 
     Value* getLandingPad(Value * invoke);
+    
+    set<Function*>* getFPCallInstsForCG(Value *);
+    
+    map<Value *, set<Function*>*>* getFPCallInstsForCG();
+    
+    set<CommonCall *>* getCommonCallInstsForCG();
 };
 
 
