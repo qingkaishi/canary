@@ -2,10 +2,10 @@ Canary
 ======
 
 Canary is a set of tools built on a unification-based alias analysis.
-Relative papers include ``Points-to analysis in almost linear time", 
-``Fast algorithms for Dyck-CFL-reachability with applications to alias 
-analysis", ``LEAP: lightweight deterministic multi-processor replay of 
-concurrent java programs", ``Persuasive prediction of concurrency 
+Relative papers include "Points-to analysis in almost linear time", 
+"Fast algorithms for Dyck-CFL-reachability with applications to alias 
+analysis", "LEAP: lightweight deterministic multi-processor replay of 
+concurrent java programs", "Persuasive prediction of concurrency 
 access anomalies", etc. You can read them for detals.
 
 
