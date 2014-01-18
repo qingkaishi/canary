@@ -13,14 +13,13 @@ access anomalies", etc. You can read them for detals.
 Building Canary
 ------
 
-1. Download the project and put it into _llvm__src__code_/_projects_, 
-
-2. cd _llvm__src__code_/_projects_/_canary_
-
-3. ./configure
-
-4. sudo make install
-
+```bash
+cd <llvm_src_code_dir>/<projects>/
+git clone https://github.com/qingkaishi/canary.git
+cd canary
+./configure
+sudo make install
+```
 
 
 Using Canary
