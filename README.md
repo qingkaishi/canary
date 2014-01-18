@@ -33,10 +33,10 @@ opt -load dyckaa.so -dyckaa <bitcode_file> -o <output_file>
 
 Some options can be used for different objectives.
 
-1. -dot-may-callgraph
+* -dot-may-callgraph
 This option is used to print a call graph based on the alias analysis.
 
-2. -leap-transformer
+* -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 
 multi-processor replay of concurrent java programs".
 
@@ -47,7 +47,7 @@ You can use the following commands directly to use the function.
 ./leap.sh -i <bitcode_file>
 ```
 
-3. -pecan-transformer
+* -pecan-transformer
 A transformer for Pecan. Please read ``Persuasive prediction of concurrency 
 access anomalies"
 
@@ -59,11 +59,11 @@ You can use the following commands directly to use the function.
 ./pecan.sh -a <log_file>
 ```
 
-4. -inter-aa-eval
+* -inter-aa-eval
 This is a modified version of -aa-eval. -aa-eval only can be used to evaluate 
 intra-procedure alias analysis. 
 
-5. -count-fp
+* -count-fp
 Count how many functions that a function pointer may point to.
 
 
