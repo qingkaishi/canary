@@ -33,6 +33,13 @@ opt -load dyckaa.so -dyckaa <bitcode_file> -o <output_file>
 
 Some options can be used for different objectives.
 
+* -inter-aa-eval
+This is a modified version of -aa-eval. -aa-eval only can be used to evaluate 
+intra-procedure alias analysis. 
+
+* -count-fp
+Count how many functions that a function pointer may point to.
+
 * -dot-may-callgraph
 This option is used to print a call graph based on the alias analysis.
 
@@ -58,13 +65,6 @@ You can use the following commands directly to use the function.
 ./pecan.sh -i <bitcode_file>
 ./pecan.sh -a <log_file>
 ```
-
-* -inter-aa-eval
-This is a modified version of -aa-eval. -aa-eval only can be used to evaluate 
-intra-procedure alias analysis. 
-
-* -count-fp
-Count how many functions that a function pointer may point to.
 
 
 Bugs
