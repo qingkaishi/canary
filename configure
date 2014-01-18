@@ -2698,6 +2698,17 @@ $as_echo "no" >&6; }
 	as_fn_error $? "Please add \"ModulePass *createDyckAliasAnalysisPass();\" into llvm/Analysis/Passes.h." "$LINENO" 5
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for gcc version" >&5
+$as_echo_n "checking for gcc version... " >&6; }
+if test `g++ -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1 && test `gcc -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	as_fn_error $? "gcc/g++ version should be 4.8 or higher. If so, please check whether you have gawk." "$LINENO" 5
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking LLVM package version" >&5
 $as_echo_n "checking LLVM package version... " >&6; }
 if test "$llvm_config_path" != no ; then
@@ -9299,7 +9310,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9302 "configure"
+#line 9313 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13157,6 +13168,15 @@ ac_config_commands="$ac_config_commands lib/transformer/Makefile"
 ac_config_commands="$ac_config_commands lib/replay-support/Makefile"
 
 
+ac_config_commands="$ac_config_commands lib/replay-support/leap-support/Makefile"
+
+
+ac_config_commands="$ac_config_commands lib/replay-support/canary-support/Makefile"
+
+
+ac_config_commands="$ac_config_commands lib/replay-support/replay-support/Makefile"
+
+
 ac_config_commands="$ac_config_commands lib/trace-support/Makefile"
 
 
@@ -13906,6 +13926,9 @@ do
     "lib/dyckaa/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/dyckaa/Makefile" ;;
     "lib/transformer/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/transformer/Makefile" ;;
     "lib/replay-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/Makefile" ;;
+    "lib/replay-support/leap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/leap-support/Makefile" ;;
+    "lib/replay-support/canary-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/canary-support/Makefile" ;;
+    "lib/replay-support/replay-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/replay-support/Makefile" ;;
     "lib/trace-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/trace-support/Makefile" ;;
     "tools/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/Makefile" ;;
     "tools/leap/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/leap/Makefile" ;;
@@ -14346,6 +14369,12 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/transformer/Makefile lib/transformer/Makefile ;;
     "lib/replay-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/Makefile lib/replay-support/Makefile ;;
+    "lib/replay-support/leap-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/leap-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/leap-support/Makefile lib/replay-support/leap-support/Makefile ;;
+    "lib/replay-support/canary-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/canary-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/canary-support/Makefile lib/replay-support/canary-support/Makefile ;;
+    "lib/replay-support/replay-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/replay-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/replay-support/Makefile lib/replay-support/replay-support/Makefile ;;
     "lib/trace-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/trace-support/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/trace-support/Makefile lib/trace-support/Makefile ;;
     "tools/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname tools/Makefile`

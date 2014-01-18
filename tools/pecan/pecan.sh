@@ -44,8 +44,8 @@ if [ -f "$INPUT_FILE" ]; then
 	opt -load dyckaa.so -basicaa -dyckaa -pecan-transformer $INPUT_FILE -o "$INPUT_FILE.t.bc"
 	
 	echo ""
-	echo "The program has been transformed to $INPUT_FILE.trans.bc."
-	echo "Please add -lpecanrecord when you compile it to be an executable file."
+	echo "The program has been transformed to $INPUT_FILE.t.bc."
+	echo "Please add -ltrace when you compile it to be an executable file."
 	echo "After executing your program, execute \"pecan.sh -a LOG_FILE_NAME\" to obtain predicted bugs."
 	exit -1
 elif [ -f "$LOG_FILE" ]; then

@@ -72,7 +72,7 @@ private:
     void destroyFunctionGroups();
 
 private:
-    DyckVertex* addField(DyckVertex* val, int fieldIndex, DyckVertex* field);
+    DyckVertex* addField(DyckVertex* val, long fieldIndex, DyckVertex* field);
     DyckVertex* addPtrTo(DyckVertex* address, DyckVertex* val);
     void makeAlias(DyckVertex* x, DyckVertex* y);
 

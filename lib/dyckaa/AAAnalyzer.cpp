@@ -244,7 +244,7 @@ void AAAnalyzer::printFunctionPointersInformation(const string& mIdentifier) {
             fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
              */
             set<Function*>* mayCalled = fpIt->second;
-            fprintf(fout, "%d\n", mayCalled->size()); //number of functions
+            fprintf(fout, "%zd\n", mayCalled->size()); //number of functions
 
             // what functions?
             set<Function*>::iterator mcIt = mayCalled->begin();
@@ -405,7 +405,7 @@ static DyckVertex* addPtrOffset(DyckVertex* val, int offset, DyckGraph* dgraph) 
 
 /// return the structure's field vertex
 
-DyckVertex* AAAnalyzer::addField(DyckVertex* val, int fieldIndex, DyckVertex* field) {
+DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* field) {
     if (fieldIndex >= -1) {
         errs() << "ERROR in addField: " << fieldIndex << "\n";
         exit(1);
@@ -496,7 +496,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
             }
             // field index need not be the same as original value
             // make it be a negative integer
-            int fieldIdx = (int) (*(ci->getValue().getRawData()));
+            long fieldIdx = (long) (*(ci->getValue().getRawData()));
             DyckVertex* field = this->addField(theStruct, -2 - fieldIdx, NULL);
 
             // s2: ?3--deref-->?2

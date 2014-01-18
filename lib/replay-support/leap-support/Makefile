@@ -3,12 +3,12 @@
 #
 # Indicate where we are relative to the top of the source tree.
 #
-LEVEL=../..
+LEVEL=../../..
 
 #
 # Give the name of a library.  This will build a dynamic version.
 #
-LIBRARYNAME=trace
+LIBRARYNAME=leaprecord
 
 #
 # Include Makefile.common so we know what to do.
@@ -16,7 +16,7 @@ LIBRARYNAME=trace
 include $(LEVEL)/Makefile.common
 
 
-CFLAGS=-march=native
-CPPFLAGS=-march=native
-CXXFLAGS=-march=native
+CFLAGS=-march=native -I../
+CPPFLAGS=-march=native -I../
+CXXFLAGS=-march=native -I../
 

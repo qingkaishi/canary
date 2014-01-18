@@ -24,7 +24,7 @@ vector<Anomaly*> savs;
 vector<Anomaly*> mavs;
 
 Event events[MAX_EVENT_NUM];
-int events_pointer = 0;
+long events_pointer = 0;
 
 /* ************************************************************************
  * Thread
@@ -171,7 +171,8 @@ void init(const char * filename, const char* outfilename) {
         exit(-1);
     }
 
-    fread(&events_pointer, sizeof (int), 1, fin);
+    fread(&events_pointer, sizeof (long), 1, fin);
+    printf("[PECAN] Read %ld events from log file.\n", events_pointer);
     fread(events, sizeof (struct Event), events_pointer, fin);
     fclose(fin);
 
@@ -179,8 +180,8 @@ void init(const char * filename, const char* outfilename) {
 }
 
 void dump() {
-    printf("[PECAN] DR: %d \t SAV: %d \t MAV: %d \n", drs.size(), savs.size(), mavs.size());
-    fprintf(fout, "[PECAN] DR: %d \t SAV: %d \t MAV: %d \n", drs.size(), savs.size(), mavs.size());
+    printf("[PECAN] DR: %zd \t SAV: %zd \t MAV: %zd \n", drs.size(), savs.size(), mavs.size());
+    fprintf(fout, "[PECAN] DR: %zd \t SAV: %zd \t MAV: %zd \n", drs.size(), savs.size(), mavs.size());
     fclose(fout);
     fclose(stdout);
     fclose(stderr);
@@ -283,7 +284,7 @@ void predictDataRaces() {
             if (checkDR(&ei, &ej)) {
                 if (check(&ei, &ej)) {
                     //printf("[PECAN] [Data Races] %s at Line %d (Thread %lu)\t%s at Line %d (Thread %lu).\n", ei.type == READ ? "READ" : "WRITE", ei.line, ei.tid, ej.type == READ ? "READ" : "WRITE", ej.line, ej.tid);
-                    fprintf(fout, "[Data Races] %s at Line %d (Thread %lu)\t%s at Line %d (Thread %lu).\n", ei.type == READ ? "READ" : "WRITE", ei.line, ei.tid, ej.type == READ ? "READ" : "WRITE", ej.line, ej.tid);
+                    fprintf(fout, "[Data Races] %s at Line %ld (Thread %lu)\t%s at Line %ld (Thread %lu).\n", ei.type == READ ? "READ" : "WRITE", ei.line, ei.tid, ej.type == READ ? "READ" : "WRITE", ej.line, ej.tid);
 
                     Anomaly* dr = new Anomaly(DATA_RACE);
                     dr->add_event(&ei);
@@ -340,7 +341,7 @@ void predictSAVs() {
                         if (checkSAV(events_i[m], events_j[p], events_i[n])) {
                             if (canFindOne(m, n, events_i, ej)) {
                                 //printf("[PECAN] [sAtomicity] Line %d\tLine %d\t Line %d.\n", events_i[m]->line, events_j[p]->line, events_i[n]->line);
-                                fprintf(fout, "[sAtomicity] Line %d\tLine %d\t Line %d.\n", events_i[m]->line, events_j[p]->line, events_i[n]->line);
+                                fprintf(fout, "[sAtomicity] Line %ld\tLine %ld\t Line %ld.\n", events_i[m]->line, events_j[p]->line, events_i[n]->line);
 
                                 Anomaly* sav = new Anomaly(S_ATOMICITY);
                                 sav->add_event(events_i[m]);
@@ -411,7 +412,7 @@ void predictMAVs() {
 
                             if (potential) {
                                 //printf("[PECAN] [mAtomicity] Line %d\tLine %d\t Line %d\t Line %d.\n", em->line, en->line, ep->line, eq->line);
-                                fprintf(fout, "[mAtomicity] Line %d\tLine %d\t Line %d\t Line %d.\n", em->line, en->line, ep->line, eq->line);
+                                fprintf(fout, "[mAtomicity] Line %ld\tLine %ld\t Line %ld\t Line %ld.\n", em->line, en->line, ep->line, eq->line);
                                 
                                 Anomaly* mav = new Anomaly(M_ATOMICITY);
                                 mav->add_event(em);

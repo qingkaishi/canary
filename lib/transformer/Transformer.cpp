@@ -1,8 +1,9 @@
 #include "Transformer.h"
 
-Transformer::Transformer(Module* m, set<Value*>* svs) {
+Transformer::Transformer(Module* m, set<Value*>* svs, unsigned psize) {
     module = m;
     sharedVariables = svs;
+    ptrsize = psize;
 }
 
 void Transformer::insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...){

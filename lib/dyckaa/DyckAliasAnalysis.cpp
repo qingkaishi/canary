@@ -366,13 +366,15 @@ namespace {
                 svsIt++;
             }
             outs() << "Shared variable groups number: " << llvm_svs.size() << "\n";
+            
+            unsigned ptrsize = this->getDataLayout()->getPointerSize();
 
             Transformer * robot = NULL;
             if (LeapTransformer) {
-                robot = new Transformer4Replay(&M, &llvm_svs);
+                robot = new Transformer4Replay(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using leap-transformer ...\n");
             } else if (PecanTransformer) {
-                robot = new Transformer4Trace(&M, &llvm_svs);
+                robot = new Transformer4Trace(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using pecan-transformer ...\n");
             } else {
                 errs() << "Error: unknown transformer\n";

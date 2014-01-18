@@ -7,7 +7,7 @@ Scripts = $(wildcard *.sh)
 all:: Pecan.cpp
 	$(CXX) Pecan.cpp -o pecan_log_analyzer -I../../include
 
-install-local::
+install-local:: all
 	$(Verb) for script in $(Scripts) ; do \
 		echo Installing $$script ; \
 		$(MKDIR) $(DESTDIR)$(PROJ_bindir) ; \

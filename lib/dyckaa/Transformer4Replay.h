@@ -24,7 +24,7 @@ private:
 
 public:
 
-    Transformer4Replay(Module * m, set<Value*> * svs);
+    Transformer4Replay(Module * m, set<Value*> * svs, unsigned psize);
 
     void transform(AliasAnalysis& AA);
     

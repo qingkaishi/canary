@@ -4,7 +4,11 @@
 #include <signal.h>
 #include <unistd.h>
 #include <string.h>
+
+#include <list>
 #include "Event.h"
+
+using namespace std;
 
 #define MAX_EVENT_NUM 100000
 #define MAX_MEMORY_ACCESS 100000
@@ -24,7 +28,7 @@ void createEvent(int eid,
         pthread_t synctid,
         pthread_cond_t * cond,
         const char * srcfile,
-        int line) {
+        long line) {
 
     events[events_pointer].eid = eid;
     events[events_pointer].tid = tid;
@@ -44,60 +48,57 @@ void createEvent(int eid,
 }
 
 pthread_mutex_t mutex;
+pthread_mutexattr_t Attr;
 FILE* fout, *fdebug;
 
 void dump() {
-    Event events_temp[MAX_EVENT_NUM]; 
     fprintf(fdebug, "Events Number: %d\n", events_pointer);
-    int outputNum = 0;
+    long outputNum = 0;
     for (int i = 0; i < events_pointer; i++) {
         long mem = events[i].mem;
         int type = events[i].type;
-        if (type <= 1 && !shared(mem)) {
-            continue;
-        }// read or write but not shared.
-        int line = events[i].line;
+
+        long line = events[i].line;
         pthread_t tid = events[i].tid;
         pthread_t synctid = events[i].synctid;
-        int cond = (int) events[i].cond;
+        long cond = (long) events[i].cond;
         const char * srcfile = events[i].srcfile;
         switch (type) {
             case READ:
-                fprintf(fdebug, "READ from %ld at Line %s:%d in thread %lu\n", mem, srcfile, line, tid);
+                fprintf(fdebug, "READ from %ld at Line %s:%ld in thread %lu\n", mem, srcfile, line, tid);
                 break;
             case WRITE:
-                fprintf(fdebug, "WRITE to %ld at Line %s:%d in thread %lu\n", mem, srcfile, line, tid);
+                fprintf(fdebug, "WRITE to %ld at Line %s:%ld in thread %lu\n", mem, srcfile, line, tid);
                 break;
             case ACQUIRE:
-                fprintf(fdebug, "ACQUIRE %ld at Line %s:%d in thread %lu\n", mem, srcfile, line, tid);
+                fprintf(fdebug, "ACQUIRE %ld at Line %s:%ld in thread %lu\n", mem, srcfile, line, tid);
                 break;
             case RELEASE:
-                fprintf(fdebug, "RELEASE %ld at Line %s:%d in thread %lu\n", mem, srcfile, line, tid);
+                fprintf(fdebug, "RELEASE %ld at Line %s:%ld in thread %lu\n", mem, srcfile, line, tid);
                 break;
             case WAIT:
-                fprintf(fdebug, "WAITED (%d, %ld) at Line %s:%d in thread %lu\n", cond, mem, srcfile, line, tid);
+                fprintf(fdebug, "WAITED (%ld, %ld) at Line %s:%ld in thread %lu\n", cond, mem, srcfile, line, tid);
                 break;
             case NOTIFY:
-                fprintf(fdebug, "NOTIFY (%d, %ld) at Line %s:%d in thread %lu\n", cond, mem, srcfile, line, tid);
+                fprintf(fdebug, "NOTIFY (%ld, %ld) at Line %s:%ld in thread %lu\n", cond, mem, srcfile, line, tid);
                 break;
             case FORK:
-                fprintf(fdebug, "FORK %lu at Line %s:%d in thread %lu\n", synctid, srcfile, line, tid);
+                fprintf(fdebug, "FORK %lu at Line %s:%ld in thread %lu\n", synctid, srcfile, line, tid);
                 break;
             case JOIN:
-                fprintf(fdebug, "JOIN %lu at Line %s:%d in thread %lu\n", synctid, srcfile, line, tid);
+                fprintf(fdebug, "JOIN %lu at Line %s:%ld in thread %lu\n", synctid, srcfile, line, tid);
                 break;
             default:
                 break;
         }
 
-        events_temp[outputNum] = events[i];
-        events_temp[outputNum].eid = outputNum;
+        events[i].eid = outputNum;
         outputNum++;
     }
-    fprintf(fdebug, "Output Number: %d\n", outputNum);
+    fprintf(fdebug, "Output Number: %ld\n", outputNum);
 
-    fwrite(&outputNum, sizeof (int), 1, fout);
-    fwrite(events_temp, sizeof (struct Event), outputNum, fout);
+    fwrite(&outputNum, sizeof (long), 1, fout);
+    fwrite(events, sizeof (struct Event), outputNum, fout);
 
     fclose(fout);
     fclose(fdebug);
@@ -106,20 +107,20 @@ void dump() {
 /* ************************************************************************
  * test: shared memory?
  * ************************************************************************/
-struct Memory {
-    int mem;
-    int tid;
+/*struct Memory {
+    long mem;
+    long tid;
 } memories[MAX_MEMORY_ACCESS];
 int memory_pointer = 0;
 
-int exist(int mem) {
+int exist(long mem) {
     for (int i = 0; i < memory_pointer; i++) {
         if (memories[i].mem == mem) return i;
     }
     return -1;
 }
 
-void test(int mem, unsigned long int tid) {
+void test(long mem, unsigned long int tid) {
     int ttid = (int) tid;
     int pointer = exist(mem); // -1 not exist, others exist
 
@@ -139,7 +140,7 @@ void test(int mem, unsigned long int tid) {
     }
 }
 
-int shared(int mem) {
+int shared(long mem) {
     int pointer = exist(mem); // -1 not exist, others exist
 
     if (pointer != -1) {
@@ -149,7 +150,7 @@ int shared(int mem) {
         exit(-1);
     }
     return 0;
-}
+}*/
 
 /* ************************************************************************
  * Init?
@@ -184,6 +185,10 @@ extern "C" {
             exit(-1);
         }
 
+	pthread_mutexattr_init(&Attr);
+	pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&mutex, &Attr);
+
         start = 1;
     }
 
@@ -199,7 +204,7 @@ extern "C" {
         return;
     }
 
-    void OnPreLoad(int* mem, int line, char * file) {
+    void OnPreLoad(long* mem, long line, char * file) {
         if (!start) {
             return;
         }
@@ -208,7 +213,7 @@ extern "C" {
         pthread_mutex_lock(&mutex);
     }
 
-    void OnLoad(int* mem, int line, char * file) {
+    void OnLoad(long* mem, long line, char * file) {
         //printf("OnLoad\n");
         if (!start) {
             return;
@@ -216,12 +221,12 @@ extern "C" {
         
         createEvent(0, pthread_self(), (long)mem, READ, NULL, 0, 0, NULL, file, line);
 
-        test(events[events_pointer - 1].mem, events[events_pointer - 1].tid);
+        //test(events[events_pointer - 1].mem, events[events_pointer - 1].tid);
 
         pthread_mutex_unlock(&mutex);
     }
 
-    void OnPreStore(int* mem, int line, char * file) {
+    void OnPreStore(long* mem, long line, char * file) {
         if (!start) {
             return;
         }
@@ -230,7 +235,7 @@ extern "C" {
         pthread_mutex_lock(&mutex);
     }
 
-    void OnStore(int* mem, int line, char * file) {
+    void OnStore(long* mem, long line, char * file) {
         if (!start) {
             return;
         }
@@ -238,16 +243,16 @@ extern "C" {
         //printf("OnStore\n");
         createEvent(0, pthread_self(), (long)mem, WRITE, NULL, 0, 0, NULL, file, line);
 
-        test(events[events_pointer - 1].mem, events[events_pointer - 1].tid);
+        //test(events[events_pointer - 1].mem, events[events_pointer - 1].tid);
 
         pthread_mutex_unlock(&mutex);
     }
 
-    void OnPreLock(int* mem, int line, char * file) {
+    void OnPreLock(long* mem, long line, char * file) {
         return;
     }
 
-    void OnLock(int* mem, int line, char * file) {
+    void OnLock(long* mem, long line, char * file) {
         //printf("OnLock\n");
         if (!start) {
             return;
@@ -257,7 +262,7 @@ extern "C" {
 
     }
 
-    void OnPreUnlock(int* mem, int line, char * file) {
+    void OnPreUnlock(long* mem, long line, char * file) {
         if (!start) {
             return;
         }
@@ -265,11 +270,11 @@ extern "C" {
         createEvent(0, pthread_self(), (long)mem, RELEASE, NULL, 0, 0, NULL, file, line);
     }
 
-    void OnUnlock(int *mem, int line, char * file) {
+    void OnUnlock(long *mem, long line, char * file) {
         //printf("OnUnLock\n");
     }
 
-    void OnPreFork(int* tid, int line, char * file) {
+    void OnPreFork(long* tid, long line, char * file) {
         //printf("OnPreFork\n");
         if (!start) {
             return;
@@ -278,7 +283,7 @@ extern "C" {
         pthread_mutex_lock(&mutex);
     }
 
-    void OnFork(int* tid, int line, char * file) {
+    void OnFork(long* tid, long line, char * file) {
         if (!start) {
             return;
         }
@@ -289,11 +294,11 @@ extern "C" {
         pthread_mutex_unlock(&mutex);
     }
 
-    void OnPreJoin(unsigned long tid, int line, char * file) {
+    void OnPreJoin(unsigned long tid, long line, char * file) {
         //printf("OnPreJoin\n");
     }
 
-    void OnJoin(unsigned long tid, int line, char * file) {
+    void OnJoin(unsigned long tid, long line, char * file) {
         if (!start) {
             return;
         }
@@ -302,11 +307,11 @@ extern "C" {
         
     }
 
-    void OnPreWait(int* cond, int *mem, int line, char * file) {
+    void OnPreWait(long* cond, long *mem, long line, char * file) {
         //printf("OnPreWait\n");
     }
 
-    void OnWait(int* cond, int *mem, int line, char * file) {
+    void OnWait(long* cond, long *mem, long line, char * file) {
         if (!start) {
             return;
         }
@@ -315,7 +320,7 @@ extern "C" {
         createEvent(0, pthread_self(), (long) mem, WAIT, NULL, 0, 0, (pthread_cond_t*) cond, file, line);
     }
 
-    void OnPreNotify(int* cond, int *mem, int line, char * file) {
+    void OnPreNotify(long* cond, long *mem, long line, char * file) {
         if (!start) {
             return;
         }
@@ -323,7 +328,7 @@ extern "C" {
         pthread_mutex_lock(&mutex);
     }
 
-    void OnNotify(int* cond, int *mem, int line, char * file) {
+    void OnNotify(long* cond, long *mem, long line, char * file) {
         if (!start) {
             return;
         }

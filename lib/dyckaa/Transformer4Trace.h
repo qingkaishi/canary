@@ -23,7 +23,7 @@ private:
     
     set<Function*> ignored_funcs;
 public:
-    Transformer4Trace(Module * m, set<Value*> * svs);
+    Transformer4Trace(Module * m, set<Value*> * svs, unsigned psize);
     
 public:
     virtual void beforeTransform(AliasAnalysis& AA) ;

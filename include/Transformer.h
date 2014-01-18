@@ -46,12 +46,13 @@ class Transformer {
 public:
     Module * module;
     set<Value*> * sharedVariables;
+    unsigned ptrsize; // = sizeof(int*)
 
 public:
 
     Transformer() {
     }
-    Transformer(Module * m, set<Value*> * svs);
+    Transformer(Module * m, set<Value*> * svs, unsigned psize);
 
     void transform(AliasAnalysis& AA);
     

@@ -1,11 +1,13 @@
 #include "Transformer4Trace.h"
 
-#define FUNCTION_VOID_ARG_TYPE Type::getVoidTy(context),(Type*)0
-#define FUNCTION_MEM_LN_ARG_TYPE Type::getVoidTy(context),Type::getInt32PtrTy(context,0),Type::getInt32Ty(context),Type::getInt8PtrTy(context,0),(Type*)0
-#define FUNCTION_TID_LN_ARG_TYPE Type::getVoidTy(context),Type::getInt32Ty(context),Type::getInt32Ty(context),Type::getInt8PtrTy(context,0),(Type*)0
-#define FUNCTION_2MEM_LN_ARG_TYPE Type::getVoidTy(context),Type::getInt32PtrTy(context,0),Type::getInt32PtrTy(context,0),Type::getInt32Ty(context),Type::getInt8PtrTy(context,0),(Type*)0
+#define POINTER_BIT_SIZE ptrsize*8
 
-Transformer4Trace::Transformer4Trace(Module* m, set<Value*>* svs) : Transformer(m, svs) {
+#define FUNCTION_VOID_ARG_TYPE Type::getVoidTy(context),(Type*)0
+#define FUNCTION_MEM_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
+#define FUNCTION_TID_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
+#define FUNCTION_2MEM_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
+
+Transformer4Trace::Transformer4Trace(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
     int idx = 0;
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
@@ -106,9 +108,9 @@ void Transformer4Trace::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    CastInst* c = CastInst::CreatePointerCast(val, Type::getInt32PtrTy(module->getContext()));
+    CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(inst);
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(inst, F_preload, c, lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(inst, F_load, c, lnval, getSrcFileNameArg(filename), NULL);
@@ -124,10 +126,10 @@ void Transformer4Trace::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    CastInst* c = CastInst::CreatePointerCast(val, Type::getInt32PtrTy(module->getContext()));
+    CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(inst);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(inst, F_prestore, c, lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(inst, F_store, c, lnval, getSrcFileNameArg(filename), NULL);
@@ -139,7 +141,7 @@ void Transformer4Trace::transformPthreadCreate(CallInst* call, AliasAnalysis& AA
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    ConstantInt * lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt * lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(call, F_prefork, call->getArgOperand(0), lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(call, F_fork, call->getArgOperand(0), lnval, getSrcFileNameArg(filename), NULL);
@@ -151,7 +153,7 @@ void Transformer4Trace::transformPthreadJoin(CallInst* call, AliasAnalysis& AA) 
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    ConstantInt * lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt * lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(call, F_prejoin, call->getArgOperand(0), lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(call, F_join, call->getArgOperand(0), lnval, getSrcFileNameArg(filename), NULL);
@@ -168,10 +170,10 @@ void Transformer4Trace::transformPthreadMutexLock(CallInst* call, AliasAnalysis&
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    CastInst* c = CastInst::CreatePointerCast(val, Type::getInt32PtrTy(module->getContext()));
+    CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(call, F_prelock, c, lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(call, F_lock, c, lnval, getSrcFileNameArg(filename), NULL);
@@ -187,10 +189,10 @@ void Transformer4Trace::transformPthreadMutexUnlock(CallInst* call, AliasAnalysi
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    CastInst* c = CastInst::CreatePointerCast(val, Type::getInt32PtrTy(module->getContext()));
+    CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(call, F_preunlock, c, lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(call, F_unlock, c, lnval, getSrcFileNameArg(filename), NULL);
@@ -209,13 +211,13 @@ void Transformer4Trace::transformPthreadCondWait(CallInst* call, AliasAnalysis& 
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    CastInst* cond = CastInst::CreatePointerCast(val0, Type::getInt32PtrTy(module->getContext()));
+    CastInst* cond = CastInst::CreatePointerCast(val0, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     cond->insertBefore(call);
 
-    CastInst* mut = CastInst::CreatePointerCast(val1, Type::getInt32PtrTy(module->getContext()));
+    CastInst* mut = CastInst::CreatePointerCast(val1, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     mut->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(call, F_prewait, cond, mut, lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(call, F_wait, cond, mut, lnval, getSrcFileNameArg(filename), NULL);
@@ -234,13 +236,13 @@ void Transformer4Trace::transformPthreadCondSignal(CallInst* call, AliasAnalysis
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    CastInst* cond = CastInst::CreatePointerCast(val0, Type::getInt32PtrTy(module->getContext()));
+    CastInst* cond = CastInst::CreatePointerCast(val0, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     cond->insertBefore(call);
 
-    CastInst* mut = CastInst::CreatePointerCast(val1, Type::getInt32PtrTy(module->getContext()));
+    CastInst* mut = CastInst::CreatePointerCast(val1, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     mut->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     this->insertCallInstBefore(call, F_prenotify, cond, mut, lnval, getSrcFileNameArg(filename), NULL);
     this->insertCallInstAfter(call, F_notify, cond, mut, lnval, getSrcFileNameArg(filename), NULL);
@@ -256,7 +258,7 @@ void Transformer4Trace::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     Value * dst = call->getArgOperand(0);
     Value * src = call->getArgOperand(1);
@@ -265,10 +267,10 @@ void Transformer4Trace::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
     if (svIdx_dst == -1 && svIdx_src == -1) {
         return;
     } else if (svIdx_dst != -1 && svIdx_src != -1) {
-        CastInst* d = CastInst::CreatePointerCast(dst, Type::getInt32PtrTy(module->getContext()));
+        CastInst* d = CastInst::CreatePointerCast(dst, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
         d->insertBefore(call);
 
-        CastInst* s = CastInst::CreatePointerCast(src, Type::getInt32PtrTy(module->getContext()));
+        CastInst* s = CastInst::CreatePointerCast(src, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
         s->insertBefore(call);
 
         if (svIdx_dst != svIdx_src) {
@@ -286,13 +288,13 @@ void Transformer4Trace::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
         }
 
     } else if (svIdx_dst != -1) {
-        CastInst* d = CastInst::CreatePointerCast(dst, Type::getInt32PtrTy(module->getContext()));
+        CastInst* d = CastInst::CreatePointerCast(dst, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
         d->insertBefore(call);
 
         insertCallInstBefore(call, F_prestore, d, lnval, getSrcFileNameArg(filename), NULL);
         insertCallInstAfter(call, F_store, d, lnval, getSrcFileNameArg(filename), NULL);
     } else {
-        CastInst* s = CastInst::CreatePointerCast(src, Type::getInt32PtrTy(module->getContext()));
+        CastInst* s = CastInst::CreatePointerCast(src, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
         s->insertBefore(call);
 
         insertCallInstBefore(call, F_preload, s, lnval, getSrcFileNameArg(filename), NULL);
@@ -306,13 +308,13 @@ void Transformer4Trace::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
 
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     Value * val = call->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    CastInst* c = CastInst::CreatePointerCast(val, Type::getInt32PtrTy(module->getContext()));
+    CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
 
     insertCallInstBefore(call, F_prestore, c, lnval, getSrcFileNameArg(filename), NULL);
@@ -324,14 +326,14 @@ void Transformer4Trace::transformSpecialFunctionCall(CallInst* call, AliasAnalys
     DILocation LOC(mdn);
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
 
         CastInst* c = NULL;
         if (arg->getType()->isPointerTy()) {
-            c = CastInst::CreatePointerCast(arg, Type::getInt32PtrTy(module->getContext()));
+            c = CastInst::CreatePointerCast(arg, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
             c->insertBefore(call);
         } else {
             continue;
@@ -350,14 +352,14 @@ void Transformer4Trace::transformSpecialFunctionInvoke(InvokeInst* call, AliasAn
     DILocation LOC(mdn);
     int ln = LOC.getLineNumber();
     std::string filename = LOC.getFilename().str();
-    ConstantInt* lnval = ConstantInt::get(Type::getInt32Ty(module->getContext()), ln);
+    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
 
         CastInst* c = NULL;
         if (arg->getType()->isPointerTy()) {
-            c = CastInst::CreatePointerCast(arg, Type::getInt32PtrTy(module->getContext()));
+            c = CastInst::CreatePointerCast(arg, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
             c->insertBefore(call);
         } else {
             continue;
@@ -434,7 +436,7 @@ Value* Transformer4Trace::getSrcFileNameArg(std::string& filename) {
     ((GlobalVariable*) global_srcfile)->setInitializer(srcfile);
 
     vector<Value *> indices;
-    indices.push_back(ConstantInt::get(Type::getInt32Ty(module->getContext()), 0));
-    indices.push_back(ConstantInt::get(Type::getInt32Ty(module->getContext()), 0));
+    indices.push_back(ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), 0));
+    indices.push_back(ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), 0));
     return ConstantExpr::getGetElementPtr(global_srcfile, indices, true);
 }

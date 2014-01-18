@@ -22,7 +22,7 @@ typedef struct Event {
     pthread_t tid; //unsigned long int %lu
     long mem;
     int type;
-    int line;
+    long line;
     int * locks;
     int lock_num;
     pthread_t synctid;

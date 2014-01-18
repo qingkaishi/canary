@@ -35,6 +35,15 @@ else
 	AC_MSG_ERROR([Please add "ModulePass *createDyckAliasAnalysisPass();" into llvm/Analysis/Passes.h.])
 fi
 
+dnl check gcc version
+AC_MSG_CHECKING([for gcc version])
+if test `g++ -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1 && test `gcc -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1; then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+	AC_MSG_ERROR([gcc/g++ version should be 4.8 or higher. If so, please check whether you have gawk.])
+fi
+
 dnl Determine the LLVM version, which may be required by the current Makefile
 dnl rules.
 AC_MSG_CHECKING([LLVM package version])
@@ -1482,6 +1491,9 @@ AC_CONFIG_MAKEFILE(lib/dyckgraph/Makefile)
 AC_CONFIG_MAKEFILE(lib/dyckaa/Makefile)
 AC_CONFIG_MAKEFILE(lib/transformer/Makefile)
 AC_CONFIG_MAKEFILE(lib/replay-support/Makefile)
+AC_CONFIG_MAKEFILE(lib/replay-support/leap-support/Makefile)
+AC_CONFIG_MAKEFILE(lib/replay-support/canary-support/Makefile)
+AC_CONFIG_MAKEFILE(lib/replay-support/replay-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/trace-support/Makefile)
 AC_CONFIG_MAKEFILE(tools/Makefile)
 AC_CONFIG_MAKEFILE(tools/leap/Makefile)

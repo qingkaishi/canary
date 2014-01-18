@@ -1,12 +1,16 @@
 #include "Transformer4Replay.h"
 
-#define FUNCTION_ARG_TYPE Type::getVoidTy(context),Type::getInt32Ty(context),(Type*)0
-#define FUNCTION_LDST_ARG_TYPE Type::getVoidTy(context),Type::getInt32Ty(context),Type::getInt32Ty(context),(Type*)0
-#define FUNCTION_WAIT_ARG_TYPE Type::getVoidTy(context),Type::getInt32Ty(context),Type::getInt32Ty(context),Type::getInt32Ty(context),(Type*)0
+#define POINTER_BIT_SIZE ptrsize*8
+#define INT_BIT_SIZE 32
+
+#define FUNCTION_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,INT_BIT_SIZE),(Type*)0
+#define FUNCTION_LDST_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,INT_BIT_SIZE),Type::getIntNTy(context,INT_BIT_SIZE),(Type*)0
+#define FUNCTION_WAIT_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,INT_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),(Type*)0
+#define FUNCTION_FORK_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,POINTER_BIT_SIZE),(Type*)0
 
 int Transformer4Replay::stmt_idx = 0;
 
-Transformer4Replay::Transformer4Replay(Module* m, set<Value*>* svs) : Transformer(m, svs) {
+Transformer4Replay::Transformer4Replay(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
     int idx = 0;
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
@@ -37,7 +41,7 @@ Transformer4Replay::Transformer4Replay(Module* m, set<Value*>* svs) : Transforme
     F_unlock = cast<Function>(m->getOrInsertFunction("OnUnlock", FUNCTION_ARG_TYPE));
 
     F_prefork = cast<Function>(m->getOrInsertFunction("OnPreFork", FUNCTION_ARG_TYPE));
-    F_fork = cast<Function>(m->getOrInsertFunction("OnFork", FUNCTION_ARG_TYPE));
+    F_fork = cast<Function>(m->getOrInsertFunction("OnFork", FUNCTION_FORK_ARG_TYPE));
 
     F_prejoin = cast<Function>(m->getOrInsertFunction("OnPreJoin", FUNCTION_ARG_TYPE));
     F_join = cast<Function>(m->getOrInsertFunction("OnJoin", FUNCTION_ARG_TYPE));
@@ -59,7 +63,7 @@ void Transformer4Replay::beforeTransform(AliasAnalysis& AA) {
 void Transformer4Replay::afterTransform(AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
-        ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), sharedVariables->size());
+        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
         this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, tmp, NULL);
     }
@@ -82,8 +86,8 @@ void Transformer4Replay::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
-    ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
+    ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
     this->insertCallInstBefore(inst, F_preload, tmp, debug_idx, NULL);
     this->insertCallInstAfter(inst, F_load, tmp, debug_idx, NULL);
@@ -94,24 +98,24 @@ void Transformer4Replay::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) 
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
-    ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
+    ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
     this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
     this->insertCallInstAfter(inst, F_store, tmp, debug_idx, NULL);
 }
 
 void Transformer4Replay::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), -1);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
     this->insertCallInstBefore(ins, F_prefork, tmp, NULL);
 
-    CastInst* c = CastInst::CreatePointerCast(ins->getArgOperand(0), Type::getInt32Ty(module->getContext()));
+    CastInst* c = CastInst::CreatePointerCast(ins->getArgOperand(0), Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE));
     c->insertAfter(ins);
     this->insertCallInstAfter(c, F_fork, c, NULL);
 }
 
 void Transformer4Replay::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), -1);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
 
     this->insertCallInstBefore(ins, F_prejoin, tmp, NULL);
     this->insertCallInstAfter(ins, F_join, tmp, NULL);
@@ -122,7 +126,7 @@ void Transformer4Replay::transformPthreadMutexLock(CallInst* ins, AliasAnalysis&
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
 
     this->insertCallInstBefore(ins, F_prelock, tmp, NULL);
     this->insertCallInstAfter(ins, F_lock, tmp, NULL);
@@ -133,7 +137,7 @@ void Transformer4Replay::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysi
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
 
     this->insertCallInstBefore(ins, F_preunlock, tmp, NULL);
     this->insertCallInstAfter(ins, F_unlock, tmp, NULL);
@@ -144,12 +148,12 @@ void Transformer4Replay::transformPthreadCondWait(CallInst* ins, AliasAnalysis& 
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
     this->insertCallInstBefore(ins, F_prewait, tmp, NULL);
 
     // F_wait need two more arguments
-    CastInst* c1 = CastInst::CreatePointerCast(ins->getArgOperand(0), Type::getInt32Ty(module->getContext()));
-    CastInst* c2 = CastInst::CreatePointerCast(ins->getArgOperand(1), Type::getInt32Ty(module->getContext()));
+    CastInst* c1 = CastInst::CreatePointerCast(ins->getArgOperand(0), Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE));
+    CastInst* c2 = CastInst::CreatePointerCast(ins->getArgOperand(1), Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE));
     c1->insertAfter(ins);
     c2->insertAfter(c1);
 
@@ -161,14 +165,14 @@ void Transformer4Replay::transformPthreadCondSignal(CallInst* ins, AliasAnalysis
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
 
     this->insertCallInstBefore(ins, F_prenotify, tmp, NULL);
     this->insertCallInstAfter(ins, F_notify, tmp, NULL);
 }
 
 void Transformer4Replay::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), sharedVariables->size());
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
     this->insertCallInstBefore(ins, F_exit, tmp, NULL);
 }
 
@@ -181,30 +185,30 @@ void Transformer4Replay::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
         return;
     } else if (svIdx_dst != -1 && svIdx_src != -1) {
         if (svIdx_dst > svIdx_src) {
-            ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx_dst);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx_dst);
+            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
             this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
             this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
 
-            tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx_src);
-            debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+            tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx_src);
+            debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
             this->insertCallInstBefore(call, F_preload, tmp, debug_idx, NULL);
             this->insertCallInstAfter(call, F_load, tmp, debug_idx, NULL);
 
         } else if (svIdx_dst < svIdx_src) {
-            ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx_src);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx_src);
+            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
 
-            tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx_dst);
-            debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+            tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx_dst);
+            debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
             this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
             this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
         } else {
-            ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx_src);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx_src);
+            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
             this->insertCallInstBefore(call, F_preload, tmp, debug_idx, NULL);
             this->insertCallInstAfter(call, F_load, tmp, debug_idx, NULL);
@@ -213,15 +217,15 @@ void Transformer4Replay::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
         return;
     } else if (svIdx_dst != -1) {
         int svIdx = svIdx_dst;
-        ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
-        ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
+        ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
         this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
         this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
         return;
     } else {
-        ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx_src);
-        ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx_src);
+        ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
         this->insertCallInstBefore(call, F_preload, tmp, debug_idx, NULL);
         this->insertCallInstAfter(call, F_load, tmp, debug_idx, NULL);
@@ -234,8 +238,8 @@ void Transformer4Replay::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIdx);
-    ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
+    ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
     this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
     this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
@@ -267,8 +271,8 @@ void Transformer4Replay::transformSpecialFunctionCall(CallInst* call, AliasAnaly
         return;
     } else {
         for (unsigned i = 0; i < svIndices.size(); i++) {
-            ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIndices[i]);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIndices[i]);
+            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
             ///@FIXME
             this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
@@ -304,8 +308,8 @@ void Transformer4Replay::transformSpecialFunctionInvoke(InvokeInst* call, AliasA
         //BasicBlock * unwind = call->getUnwindDest();
 
         for (unsigned i = 0; i < svIndices.size(); i++) {
-            ConstantInt* tmp = ConstantInt::get(Type::getInt32Ty(module->getContext()), svIndices[i]);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getInt32Ty(module->getContext()), stmt_idx++);
+            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIndices[i]);
+            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
 
             ///@FIXME
             this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
