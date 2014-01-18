@@ -45,9 +45,8 @@ This option is used to print a call graph based on the alias analysis.
 
 * -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 
-multi-processor replay of concurrent java programs".
-
-You can use the following commands directly to use the function.
+multi-processor replay of concurrent java programs". You can use the following 
+commands directly to use the function.
 
 ```bash
 ./leap.sh -h
@@ -55,10 +54,9 @@ You can use the following commands directly to use the function.
 ```
 
 * -pecan-transformer
-A transformer for Pecan. Please read ``Persuasive prediction of concurrency 
-access anomalies"
-
-You can use the following commands directly to use the function.
+A transformer for Pecan. Please read "Persuasive prediction of concurrency 
+access anomalies". You can use the following commands directly to use the 
+function.
 
 ```bash
 ./pecan.sh -h
