@@ -116,15 +116,9 @@ namespace {
             }
 
             pair < DyckVertex*, bool> retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (LocA.Ptr));
-            if (!retpair.second) {
-                return NoAlias;
-            }
             DyckVertex * VA = retpair.first->getRepresentative();
 
             retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (LocB.Ptr));
-            if (!retpair.second) {
-                return NoAlias;
-            }
             DyckVertex * VB = retpair.first->getRepresentative();
 
             if (VA == VB) {
