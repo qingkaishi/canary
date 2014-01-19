@@ -11,11 +11,6 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG) {
 }
 
 AAAnalyzer::~AAAnalyzer() {
-    for (unsigned int i = 0; i < tempCalls.size(); i++) {
-        // this is necessary
-        tempCalls[i]->eraseFromParent();
-    }
-
     set<FunctionWrapper*>::iterator it = wrapped_functions.begin();
     while (it != wrapped_functions.end()) {
         delete (*it);
@@ -44,35 +39,20 @@ bool AAAnalyzer::intra_procedure_analysis() {
     long instNum = 0;
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function* f = iterF;
+        FunctionWrapper* df = NULL;
 
-        FunctionWrapper* df = new FunctionWrapper(f);
-        wrapped_functions_map.insert(pair<Function*, FunctionWrapper *>(f, df));
-        wrapped_functions.insert(df);
+        if (!wrapped_functions_map.count(f)) {
+            df = new FunctionWrapper(f);
+            wrapped_functions_map.insert(pair<Function*, FunctionWrapper *>(f, df));
+            wrapped_functions.insert(df);
+        } else {
+            df = wrapped_functions_map[f];
+        }
         for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
             for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
                 Instruction *inst = iterI;
                 instNum++;
 
-                if (isa<CallInst>(inst)) {
-                    CallInst* call = (CallInst*) inst;
-                    Function* f = call->getCalledFunction();
-
-
-                    if (f != NULL && f->getName().str() == "pthread_create") {
-                        if (call->getNumArgOperands() == 4) {
-                            vector<Value*>* args = new vector<Value*>;
-                            args->push_back(call->getArgOperand(3));
-                            ArrayRef<Value*> * Args = new ArrayRef<Value*>(*args);
-                            CallInst* newCall = CallInst::Create(call->getArgOperand(2), *Args, "THREAD_CREATE", inst);
-                            handle_inst(newCall, df);
-                            tempCalls.push_back(newCall);
-                        } else {
-                            errs() << "ERROR pthread_create with less than 4 args.\n";
-                            errs() << *call << "\n";
-                            exit(-1);
-                        }
-                    }
-                }
                 handle_inst(inst, df);
             }
         }
@@ -97,9 +77,7 @@ bool AAAnalyzer::inter_procedure_analysis() {
 }
 
 void AAAnalyzer::getValuesEscapedFromThreadCreate(set<Value*>* ret) {
-    for (unsigned int i = 0; i < tempCalls.size(); i++) {
-        ret->insert(tempCalls[i]->getArgOperand(0));
-    }
+    ret->insert(valuesEscapedFromThreadCreate.begin(), valuesEscapedFromThreadCreate.end());
 }
 
 //// call graph printer
@@ -130,16 +108,21 @@ void AAAnalyzer::printCallGraph(const string& mIdentifier) {
     set<FunctionWrapper*>::iterator fwIt = wrapped_functions.begin();
     while (fwIt != wrapped_functions.end()) {
         FunctionWrapper* fw = *fwIt;
-        set<CommonCall*>* commonCalls = fw->getCommonCallInstsForCG();
+        set<CommonCall*>* commonCalls = fw->getCommonCallsForCG();
         set<CommonCall*>::iterator comIt = commonCalls->begin();
         while (comIt != commonCalls->end()) {
             CommonCall* cc = *comIt;
+            Function * callee = (Function*) cc->calledValue;
 
-            if (wrapped_functions_map.count(cc->callee)) {
+            if (wrapped_functions_map.count(callee)) {
                 Value * ci = cc->ret;
                 std::string s;
                 raw_string_ostream rso(s);
-                rso << *(ci);
+                if (ci != NULL) {
+                    rso << *(ci);
+                } else {
+                    rso << "Hidden";
+                }
                 string& edgelabel = rso.str();
                 for (unsigned int i = 0; i < edgelabel.length(); i++) {
                     if (edgelabel[i] == '\"') {
@@ -150,7 +133,7 @@ void AAAnalyzer::printCallGraph(const string& mIdentifier) {
                         edgelabel[i] = ' ';
                     }
                 }
-                fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[cc->callee]->getIndex(), edgelabel.data());
+                fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex(), edgelabel.data());
             } else {
                 errs() << "ERROR in printCG when print common function calls.\n";
                 exit(-1);
@@ -158,22 +141,21 @@ void AAAnalyzer::printCallGraph(const string& mIdentifier) {
             comIt++;
         }
 
-        map<Value *, set<Function*>*>* fpCallsMap = fw->getFPCallInstsForCG();
-        map<Value *, set<Function*>*>::iterator fpIt = fpCallsMap->begin();
+        set<PointerCall*>* fpCallsMap = fw->getPointerCallsForCG();
+        set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
-            Value * callInst = fpIt->first;
-            set<Function*>* mayCalled = fpIt->second;
-            
-            Value* calledValue = NULL;
-            if(isa<CallInst>(callInst)){
-                calledValue=((CallInst*)callInst)->getCalledValue();
-            }else if(isa<InvokeInst>(callInst)){
-                calledValue=((InvokeInst*)callInst)->getCalledValue();
-            }
+            PointerCall* pcall = *fpIt;
+            //Value * callInst = fpIt->first;
+            set<Function*>* mayCalled = &((*fpIt)->handledCallees);
+            Value* calledValue = pcall->calledValue;
 
             std::string s;
             raw_string_ostream rso(s);
-            rso << *(callInst);
+            if (pcall->ret != NULL) {
+                rso << *(pcall->ret);
+            } else {
+                rso << "Hidden";
+            }
             string& edgelabel = rso.str(); // edge label is the call inst
             for (unsigned int i = 0; i < edgelabel.length(); i++) {
                 if (edgelabel[i] == '\"') {
@@ -224,8 +206,8 @@ void AAAnalyzer::printFunctionPointersInformation(const string& mIdentifier) {
     while (fwIt != wrapped_functions.end()) {
         FunctionWrapper* fw = *fwIt;
 
-        map<Value *, set<Function*>*>* fpCallsMap = fw->getFPCallInstsForCG();
-        map<Value *, set<Function*>*>::iterator fpIt = fpCallsMap->begin();
+        set<PointerCall*>* fpCallsMap = fw->getPointerCallsForCG();
+        set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
             /*Value * callInst = fpIt->first;
             std::string s;
@@ -243,7 +225,7 @@ void AAAnalyzer::printFunctionPointersInformation(const string& mIdentifier) {
             }
             fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
              */
-            set<Function*>* mayCalled = fpIt->second;
+            set<Function*>* mayCalled = &((*(fpIt))->handledCallees);
             fprintf(fout, "%zd\n", mayCalled->size()); //number of functions
 
             // what functions?
@@ -697,41 +679,36 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
     }
 }
 
-void AAAnalyzer::storeCandidateFunctions(FunctionWrapper* parent_func, Value * call, Value * cv) {
-    Type *fpty = cv->getType();
-    if (fpty->isPointerTy() && fpty->getPointerElementType()->isFunctionTy()) {
-        FunctionType * fty = (FunctionType*) fpty->getPointerElementType();
-        if (functionTyNodeMap.count(fty)) {
-            parent_func->setCandidateFunctions(call, functionTyNodeMap[fty]->root->compatibleFuncs);
-        } else {
-            // unknown function pointer types (not detected when init)
-            // find compatible types from root
-            bool found = false;
-            set<FunctionTypeNode *>::iterator rit = tyroots.begin();
-            while (rit != tyroots.end()) {
-                if (isCompatible((*rit)->type, fty)) {
-                    found = true;
+set<Function*>* AAAnalyzer::getCompatibleFunctions(FunctionType * fty) {
+    if (functionTyNodeMap.count(fty)) {
+        return &functionTyNodeMap[fty]->root->compatibleFuncs;
+    } else {
+        // unknown function pointer types (not detected when init)
+        // find compatible types from root
+        bool found = false;
+        set<FunctionTypeNode *>::iterator rit = tyroots.begin();
+        while (rit != tyroots.end()) {
+            if (isCompatible((*rit)->type, fty)) {
+                found = true;
 
-                    FunctionTypeNode * tn = new FunctionTypeNode;
-                    tn->type = fty;
-                    tn->root = (*rit);
+                FunctionTypeNode * tn = new FunctionTypeNode;
+                tn->type = fty;
+                tn->root = (*rit);
 
-                    functionTyNodeMap.insert(pair<Type*, FunctionTypeNode*>(fty, tn));
+                functionTyNodeMap.insert(pair<Type*, FunctionTypeNode*>(fty, tn));
 
-                    parent_func->setCandidateFunctions(call, (*rit)->compatibleFuncs);
-                    break;
-                }
-                rit++;
+                return &((*rit)->compatibleFuncs);
             }
+            rit++;
+        }
 
-            if (!found) {
-                errs() << "No functions can be aliased with the pointer.\n";
-                errs() << *call << "\n";
-                errs() << *fty << "\n";
-                exit(-1);
-            }
+        if (!found) {
+            errs() << "No functions can be aliased with the pointer.\n";
+            errs() << *fty << "\n";
+            exit(-1);
         }
     }
+    return NULL;
 }
 
 void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
@@ -751,36 +728,6 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
         {
             Value* resume = ((ResumeInst*) inst)->getOperand(0);
             parent_func->addResume(resume);
-        }
-            break;
-        case Instruction::Invoke:
-        {
-            InvokeInst * invoke = (InvokeInst*) inst;
-            LandingPadInst* lpd = invoke->getLandingPadInst();
-            parent_func->addLandingPad(invoke, lpd);
-
-            Value * cv = invoke->getCalledValue();
-
-            if (isa<Function>(cv)) {
-                parent_func->addCommonCallInst(new CommonCall((Function*) cv, invoke));
-            } else {
-                wrapValue(cv);
-                if (isa<ConstantExpr>(cv)) {
-
-                    Value * cvcopy = cv;
-                    while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
-                        cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
-                    }
-
-                    if (isa<Function>(cvcopy)) {
-                        parent_func->addCommonCallInst(new CommonCall((Function*) cvcopy, invoke));
-                    } else {
-                        storeCandidateFunctions(parent_func, invoke, cv);
-                    }
-                } else {
-                    storeCandidateFunctions(parent_func, invoke, cv);
-                }
-            }
         }
             break;
         case Instruction::Switch:
@@ -964,6 +911,21 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             break;
 
             // other operations
+        case Instruction::Invoke: // invoke is a terminal operation
+        {
+            InvokeInst * invoke = (InvokeInst*) inst;
+            LandingPadInst* lpd = invoke->getLandingPadInst();
+            parent_func->addLandingPad(invoke, lpd);
+
+            Value * cv = invoke->getCalledValue();
+            vector<Value*> args;
+            for (unsigned i = 0; i < invoke->getNumArgOperands(); i++) {
+                args.push_back(invoke->getArgOperand(i));
+            }
+
+            this->handle_invoke_call_inst(invoke, cv, &args, parent_func);
+        }
+            break;
         case Instruction::Call:
         {
             CallInst * callinst = (CallInst*) inst;
@@ -973,31 +935,12 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             }
 
             Value * cv = callinst->getCalledValue();
-
-            if (isa<Function>(cv)) {
-                if (((Function*) cv)->isIntrinsic()) {
-                    handle_instrinsic(inst);
-                } else {
-                    parent_func->addCommonCallInst(new CommonCall((Function*) cv, callinst));
-                }
-            } else {
-                wrapValue(cv);
-                if (isa<ConstantExpr>(cv)) {
-
-                    Value * cvcopy = cv;
-                    while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
-                        cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
-                    }
-
-                    if (isa<Function>(cvcopy)) {
-                        parent_func->addCommonCallInst(new CommonCall((Function*) cvcopy, callinst));
-                    } else {
-                        storeCandidateFunctions(parent_func, callinst, cv);
-                    }
-                } else {
-                    storeCandidateFunctions(parent_func, callinst, cv);
-                }
+            vector<Value*> args;
+            for (unsigned i = 0; i < callinst->getNumArgOperands(); i++) {
+                args.push_back(callinst->getArgOperand(i));
             }
+
+            this->handle_invoke_call_inst(callinst, cv, &args, parent_func);
         }
             break;
         case Instruction::PHI:
@@ -1035,37 +978,66 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
     }
 }
 
+void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* args, FunctionWrapper* parent) {
+    if (isa<Function>(cv)) {
+        if (((Function*) cv)->isIntrinsic()) {
+            handle_instrinsic((Instruction*) ret);
+        } else {
+            this->handle_lib_invoke_call_inst(ret, (Function*) cv, args, parent);
+            parent->addCommonCall(new CommonCall(ret, (Function*) cv, args));
+        }
+    } else {
+        wrapValue(cv);
+        if (isa<ConstantExpr>(cv)) {
+
+            Value * cvcopy = cv;
+            while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
+                cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
+            }
+
+            if (isa<Function>(cvcopy)) {
+                this->handle_lib_invoke_call_inst(ret, (Function*) cvcopy, args, parent);
+                parent->addCommonCall(new CommonCall(ret, (Function*) cvcopy, args));
+            } else {
+                PointerCall* pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cvcopy->getType()->getPointerElementType())), args);
+                parent->addPointerCall(pcall);
+            }
+        } else {
+            PointerCall * pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cv->getType()->getPointerElementType())), args);
+            parent->addPointerCall(pcall);
+        }
+    }
+}
+
 // ci is callinst or invokeinst
 
-void AAAnalyzer::handle_common_function_call(Value* ci, FunctionWrapper* caller, FunctionWrapper* callee) {
+void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, FunctionWrapper* callee) {
     //landingpad<->resume
-    Value* lpd = caller->getLandingPad(ci);
-    if (lpd != NULL) {
-        DyckVertex* lpdVertex = wrapValue(lpd);
-        set<Value*>& res = callee->getResumes();
-        set<Value*>::iterator resIt = res.begin();
-        while (resIt != res.end()) {
-            makeAlias(wrapValue(*resIt), lpdVertex);
-            resIt++;
+    if (c->ret != NULL) {
+        Value* lpd = caller->getLandingPad(c->ret);
+        if (lpd != NULL) {
+            DyckVertex* lpdVertex = wrapValue(lpd);
+            set<Value*>& res = callee->getResumes();
+            set<Value*>::iterator resIt = res.begin();
+            while (resIt != res.end()) {
+                makeAlias(wrapValue(*resIt), lpdVertex);
+                resIt++;
+            }
         }
     }
 
     //return<->call
     set<Value*>& rets = callee->getReturns();
-    set<Value*>::iterator retIt = rets.begin();
-    while (retIt != rets.end()) {
-        makeAlias(wrapValue(*retIt), wrapValue(ci));
-        retIt++;
+    if (c->ret != NULL) {
+        set<Value*>::iterator retIt = rets.begin();
+        while (retIt != rets.end()) {
+            makeAlias(wrapValue(*retIt), wrapValue(c->ret));
+            retIt++;
+        }
     }
     // parameter<->arg
-    unsigned int numOfArgOp = 0;
-    bool isCallInst = false;
-    if (isa<CallInst>(*ci)) {
-        isCallInst = true;
-        numOfArgOp = ((CallInst*) ci)->getNumArgOperands();
-    } else {
-        numOfArgOp = ((InvokeInst*) ci)->getNumArgOperands();
-    }
+    unsigned int numOfArgOp = c->args.size();
+
     unsigned argIdx = 0;
     Function * func = callee->getLLVMFunction();
     if (!func->isIntrinsic()) {
@@ -1076,16 +1048,11 @@ void AAAnalyzer::handle_common_function_call(Value* ci, FunctionWrapper* caller,
             if (numOfArgOp <= argIdx) {
                 errs() << "Warning the number of args is less than that of parameters\n";
                 errs() << func->getName() << "\n";
-                errs() << *ci << "\n";
+                errs() << *(c->ret) << "\n";
                 break; //exit(-1);
             }
 
-            Value * arg = NULL;
-            if (isCallInst) {
-                arg = ((CallInst*) ci)->getArgOperand(argIdx);
-            } else {
-                arg = ((InvokeInst*) ci)->getArgOperand(argIdx);
-            }
+            Value * arg = c->args[argIdx];
             Value * par = *pit;
             makeAlias(wrapValue(par), wrapValue(arg));
 
@@ -1097,12 +1064,7 @@ void AAAnalyzer::handle_common_function_call(Value* ci, FunctionWrapper* caller,
             vector<Value*>& va_parameters = callee->getVAArgs();
             for (unsigned int i = argIdx; i < numOfArgOp; i++) {
 
-                Value * arg = NULL;
-                if (isCallInst) {
-                    arg = ((CallInst*) ci)->getArgOperand(i);
-                } else {
-                    arg = ((InvokeInst*) ci)->getArgOperand(i);
-                }
+                Value * arg = c->args[i];
                 DyckVertex* arg_v = wrapValue(arg);
 
                 vector<Value*>::iterator va_par_it = va_parameters.begin();
@@ -1126,17 +1088,17 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
     set<CommonCall*>* commonCalls = NULL;
     if (recordCGInfo) {
-        commonCalls = caller->getCommonCallInstsForCG();
+        commonCalls = caller->getCommonCallsForCG();
     }
-    set<CommonCall*>& callInsts = caller->getCommonCallInsts();
+    set<CommonCall*>& callInsts = caller->getCommonCalls();
     set<CommonCall*>::iterator cit = callInsts.begin();
     while (cit != callInsts.end()) {
-        Function * cv = (*cit)->callee;
+        Value * cv = (*cit)->calledValue;
 
         if (isa<Function>(cv)) {
             ret = true;
             //(*cit)->ret is the return value, it is also the call inst
-            handle_common_function_call((*cit)->ret, caller, (wrapped_functions_map)[cv]);
+            handle_common_function_call((*cit), caller, (wrapped_functions_map)[(Function*) cv]);
 
             if (recordCGInfo) {
                 commonCalls->insert(*cit);
@@ -1154,54 +1116,34 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         cit++;
     }
 
-    map<Value *, set<Function*>*>& ci_cand_map = caller->getFPCallInsts();
-    map<Value *, set<Function*>*>::iterator mit = ci_cand_map.begin();
-    while (mit != ci_cand_map.end()) {
-        Value * inst = mit->first;
-        set<Function*>* cands = mit->second;
+    set<PointerCall*>& pointercalls = caller->getPointerCalls();
+    set<PointerCall*>::iterator mit = pointercalls.begin();
+    while (mit != pointercalls.end()) {
+        //Value * inst = mit->first;
+        PointerCall * pcall = *mit;
+        set<Function*>* cands = &(pcall->calleeCands);
 
         set<Function*>* maycallfuncs = NULL;
         if (recordCGInfo) {
-            maycallfuncs = caller->getFPCallInstsForCG(mit->first);
+            maycallfuncs = &(pcall->handledCallees);
         }
 
         // cv, numOfArguments
-        int numOfArguments = 0;
-        Value * cv = NULL;
-        if (isa<CallInst>(inst)) {
-            cv = ((CallInst*) (inst))->getCalledValue();
-            numOfArguments = ((CallInst*) (inst))->getNumArgOperands();
-        } else {
-            cv = ((InvokeInst*) (inst))->getCalledValue();
-            numOfArguments = ((InvokeInst*) (inst))->getNumArgOperands();
-        }
+        Value * cv = pcall->calledValue;
 
-        set<Function*>* funcs = cands;
-        set<Function*>::iterator pfit = funcs->begin();
-        while (pfit != funcs->end()) {
+        set<Function*>::iterator pfit = cands->begin();
+        while (pfit != cands->end()) {
             if (aa->alias(*pfit, cv) == AliasAnalysis::MayAlias) {
                 ret = true;
-                handle_common_function_call(inst, caller, (wrapped_functions_map)[*pfit]);
+                handle_common_function_call(pcall, caller, (wrapped_functions_map)[*pfit]);
 
                 if (recordCGInfo) {
                     maycallfuncs->insert(*pfit);
                 }
 
-                if (numOfArguments == 4 && (*pfit)->getName().str() == "pthread_create") {
-                    // create a new call instruction, and record it.
-                    // handle the new call inst
-                    /// @FIXME may have problems
-                    errs() << "WARNING the block in handle_function(...) is not fully tested.\n\n";
-                    vector<Value*>* args = new vector<Value*>;
-                    args->push_back(((CallInst*) (inst))->getArgOperand(3));
-                    ArrayRef<Value*> * Args = new ArrayRef<Value*>(*args);
-                    CallInst* newCall = CallInst::Create(((CallInst*) (inst))->getArgOperand(2), *Args, "THREAD_CREATE", (Instruction*) (*cit));
+                this->handle_lib_invoke_call_inst(pcall->ret, *pfit, &(pcall->args), caller);
 
-                    tempCalls.push_back(newCall);
-                    handle_inst(newCall, caller);
-                }
-
-                funcs->erase(pfit++);
+                cands->erase(pfit++);
             } else {
                 pfit++;
             }
@@ -1211,4 +1153,59 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
     }
 
     return ret;
+}
+
+void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Value*>* args, FunctionWrapper* parent) {
+    if(!f->empty() || f->isIntrinsic())
+        return;
+    
+    const string& functionName = f->getName().str();
+    switch (args->size()) {
+        case 2:
+        {
+            if (functionName == "strcat" || functionName == "strcpy") {
+                if (ret != NULL){
+                    this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
+                } else{
+                    errs()<< "ERROR strcat/cpy does not return.\n";
+                    exit(1);
+                }
+            }
+        }
+            break;
+        case 3:
+        {
+            if (functionName == "strncat" || functionName == "strncpy") {
+                if (ret != NULL){
+                    this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
+                } else{
+                    errs()<< "ERROR strncat/cpy does not return.\n";
+                    exit(1);
+                }
+            }
+        }
+            break;
+        case 4:
+        {
+            if (functionName == "pthread_create") {
+                Value * ret = NULL;
+                vector<Value*> xargs;
+                xargs.push_back(args->at(3));
+                FunctionWrapper* parent = NULL;
+
+                if (!wrapped_functions_map.count(f)) {
+                    parent = new FunctionWrapper(f);
+                    wrapped_functions_map.insert(pair<Function*, FunctionWrapper *>(f, parent));
+                    wrapped_functions.insert(parent);
+                } else {
+                    parent = wrapped_functions_map[f];
+                }
+
+                this->handle_invoke_call_inst(ret, args->at(2), &xargs, parent);
+                valuesEscapedFromThreadCreate.insert(args->at(3));
+            }
+        }
+            break;
+        default: break;
+    }
 }

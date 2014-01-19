@@ -22,7 +22,7 @@ using namespace std;
 class Anomaly {
 private:
     vector<Event *> events;
-    int max_event_num;
+    unsigned max_event_num;
     int type;
     string  typeStr;
 
@@ -84,7 +84,7 @@ public:
     }
     
     Event * getEvent(int idx){
-        if(idx<events.size()){
+        if(idx>=0 && ((unsigned)idx)<events.size()){
             return events[idx];
         }
         return NULL;
@@ -93,14 +93,14 @@ public:
     bool containsAllEventsIn(Anomaly * a){
         bool ret = true;
         
-        for (int j = 0; j < a->events.size(); j++) {
+        for (unsigned j = 0; j < a->events.size(); j++) {
             int aln = a->events[j]->line;
             const char * asrc = a->events[j]->srcfile;
             int amem = a->events[j]->mem;
             int atype = a->events[j]->type;
             bool findOne = true;
             
-            for (int i = 0; i < events.size(); i++) {
+            for (unsigned i = 0; i < events.size(); i++) {
                 int ln = events[i]->line;
                 const char * src = events[i]->srcfile;
                 int mem = events[i]->mem;

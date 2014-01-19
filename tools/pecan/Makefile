@@ -5,7 +5,7 @@ include $(LEVEL)/Makefile.common
 Scripts = $(wildcard *.sh)
 
 all:: Pecan.cpp
-	$(CXX) Pecan.cpp -o pecan_log_analyzer -I../../include
+	$(CXX) Pecan.cpp -o pecan_log_analyzer -I$(LEVEL)/include
 
 install-local:: all
 	$(Verb) for script in $(Scripts) ; do \
@@ -17,4 +17,4 @@ install-local:: all
 
 uninstall-local::
 	$(Verb) $(RM) -f $(addprefix $(DESTDIR)$(PROJ_bindir)/,$(Scripts))
-	rm /usr/local/bin/Pecan
+	if [ -f /usr/local/bin/pecan_log_analyzer ]; then rm /usr/local/bin/pecan_log_analyzer; fi 

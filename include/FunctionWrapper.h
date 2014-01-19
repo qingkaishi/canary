@@ -41,54 +41,68 @@
 using namespace llvm;
 using namespace std;
 
-class CommonCall{
+class Call {
 public:
-    Value * ret;
-    Function * callee;
+    Value* ret;
+    Value* calledValue;
+    vector<Value*> args;
     
-    CommonCall(Function * f, Value* ci);
+    Call(Value* ret, Value * cv, vector<Value*>* args);
+};
+
+class CommonCall : public Call{
+public:
+    CommonCall(Value* ret, Function * f, vector<Value*>* args);
+};
+
+class PointerCall : public Call{
+public:
+    set<Function*> calleeCands;
+    set<Function*> handledCallees;
+
+    PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args);
 };
 
 class FunctionWrapper {
 private:
     int idx;
-    
+
     Function * llvm_function;
     set<Value*> rets;
 
     vector<Value*> args;
     vector<Value*> va_args;
-    
+
     set<Value*> resumes;
     map<Value*, Value*> lpads; // invoke <-> lpad
 
     // call instructions in the function
-    set<CommonCall *> callInsts; //Common CallInst/InvokeInst
-    map<Value *, set<Function*>*> ci_cand_map; // call insts <-> candidate for fps
-    
-    set<CommonCall *> callInstsForCG;
-    map<Value *, set<Function*>*> fpMapForCG;
-    
+    set<CommonCall *> commonCalls; // common calls
+    set<PointerCall*> pointerCalls; // pointer calls
+
+    set<CommonCall *> commonCallsForCG;
+    set<PointerCall *> pointerCallsForCG;
+
 private:
     static int global_idx;
-    
+
 public:
 
     FunctionWrapper(Function *f);
-    
+
     ~FunctionWrapper();
-    
+
     int getIndex();
 
-    void setCandidateFunctions(Value * ci, set<Function*>& fs);
-    
-    map<Value *, set<Function*>*>& getFPCallInsts();
-    
     Function* getLLVMFunction();
 
-    set<CommonCall *>& getCommonCallInsts();
+    set<CommonCall *>& getCommonCalls();
 
-    void addCommonCallInst(CommonCall * call);
+    void addCommonCall(CommonCall * call);
+
+    set<PointerCall *>& getPointerCalls();
+
+    void addPointerCall(PointerCall * call);
 
     void addResume(Value * res);
 
@@ -109,12 +123,10 @@ public:
     set<Value*>& getResumes();
 
     Value* getLandingPad(Value * invoke);
-    
-    set<Function*>* getFPCallInstsForCG(Value *);
-    
-    map<Value *, set<Function*>*>* getFPCallInstsForCG();
-    
-    set<CommonCall *>* getCommonCallInstsForCG();
+
+    set<PointerCall *>* getPointerCallsForCG();
+
+    set<CommonCall *>* getCommonCallsForCG();
 };
 
 

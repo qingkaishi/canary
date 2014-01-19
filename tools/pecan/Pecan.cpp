@@ -100,7 +100,7 @@ void init_threads() {
     it = threads.begin();
     while (it != threads.end()) {
         vector<Event *> es = (*it)->events;
-        for (int i = 0; i < es.size(); i++) {
+        for (unsigned i = 0; i < es.size(); i++) {
             if (i + 1 < es.size())
                 hbgraph->insert_edge(es[i]->eid, es[i + 1]->eid);
 
@@ -123,23 +123,23 @@ void init_threads() {
         it++;
     }
     // fork join order
-    for (int i = 0; i < forks.size(); i++) {
+    for (unsigned i = 0; i < forks.size(); i++) {
         pthread_t forked_tid = events[forks[i]].synctid;
         hbgraph->insert_edge(events[forks[i]].eid, (_map[forked_tid]->events).front()->eid);
     }
-    for (int i = 0; i < joins.size(); i++) {
+    for (unsigned i = 0; i < joins.size(); i++) {
         pthread_t joined_tid = events[joins[i]].synctid;
         hbgraph->insert_edge((_map[joined_tid]->events).back()->eid, events[joins[i]].eid);
     }
 
     // wait notify order
-    for (int i = 0; i < waits.size(); i++) {
+    for (unsigned i = 0; i < waits.size(); i++) {
         struct Event ei = events[waits[i]];
         pthread_cond_t * eicond = ei.cond;
         int eimem = ei.mem;
         pthread_t eitid = ei.tid;
 
-        for (int j = 0; j < notifies.size(); j++) {
+        for (unsigned j = 0; j < notifies.size(); j++) {
             struct Event ej = events[notifies[j]];
             pthread_cond_t * ejcond = ej.cond;
             int ejmem = ej.mem;
@@ -319,21 +319,21 @@ bool canFindOne(int from, int to, vector<struct Event *>& vec, struct Event* ej)
 }
 
 void predictSAVs() {
-    for (int i = 0; i < threads.size(); i++) {
+    for (unsigned i = 0; i < threads.size(); i++) {
         struct Thread * thread_i = threads[i];
         vector<Event *> events_i = thread_i->events;
-        for (int j = 0; j < threads.size(); j++) {
+        for (unsigned j = 0; j < threads.size(); j++) {
             if (i == j) continue;
 
             struct Thread * thread_j = threads[j];
             vector<Event *> events_j = thread_j->events;
 
-            for (int m = 0; m < events_i.size(); m++) {
-                for (int n = m + 1; n < events_i.size(); n++) {
+            for (unsigned m = 0; m < events_i.size(); m++) {
+                for (unsigned n = m + 1; n < events_i.size(); n++) {
 
                     if (events_i[m]->mem != events_i[n]->mem) continue;
 
-                    for (int p = 0; p < events_j.size(); p++) {
+                    for (unsigned p = 0; p < events_j.size(); p++) {
                         struct Event * ej = events_j[p];
 
                         if (events_i[m]->mem != ej->mem) continue;
@@ -369,25 +369,25 @@ void predictSAVs() {
 
 void predictMAVs() {
 
-    for (int i = 0; i < threads.size(); i++) {
+    for (unsigned i = 0; i < threads.size(); i++) {
         struct Thread * thread_i = threads[i];
         vector<Event *> events_i = thread_i->events;
-        for (int j = i + 1; j < threads.size(); j++) {
+        for (unsigned j = i + 1; j < threads.size(); j++) {
             struct Thread * thread_j = threads[j];
             vector<Event *> events_j = thread_j->events;
 
             // find two from events_i 
-            for (int m = 0; m < events_i.size(); m++) {
+            for (unsigned m = 0; m < events_i.size(); m++) {
                 Event * em = events_i[m];
-                for (int n = m + 1; n < events_i.size(); n++) {
+                for (unsigned n = m + 1; n < events_i.size(); n++) {
                     Event * en = events_i[n];
                     if (em->mem == en->mem || em->type != en->type) continue;
 
                     // find two from events_j
-                    for (int p = 0; p < events_j.size(); p++) {
+                    for (unsigned p = 0; p < events_j.size(); p++) {
                         Event * ep = events_j[p];
                         if (ep->mem != em->mem && ep->mem != en->mem) continue;
-                        for (int q = p + 1; q < events_j.size(); q++) {
+                        for (unsigned q = p + 1; q < events_j.size(); q++) {
                             Event * eq = events_j[q];
                             bool same_order = false;
                             bool potential = false;

@@ -36,11 +36,11 @@ private:
 private:
     map<Function*, FunctionWrapper *> wrapped_functions_map;
     set<FunctionWrapper*> wrapped_functions;
-    vector<CallInst*> tempCalls;
+    set<Value*> valuesEscapedFromThreadCreate;
     
 private:
     bool recordCGInfo;
-
+    
 public:
     AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG = false);
     ~AAAnalyzer();
@@ -61,13 +61,17 @@ public:
 
 private:
     void handle_inst(Instruction *inst, FunctionWrapper * parent);
-    bool handle_functions(FunctionWrapper* caller);
     void handle_instrinsic(Instruction *inst);
-    void handle_common_function_call(Value* ci, FunctionWrapper* caller, FunctionWrapper* callee);
-    void storeCandidateFunctions(FunctionWrapper* parent, Value * call, Value * cv);
+    void handle_invoke_call_inst(Value * ret, Value* cv, vector<Value*>* args, FunctionWrapper* parent);
+    void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, FunctionWrapper* parent);
 
 private:
+    bool handle_functions(FunctionWrapper* caller);
+    void handle_common_function_call(Call* c, FunctionWrapper* caller, FunctionWrapper* callee);
+    
+private:
     int isCompatible(FunctionType * t1, FunctionType * t2);
+    set<Function*>* getCompatibleFunctions(FunctionType * fty);
     void initFunctionGroups();
     void destroyFunctionGroups();
 

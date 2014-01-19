@@ -1,8 +1,20 @@
 #include "FunctionWrapper.h"
 
-CommonCall::CommonCall(Function* f, Value* ci) {
-    this->callee = f;
-    this->ret = ci;
+Call::Call(Value* ret, Value * cv, vector<Value*>* args){
+    this->calledValue = cv;
+    this->ret = ret;
+    vector<Value*>::iterator aIt = args->begin();
+    while(aIt!=args->end()){
+        this->args.push_back(*aIt);
+        aIt++;
+    }
+}
+
+CommonCall::CommonCall(Value* ret, Function * f, vector<Value*>* args) : Call(ret, f, args) {
+}
+
+PointerCall::PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args) : Call(ret, cv, args) {
+    this->calleeCands.insert(fs->begin(), fs->end());
 }
 
 int FunctionWrapper::global_idx = 0;
@@ -21,59 +33,53 @@ FunctionWrapper::FunctionWrapper(Function *f) {
 }
 
 FunctionWrapper::~FunctionWrapper() {
-    map<Value *, set<Function*>*>::iterator it = ci_cand_map.begin();
-    while (it != ci_cand_map.end()) {
-        delete (it->second);
+    set<PointerCall *>::iterator it = pointerCalls.begin();
+    while (it != pointerCalls.end()) {
+        delete (*it);
         it++;
     }
-    
-    it = fpMapForCG.begin();
-    while (it != fpMapForCG.end()) {
-        delete (it->second);
+
+    it = pointerCallsForCG.begin();
+    while (it != pointerCallsForCG.end()) {
+        delete (*it);
         it++;
     }
-    
-    set<CommonCall *>::iterator cit =  callInsts.begin();
-    while(cit!=callInsts.end()){
+
+    set<CommonCall *>::iterator cit = commonCalls.begin();
+    while (cit != commonCalls.end()) {
         delete *cit;
         cit++;
     }
-    
-    cit =  callInstsForCG.begin();
-    while(cit!=callInstsForCG.end()){
+
+    cit = commonCallsForCG.begin();
+    while (cit != commonCallsForCG.end()) {
         delete *cit;
         cit++;
     }
 }
 
-int FunctionWrapper::getIndex(){
+int FunctionWrapper::getIndex() {
     return idx;
 }
 
-void FunctionWrapper::setCandidateFunctions(Value * ci, set<Function*>& fs) {
-    if (!ci_cand_map.count(ci)) {
-        set<Function*>* fset = new set<Function*>;
-        fset->insert(fs.begin(), fs.end());
-        ci_cand_map.insert(pair<Value *, set<Function*>*>(ci, fset));
-    } else {
-        ci_cand_map[ci]->insert(fs.begin(), fs.end());
-    }
+set<PointerCall *>& FunctionWrapper::getPointerCalls() {
+    return pointerCalls;
 }
 
-map<Value *, set<Function*>*>& FunctionWrapper::getFPCallInsts() {
-    return ci_cand_map;
+void FunctionWrapper::addPointerCall(PointerCall* call){
+    pointerCalls.insert(call);
 }
 
 Function* FunctionWrapper::getLLVMFunction() {
     return llvm_function;
 }
 
-set<CommonCall *>& FunctionWrapper::getCommonCallInsts() {
-    return callInsts;
+set<CommonCall *>& FunctionWrapper::getCommonCalls() {
+    return commonCalls;
 }
 
-void FunctionWrapper::addCommonCallInst(CommonCall * call) {
-    callInsts.insert(call);
+void FunctionWrapper::addCommonCall(CommonCall * call) {
+    commonCalls.insert(call);
 }
 
 void FunctionWrapper::addResume(Value * res) {
@@ -113,26 +119,16 @@ set<Value*>& FunctionWrapper::getResumes() {
 }
 
 Value* FunctionWrapper::getLandingPad(Value * invoke) {
-    if(lpads.count(invoke)){
+    if (lpads.count(invoke)) {
         return lpads[invoke];
     }
     return NULL;
 }
 
-set<CommonCall *>* FunctionWrapper::getCommonCallInstsForCG() {
-    return &callInstsForCG;
+set<CommonCall *>* FunctionWrapper::getCommonCallsForCG() {
+    return &commonCallsForCG;
 }
 
-set<Function*>* FunctionWrapper::getFPCallInstsForCG(Value * ci){
-    if(fpMapForCG.count(ci)){
-        return fpMapForCG[ci];
-    } else {
-        set<Function*> * ciset = new set<Function*>;
-        fpMapForCG.insert(pair<Value*, set<Function*> *>(ci, ciset));
-        return ciset;
-    }
-}
-    
-map<Value *, set<Function*>*>* FunctionWrapper::getFPCallInstsForCG(){
-    return &fpMapForCG;
+set<PointerCall *>* FunctionWrapper::getPointerCallsForCG() {
+    return &pointerCallsForCG;
 }
