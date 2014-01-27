@@ -40,7 +40,7 @@ if [ -f "$INPUT_FILE" ]; then
 	opt -load dyckaa.so -basicaa -dyckaa -leap-transformer $INPUT_FILE -o "$INPUT_FILE.t.bc"
 	
 	echo ""
-	echo "The program has been transformed to $INPUT_FILE.trans.bc."
+	echo "The program has been transformed to $INPUT_FILE.t.bc."
 	echo "If you want a record version, please add -lleaprecord when you compile it to be an executable file."
 	echo "If you want a replay version, please add -lreplay when you compile it to be an executable file."
 else

@@ -224,6 +224,10 @@ void Transformer4Trace::transformPthreadCondWait(CallInst* call, AliasAnalysis& 
 
 }
 
+void Transformer4Trace::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
+    // do nothing in this version
+}
+
 void Transformer4Trace::transformPthreadCondSignal(CallInst* call, AliasAnalysis& AA) {
     Value * val0 = call->getArgOperand(0);
     Value * val1 = call->getArgOperand(1);

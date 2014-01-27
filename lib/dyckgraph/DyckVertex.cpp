@@ -95,7 +95,10 @@ DyckVertex* DyckVertex::getRepresentative() {
     if (this == representative) {
         return representative;
     } else {
-        return representative->getRepresentative();
+        DyckVertex* ret = representative->getRepresentative();
+        if (this->representative != ret)
+            this->representative = ret; // it will be efficient next time
+        return ret;
     }
 }
 
@@ -287,8 +290,8 @@ bool DyckVertex::hasLabelsBesides(void* label) {
 
         it++;
     }
-    
-    
+
+
     it = in_lables.begin();
     while (it != in_lables.end()) {
         if (*it != label) {
@@ -310,7 +313,7 @@ bool DyckVertex::hasLabelsBesides(void* label) {
 
         it++;
     }
-    
+
     return false;
 }
 

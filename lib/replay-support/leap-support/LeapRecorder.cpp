@@ -10,7 +10,7 @@
 #include "SignalRoutine.h"
 
 #define POSIX_MUTEX
-
+#define DEBUG
 #include "Lock.h"
 
 #define MAX_LOG_LEN 50000
@@ -117,7 +117,7 @@ extern "C" {
         }
         fprintf(fdebug, "\n\n");
         for (int i = 0; i < num_shared_vars; i++) {
-            for (int j = 0; j < GIDX[i]; j++) {
+            for (unsigned j = 0; j < GIDX[i]; j++) {
                 fprintf(fdebug, "%d, ", GLOG[i][j]);
             }
             fprintf(fdebug, "\n");

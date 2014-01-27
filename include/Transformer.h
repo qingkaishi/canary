@@ -109,6 +109,9 @@ public:
 
     virtual void transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
     }
+    
+    virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA){
+    }
 
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
     }

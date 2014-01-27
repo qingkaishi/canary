@@ -160,6 +160,23 @@ void Transformer4Replay::transformPthreadCondWait(CallInst* ins, AliasAnalysis& 
     this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
 }
 
+void Transformer4Replay::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
+    Value * val = ins->getArgOperand(0);
+    int svIdx = this->getValueIndex(val, AA);
+    if (svIdx == -1) return;
+
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
+    this->insertCallInstBefore(ins, F_prewait, tmp, NULL);
+
+    // F_wait need two more arguments
+    CastInst* c1 = CastInst::CreatePointerCast(ins->getArgOperand(0), Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE));
+    CastInst* c2 = CastInst::CreatePointerCast(ins->getArgOperand(1), Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE));
+    c1->insertAfter(ins);
+    c2->insertAfter(c1);
+
+    this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
+}
+
 void Transformer4Replay::transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);

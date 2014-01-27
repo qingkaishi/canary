@@ -236,6 +236,10 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
         // wait & notify
         transformPthreadCondWait(call, AA);
         return true;
+    } else if (cf.getName().str() == "pthread_cond_timedwait") {
+        // wait & notify
+        transformPthreadCondTimeWait(call, AA);
+        return true;
     } else if (cf.getName().str() == "pthread_cond_signal") {
         transformPthreadCondSignal(call, AA);
         return true;

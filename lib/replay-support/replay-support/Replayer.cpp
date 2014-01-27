@@ -7,7 +7,7 @@
 #include <pthread.h>
 
 #define POSIX_MUTEX
-
+#define DEBUG
 #include "Lock.h"
 #include "Signature.h"
 
@@ -141,7 +141,7 @@ extern "C" {
                 fprintf(fdebug, "\nLLOG: \n");
 
                 for (int j = 0; j < num_shared_vars; j++) {
-                    for (int k = 0; k < LIDX[i][j]; k++) {
+                    for (unsigned k = 0; k < LIDX[i][j]; k++) {
                         fprintf(fdebug, "%d, ", LLOG[i][j][k]);
                     }
                 }
@@ -241,7 +241,7 @@ extern "C" {
             fprintf(fdebug, "\n\n");
             fflush(fdebug);
             for (int i = 0; i < num_shared_vars; i++) {
-                for (int j = 0; j < GIDX[i]; j++) {
+                for (unsigned j = 0; j < GIDX[i]; j++) {
                     fprintf(fdebug, "%d, ", GLOG[i][j]);
                 }
                 fprintf(fdebug, "\n");

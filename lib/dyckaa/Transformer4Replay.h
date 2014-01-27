@@ -42,6 +42,7 @@ public:
     virtual void transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) ;
+    virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA);
     virtual void transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformMemCpyMov(CallInst* ins, AliasAnalysis& AA) ;
