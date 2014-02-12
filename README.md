@@ -59,9 +59,11 @@ access anomalies". You can use the following commands directly to use the
 function.
 
 ```bash
-./pecan.sh -h
-./pecan.sh -i <bitcode_file>
-./pecan.sh -a <log_file>
+pecan -help
+pecan <bitcode_file> -o <output_file>
+\#compile bitcode file to be an executable file; a log file will be produced 
+\#after executing it; using the following command to analyze it.  
+pecan_log_analyzer <log_file> <result_file>
 ```
 
 

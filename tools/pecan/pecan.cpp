@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
   initializeTarget(Registry);*/
 
   cl::ParseCommandLineOptions(argc, argv,
-			      " leap .bc -> .bc record/replay transformer\n");
+			      " pecan .bc -> .bc record/replay transformer\n");
 
   // Load the input module...
   LLVMContext &Context = getGlobalContext();
@@ -99,9 +99,9 @@ int main(int argc, char **argv) {
     
   } else {
     cerr<< "Warning using default output file name \"a.t.bc\"!\n";
-    Out = new std::ofstream("a.leap.bc");
+    Out = new std::ofstream("a.pecan.bc");
     if (!Out->good()) {
-      cerr << "Error opening " << "a.leap.bc" << "!\n";
+      cerr << "Error opening " << "a.pecan.bc" << "!\n";
       return 1;
     }
   }
@@ -128,13 +128,15 @@ int main(int argc, char **argv) {
   }
   
   //Add passes
-  Passes.add(createDyckAliasAnalysisPass(true, false, false, false, false));
+  Passes.add(createDyckAliasAnalysisPass(false, true, false, false, false));
  
   // Now that we have all of the passes ready, run them.
   Passes.run(*M.get());
   (*Out) << M.get();
 
-  cout << "\nPleaase add -lleaprecord / -lreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
+  cout << "\nPleaase add -ltrace when you compile the transformed bitcode file to an executable file.\n";
+  cout << "After you execute program, a trace log file will produced.\n";
+  cout << "Execute pecan_log_analyzer <log_file> <result_file> to predict bugs. Results will be stored in <result_file>.\n";
 
   return 0;
 }

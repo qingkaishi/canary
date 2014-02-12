@@ -134,5 +134,7 @@ int main(int argc, char **argv) {
   Passes.run(*M.get());
   (*Out) << M.get();
 
+  cout << "\nPleaase add -lcanaryrecord / -lreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
+
   return 0;
 }
