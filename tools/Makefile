@@ -8,6 +8,6 @@ LEVEL=..
 #
 # List all of the subdirectories that we will compile.
 #
-DIRS=leap pecan canary pecan_log_analyzer
+DIRS=leap pecan canary pecan_analyzer
 
 include $(LEVEL)/Makefile.common
