@@ -728,7 +728,6 @@ DISABLE_ASSERTIONS
 ENABLE_PROFILING
 ENABLE_OPTIMIZED
 ENABLE_LIBCPP
-CVSBUILD
 BUILD_CXX
 BUILD_EXEEXT
 BUILD_CC
@@ -2555,20 +2554,8 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $llvm_config_path" >&5
 $as_echo "$llvm_config_path" >&6; }
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for passes declaration" >&5
-$as_echo_n "checking for passes declaration... " >&6; }
-if grep -q -F "ModulePass *createDyckAliasAnalysisPass();" "`llvm-config --includedir`/llvm/Analysis/Passes.h"
-then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-else
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-	as_fn_error $? "Please add \"ModulePass *createDyckAliasAnalysisPass();\" into llvm/Analysis/Passes.h." "$LINENO" 5
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for passes declaration" >&5
-$as_echo_n "checking for passes declaration... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for boost lib" >&5
+$as_echo_n "checking for boost lib... " >&6; }
 if test -f /usr/include/boost/foreach.hpp || test -f /usr/local/include/boost/foreach.hpp
 then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -4816,15 +4803,9 @@ else
 
 fi
 
-if test -d ".svn" -o -d "${srcdir}/.svn" -o -d ".git" -o -d "${srcdir}/.git"; then
-  cvsbuild="yes"
-  optimize="no"
-  CVSBUILD=CVSBUILD=1
-
-else
-  cvsbuild="no"
-  optimize="yes"
-fi
+dnlelse
+cvsbuild="no"
+optimize="yes"
 
 
 # Check whether --enable-libcpp was given.
@@ -9191,7 +9172,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9194 "configure"
+#line 9175 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H

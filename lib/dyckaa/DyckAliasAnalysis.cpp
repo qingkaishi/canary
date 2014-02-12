@@ -1,27 +1,4 @@
-#include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Analysis/Passes.h"
-//#include "llvm/Constants.h"
-//#include "llvm/DerivedTypes.h"
-//#include "llvm/Function.h"
-//#include "llvm/GlobalAlias.h"
-//#include "llvm/GlobalVariable.h"
-//#include "llvm/Instructions.h"
-//#include "llvm/IntrinsicInst.h"
-//#include "llvm/LLVMContext.h"
-//#include "llvm/Operator.h"
-#include "llvm/Pass.h"
-#include "llvm/Analysis/CaptureTracking.h"
-#include "llvm/Analysis/MemoryBuiltins.h"
-#include "llvm/Analysis/InstructionSimplify.h"
-#include "llvm/Analysis/ValueTracking.h"
-//#include "llvm/DataLayout.h"
-#include "llvm/Target/TargetLibraryInfo.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/GetElementPtrTypeIterator.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/CommandLine.h"
+
 
 #include "DyckGraph.h"
 #include "AAAnalyzer.h"
@@ -29,6 +6,8 @@
 #include "Transformer.h"
 #include "Transformer4Replay.h"
 #include "Transformer4Trace.h"
+
+#include "DyckAliasAnalysis.h"
 
 #include <stdio.h>
 #include <algorithm>
@@ -199,7 +178,7 @@ namespace {
     RegisterAnalysisGroup<AliasAnalysis> Y(X);
 
     // Register this pass...
-    char DyckAliasAnalysis::ID;
+    char DyckAliasAnalysis::ID = 0;
 
     void DyckAliasAnalysis::getThreadEscapingPointers(set<DyckVertex*>* ret) {
         if (ret == NULL)
@@ -437,7 +416,16 @@ namespace {
     }
 }
 
-ModulePass *llvm::createDyckAliasAnalysisPass() {
+ModulePass *createDyckAliasAnalysisPass() {
+    return new DyckAliasAnalysis();
+}
+
+ModulePass *createDyckAliasAnalysisPass(bool leap, bool pecan, bool mcg, bool eval, bool countfp) {
+    LeapTransformer = leap;
+    PecanTransformer = pecan;
+    DotCallGraph = mcg;
+    InterAAEval = eval;
+    CountFP = countfp;
     return new DyckAliasAnalysis();
 }
 

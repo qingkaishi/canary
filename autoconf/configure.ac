@@ -25,18 +25,8 @@ if ! test -f "$llvm_config_path" ; then
 fi
 AC_MSG_RESULT([$llvm_config_path])
 
-dnl Try to determine whether the alias analysis has been declared.
-AC_MSG_CHECKING([for passes declaration])
-if grep -q -F "ModulePass *createDyckAliasAnalysisPass();" "`llvm-config --includedir`/llvm/Analysis/Passes.h"
-then
-	AC_MSG_RESULT([yes])
-else
-	AC_MSG_RESULT([no])
-	AC_MSG_ERROR([Please add "ModulePass *createDyckAliasAnalysisPass();" into llvm/Analysis/Passes.h.])
-fi
-
 dnl Try to check boost
-AC_MSG_CHECKING([for passes declaration])
+AC_MSG_CHECKING([for boost lib])
 if test -f /usr/include/boost/foreach.hpp || test -f /usr/local/include/boost/foreach.hpp
 then
 	AC_MSG_RESULT([yes])
@@ -382,14 +372,14 @@ dnl the command line switches. When we build with a checkout directory,
 dnl we get a debug with assertions turned on. Without, we assume a source
 dnl release and we get an optimized build without assertions.
 dnl See --enable-optimized and --enable-assertions below
-if test -d ".svn" -o -d "${srcdir}/.svn" -o -d ".git" -o -d "${srcdir}/.git"; then
-  cvsbuild="yes"
-  optimize="no"
-  AC_SUBST(CVSBUILD,[[CVSBUILD=1]])
-else
-  cvsbuild="no"
-  optimize="yes"
-fi
+dnl if test -d ".svn" -o -d "${srcdir}/.svn" -o -d ".git" -o -d "${srcdir}/.git"; then
+dnl  cvsbuild="yes"
+dnl  optimize="no"
+dnl  AC_SUBST(CVSBUILD,[[CVSBUILD=1]])
+dnlelse
+cvsbuild="no"
+optimize="yes"
+dnl fi
 
 dnl===-----------------------------------------------------------------------===
 dnl===

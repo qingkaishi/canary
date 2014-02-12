@@ -12,8 +12,6 @@ LIBRARYNAME=dyckaa
 
 USEDLIBS = dyckgraph.a transformer.a wrapper.a
 
-LOADABLE_MODULE = 1
-
 #
 # Include Makefile.common so we know what to do.
 #

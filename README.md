@@ -49,8 +49,8 @@ multi-processor replay of concurrent java programs". You can use the following
 commands directly to use the function.
 
 ```bash
-./leap.sh -h
-./leap.sh -i <bitcode_file>
+leap -help
+leap <bitcode_file> -o <output_file>
 ```
 
 * -pecan-transformer
