@@ -31,7 +31,8 @@ Using Canary
 opt -load dyckaa.so -dyckaa <bitcode_file> -o <output_file>
 ```
 
-Some options can be used for different objectives.
+Note that the current version does not compile it to .so file. Please DIY 
+by changing Makefiles. Some options can be used for different objectives.
 
 * -inter-aa-eval
 This is a modified version of -aa-eval. -aa-eval only can be used to evaluate 
@@ -61,8 +62,8 @@ function.
 ```bash
 pecan -help
 pecan <bitcode_file> -o <output_file>
-\#compile bitcode file to be an executable file; a log file will be produced 
-\#after executing it; using the following command to analyze it.  
+# compile bitcode file to be an executable file; a log file will be produced 
+# after executing it; using the following command to analyze it.  
 pecan_log_analyzer <log_file> <result_file>
 ```
 
