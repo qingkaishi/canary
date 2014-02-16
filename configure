@@ -2547,12 +2547,28 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking llvm-config" >&5
 $as_echo_n "checking llvm-config... " >&6; }
-llvm_config_path="`ls -1 $llvm_obj/*/bin/llvm-config 2> /dev/null | head -1`"
+llvm_config_path="`which llvm-config 2> /dev/null | head -1`"
 if ! test -f "$llvm_config_path" ; then
    llvm_config_path="no"
+   as_fn_error $? "It seems llvm is not correctly installed. llvm-config cannot be found." "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $llvm_config_path" >&5
 $as_echo "$llvm_config_path" >&6; }
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking LLVM package version" >&5
+$as_echo_n "checking LLVM package version... " >&6; }
+if test "$llvm_config_path" != no ; then
+  llvm_package_version=`$llvm_config_path --version`
+else
+  llvm_package_version="unknown";
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $llvm_package_version" >&5
+$as_echo "$llvm_package_version" >&6; }
+LLVM_VERSION=$llvm_package_version
+
+if test $llvm_package_version != 3.4 ; then
+  as_fn_error $? "Please use canary with llvm 3.4." "$LINENO" 5
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for boost lib" >&5
 $as_echo_n "checking for boost lib... " >&6; }
@@ -2566,6 +2582,19 @@ $as_echo "no" >&6; }
 	as_fn_error $? "We need boost library for support." "$LINENO" 5
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking gawk" >&5
+$as_echo_n "checking gawk... " >&6; }
+which gawk
+if test $? = 0
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	as_fn_error $? "We need gawk." "$LINENO" 5
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gcc version" >&5
 $as_echo_n "checking for gcc version... " >&6; }
 if test `g++ -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1 && test `gcc -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1; then
@@ -2574,19 +2603,8 @@ $as_echo "yes" >&6; }
 else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-	as_fn_error $? "gcc/g++ version should be 4.8 or higher. If so, please check whether you have gawk." "$LINENO" 5
+	as_fn_error $? "gcc/g++ version should be 4.8 or higher." "$LINENO" 5
 fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking LLVM package version" >&5
-$as_echo_n "checking LLVM package version... " >&6; }
-if test "$llvm_config_path" != no ; then
-  llvm_package_version=`$llvm_config_path --version`
-else
-  llvm_package_version="unknown";
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $llvm_package_version" >&5
-$as_echo "$llvm_package_version" >&6; }
-LLVM_VERSION=$llvm_package_version
 
 
 
@@ -9172,7 +9190,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9175 "configure"
+#line 9193 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12884,10 +12902,7 @@ ac_config_commands="$ac_config_commands lib/trace-support/Makefile"
 ac_config_commands="$ac_config_commands tools/Makefile"
 
 
-ac_config_commands="$ac_config_commands tools/leap/Makefile"
-
-
-ac_config_commands="$ac_config_commands tools/pecan/Makefile"
+ac_config_commands="$ac_config_commands tools/pecan_analyzer/Makefile"
 
 
 ac_config_commands="$ac_config_commands tools/canary/Makefile"
@@ -13632,8 +13647,7 @@ do
     "lib/replay-support/replay-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/replay-support/Makefile" ;;
     "lib/trace-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/trace-support/Makefile" ;;
     "tools/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/Makefile" ;;
-    "tools/leap/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/leap/Makefile" ;;
-    "tools/pecan/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/pecan/Makefile" ;;
+    "tools/pecan_analyzer/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/pecan_analyzer/Makefile" ;;
     "tools/canary/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/canary/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
@@ -14080,10 +14094,8 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/trace-support/Makefile lib/trace-support/Makefile ;;
     "tools/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname tools/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/tools/Makefile tools/Makefile ;;
-    "tools/leap/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname tools/leap/Makefile`
-   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/tools/leap/Makefile tools/leap/Makefile ;;
-    "tools/pecan/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname tools/pecan/Makefile`
-   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/tools/pecan/Makefile tools/pecan/Makefile ;;
+    "tools/pecan_analyzer/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname tools/pecan_analyzer/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/tools/pecan_analyzer/Makefile tools/pecan_analyzer/Makefile ;;
     "tools/canary/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname tools/canary/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/tools/canary/Makefile tools/canary/Makefile ;;
 

@@ -53,6 +53,27 @@ static cl::opt<string>
 OutputFilename("o", cl::desc("Override output filename"),
                cl::value_desc("filename"));
 
+// cananry options
+static cl::opt<bool>
+LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
+        cl::desc("Transform programs using Leap transformer."));
+
+static cl::opt<bool>
+PecanTransformer("pecan-transformer", cl::init(false), cl::Hidden,
+        cl::desc("Transform programs using pecan transformer."));
+
+static cl::opt<bool>
+DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
+        cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
+
+static cl::opt<bool>
+InterAAEval("inter-aa-eval", cl::init(false), cl::Hidden,
+        cl::desc("Inter-procedure alias analysis evaluator."));
+
+static cl::opt<bool>
+CountFP("count-fp", cl::init(false), cl::Hidden,
+        cl::desc("Calculate how many function pointers point to."));
+
 int main(int argc, char **argv) {
 
   // Initialize passes
@@ -98,7 +119,7 @@ int main(int argc, char **argv) {
     }
     
   } else {
-    cerr<< "Warning using default output file name \"a.t.bc\"!\n";
+    cerr<< "Warning using default output file name \"a.canary.bc\"!\n";
     Out = new std::ofstream("a.canary.bc");
     if (!Out->good()) {
       cerr << "Error opening " << "a.canary.bc" << "!\n";
@@ -128,13 +149,17 @@ int main(int argc, char **argv) {
   }
   
   //Add passes
-  Passes.add(createDyckAliasAnalysisPass(true, false, false, false, false));
+  Passes.add(createDyckAliasAnalysisPass(LeapTransformer, PecanTransformer, DotCallGraph, InterAAEval, CountFP));
  
   // Now that we have all of the passes ready, run them.
   Passes.run(*M.get());
   (*Out) << M.get();
 
-  cout << "\nPleaase add -lcanaryrecord / -lreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
+  if (LeapTransformer)
+    cout << "\nPleaase add -lcanaryrecord / -lleaprecord / -lreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
+
+  if (PecanTransformer)
+    cout << "Pleaase add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";
 
   return 0;
 }

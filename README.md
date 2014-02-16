@@ -30,11 +30,8 @@ Using Canary
 **Using Alias Analysis**
 
 ```bash
-opt -load dyckaa.so -dyckaa <bitcode_file> -o <output_file>
+canary <bitcode_file> -o <output_file>
 ```
-
-Note that the current version does not compile it to .so file. Please DIY 
-by changing Makefiles. Some options can be used for different objectives.
 
 * -inter-aa-eval
 This is a modified version of -aa-eval. -aa-eval only can be used to evaluate 
@@ -48,24 +45,29 @@ This option is used to print a call graph based on the alias analysis.
 
 * -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 
-multi-processor replay of concurrent java programs". You can use the following 
-commands directly to use the function.
+multi-processor replay of concurrent java programs". Here is an example.
 
 ```bash
-leap -help
-leap <bitcode_file> -o <output_file>
+# transform
+canary -leap-transformer <bitcode_file> -o <output_file>
+# link a record version
+clang++ <ouput_file> -o <executable> -lleaprecord
+# execute it
+# link a replay version
+clang++ <ouput_file> -o <executable> -lreplay
+# now you can replay
 ```
 
 * -pecan-transformer
 A transformer for Pecan. Please read "Persuasive prediction of concurrency 
-access anomalies". You can use the following commands directly to use the 
-function.
+access anomalies". Here is an example.
 
 ```bash
-pecan -help
-pecan <bitcode_file> -o <output_file>
-# compile bitcode file to be an executable file; a log file will be produced 
-# after executing it; using the following command to analyze it.  
+canary -pecan-transformer <bitcode_file> -o <output_file>
+# link a record version 
+clang++ <ouput_file> -o <executable> -ltrace
+# a log file will be produced after executing it; using the following command
+# to analyze it.  
 pecan_log_analyzer <log_file> <result_file>
 ```
 

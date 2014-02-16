@@ -2,8 +2,6 @@ LEVEL=../..
 
 include $(LEVEL)/Makefile.common
 
-Scripts = $(wildcard *.sh)
-
 all:: Pecan.cpp
 	$(CXX) Pecan.cpp -o pecan_log_analyzer -I$(LEVEL)/include
 

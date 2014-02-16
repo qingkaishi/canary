@@ -19,30 +19,12 @@ dnl Try and find an llvm-config in the build directory. We are only using this
 dnl to detect the package level LLVM information (currently just the version),
 dnl so we just whatever one we find regardless of build mode.
 AC_MSG_CHECKING([llvm-config])
-llvm_config_path="`ls -1 $llvm_obj/*/bin/llvm-config 2> /dev/null | head -1`"
+llvm_config_path="`which llvm-config 2> /dev/null | head -1`"
 if ! test -f "$llvm_config_path" ; then
    llvm_config_path="no"
+   AC_MSG_ERROR([It seems llvm is not correctly installed. llvm-config cannot be found.])
 fi
 AC_MSG_RESULT([$llvm_config_path])
-
-dnl Try to check boost
-AC_MSG_CHECKING([for boost lib])
-if test -f /usr/include/boost/foreach.hpp || test -f /usr/local/include/boost/foreach.hpp
-then
-	AC_MSG_RESULT([yes])
-else
-	AC_MSG_RESULT([no])
-	AC_MSG_ERROR([We need boost library for support.])
-fi
-
-dnl check gcc version
-AC_MSG_CHECKING([for gcc version])
-if test `g++ -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1 && test `gcc -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1; then
-	AC_MSG_RESULT([yes])
-else
-	AC_MSG_RESULT([no])
-	AC_MSG_ERROR([gcc/g++ version should be 4.8 or higher. If so, please check whether you have gawk.])
-fi
 
 dnl Determine the LLVM version, which may be required by the current Makefile
 dnl rules.
@@ -54,6 +36,40 @@ else
 fi
 AC_MSG_RESULT([$llvm_package_version])
 AC_SUBST(LLVM_VERSION, [$llvm_package_version])
+if test $llvm_package_version != 3.4 ; then
+  AC_MSG_ERROR([Please use canary with llvm 3.4.])
+fi
+
+dnl Try to check boost
+AC_MSG_CHECKING([for boost lib])
+if test -f /usr/include/boost/foreach.hpp || test -f /usr/local/include/boost/foreach.hpp
+then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+	AC_MSG_ERROR([We need boost library for support.])
+fi
+
+dnl Try to check gawk
+AC_MSG_CHECKING([gawk])
+which gawk
+if test $? = 0
+then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+	AC_MSG_ERROR([We need gawk.])
+fi
+
+dnl check gcc version
+AC_MSG_CHECKING([for gcc version])
+if test `g++ -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1 && test `gcc -dumpversion | gawk '{print $1>=4.8?"1":"0"}'` = 1; then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+	AC_MSG_ERROR([gcc/g++ version should be 4.8 or higher.])
+fi
+
 
 dnl Verify that the source directory is valid
 AC_CONFIG_SRCDIR(["Makefile.common.in"])
@@ -1492,8 +1508,7 @@ AC_CONFIG_MAKEFILE(lib/replay-support/canary-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/replay-support/replay-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/trace-support/Makefile)
 AC_CONFIG_MAKEFILE(tools/Makefile)
-AC_CONFIG_MAKEFILE(tools/leap/Makefile)
-AC_CONFIG_MAKEFILE(tools/pecan/Makefile)
+AC_CONFIG_MAKEFILE(tools/pecan_analyzer/Makefile)
 AC_CONFIG_MAKEFILE(tools/canary/Makefile)
 
 dnl This must be last

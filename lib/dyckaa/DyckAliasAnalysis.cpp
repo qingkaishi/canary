@@ -14,25 +14,12 @@
 #include <stack>
 using namespace llvm;
 
-static cl::opt<bool>
-LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
-        cl::desc("Transform programs using Leap transformer."));
-
-static cl::opt<bool>
-PecanTransformer("pecan-transformer", cl::init(false), cl::Hidden,
-        cl::desc("Transform programs using pecan transformer."));
-
-static cl::opt<bool>
-DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
-        cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
-
-static cl::opt<bool>
-InterAAEval("inter-aa-eval", cl::init(false), cl::Hidden,
-        cl::desc("Inter-procedure alias analysis evaluator."));
-
-static cl::opt<bool>
-CountFP("count-fp", cl::init(false), cl::Hidden,
-        cl::desc("Calculate how many function pointers point to."));
+static bool 
+LeapTransformer = false, 
+PecanTransformer = false, 
+DotCallGraph = false, 
+InterAAEval = false, 
+CountFP = false;
 
 static const Function *getParent(const Value *V) {
     if (const Instruction * inst = dyn_cast<Instruction>(V))
