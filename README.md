@@ -11,7 +11,6 @@ access anomalies", etc. You can read them for detals.
 Please use canary with llvm-3.4.
 
 
-
 Building Canary
 ------
 
