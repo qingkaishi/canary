@@ -1,16 +1,16 @@
 /* 
- * File:   Transformer4Replay.h
+ * File:   Transformer4Record.h
  * Author: jack
  *
- * Created on December 3, 2013, 10:30 AM
+ * Created on Feb 19, 2014, 01:27 PM
  */
 
-#ifndef TRANSFORMER4REPLAY_H
-#define	TRANSFORMER4REPLAY_H
+#ifndef TRANSFORMER4RECORD_H
+#define	TRANSFORMER4RECORD_H
 
 #include "Transformer.h"
 
-class Transformer4Replay : public Transformer{
+class Transformer4Record : public Transformer{
 private:
     map<Value *, int> sv_idx_map;
 
@@ -24,7 +24,7 @@ private:
 
 public:
 
-    Transformer4Replay(Module * m, set<Value*> * svs, unsigned psize);
+    Transformer4Record(Module * m, set<Value*> * svs, unsigned psize);
 
     void transform(AliasAnalysis& AA);
     
@@ -52,14 +52,22 @@ public:
     virtual bool isInstrumentationFunction(Function *f);
     
     virtual bool debug();
+    
+private:
+    set<Function *> possibleSigHandlerFunctions;
+    
+private:
+    bool isSigactFunctionStarType(Value * v);
+    bool isSignalFunctionStarType(Value * v);
+    bool isSigactStructStarType(Value * v);
+    bool isSighandlerStarType(Value * v);
 
 private:
-
     int getValueIndex(Value * v, AliasAnalysis& AA);
     
 };
 
 
 
-#endif	/* TRANSFORMER4TRACE_H */
+#endif	/* TRANSFORMER4RECORD_H */
 

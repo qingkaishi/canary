@@ -1,4 +1,4 @@
-#include "Transformer4Replay.h"
+#include "Transformer4Record.h"
 
 #define POINTER_BIT_SIZE ptrsize*8
 #define INT_BIT_SIZE 32
@@ -8,9 +8,9 @@
 #define FUNCTION_WAIT_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,INT_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),(Type*)0
 #define FUNCTION_FORK_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,POINTER_BIT_SIZE),(Type*)0
 
-int Transformer4Replay::stmt_idx = 0;
+int Transformer4Record::stmt_idx = 0;
 
-Transformer4Replay::Transformer4Replay(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
+Transformer4Record::Transformer4Record(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
     int idx = 0;
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
@@ -53,14 +53,118 @@ Transformer4Replay::Transformer4Replay(Module* m, set<Value*>* svs, unsigned psi
     F_wait = cast<Function>(m->getOrInsertFunction("OnWait", FUNCTION_WAIT_ARG_TYPE));
 }
 
-bool Transformer4Replay::debug() {
+bool Transformer4Record::debug() {
     return false;
 }
 
-void Transformer4Replay::beforeTransform(AliasAnalysis& AA) {
+void Transformer4Record::beforeTransform(AliasAnalysis& AA) {
+    outs() << "Distinguishing signal handler functions ...\n";
+    
+    Function * signalFunction = module->getFunction("signal");
+    if(!isSignalFunctionStarType(signalFunction)) {
+        signalFunction = NULL;
+    }
+    
+    Function * signalActionFunction = module->getFunction("sigaction");
+    if(!isSigactFunctionStarType(signalActionFunction)){
+        signalActionFunction = NULL;
+    }
+    
+    set<Value*> possibleSigHandler;
+
+    for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+        Function& f = *iterF;
+        if (!this->functionToTransform(&f)) {
+            continue;
+        }
+        
+        if(this->isSighandlerStarType()){
+            possibleSigHandlerFunctions.insert(&f);
+        }
+        
+        for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
+            BasicBlock &b = *iterB;
+            if (!this->blockToTransform(&b)) {
+                continue;
+            }
+            for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
+                Instruction &inst = *iterI;
+
+                Value * calledValue = NULL;
+                vector<Value*> args;
+
+                if (isa<CallInst>(inst)) {
+                    calledValue = ((CallInst*) iterI)->getCalledValue();
+                    for (unsigned i = 0; i < ((CallInst*) iterI)->getNumArgOperands(); i++) {
+                        args.push_back(((CallInst*) iterI)->getArgOperand(i));
+                    }
+                }
+
+                if (isa<InvokeInst>(inst)) {
+                    calledValue = ((InvokeInst*) iterI)->getCalledValue();
+                    for (unsigned i = 0; i < ((InvokeInst*) iterI)->getNumArgOperands(); i++) {
+                        args.push_back(((CallInst*) iterI)->getArgOperand(i));
+                    }
+                }
+
+                if (calledValue == NULL || !calledValue->getType()->isPointerTy()) continue;
+
+                if (signalFunction != NULL && isSignalFunctionStarType(calledValue)) {
+                    if (AA.alias(calledValue, signalFunction)) {
+                        if (args[1] != NULL) {
+                            if (isa<Constant>(args[1])) {
+                                if (!((Constant*) (args[1]))->isNullValue()) {
+                                    possibleSigHandler.insert(args[1]);
+                                }
+                            } else {
+                                possibleSigHandler.insert(args[1]);
+                            }
+                        }
+                    }
+                } else if (signalActionFunction != NULL && isSigactFunctionStarType(calledValue)) {
+                    if (AA.alias(calledValue, signalActionFunction)) {
+                        if (args[1] != NULL && isSigactStructStarType(args[1])) {
+                            // although args[1] is a pointer type that points to sigact struct
+                            // it also can partially alias with the handler, the first element of
+                            // sigact structure
+                            possibleSigHandler.insert(args[1]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    set<Function *>::iterator sit = possibleSigHandlerFunctions.begin();
+    while(sit!=possibleSigHandlerFunctions.end()){
+        Function * func = *sit;
+        
+        bool yes = false;
+        set<Value*>::iterator vit = possibleSigHandler.begin();
+        while(vit!=possibleSigHandler.end()){
+            if(AA.alias(*vit, func)){
+                yes= true;
+                break;
+            }
+            vit++;
+        }
+        
+        if(!yes){
+            possibleSigHandlerFunctions.erase(sit++);
+        }else{
+            sit++;
+        }
+    }
+    
+    int idx = 0;
+    sit = possibleSigHandlerFunctions.begin();
+    while(sit!=possibleSigHandlerFunctions.end()){
+        Function * func = *sit;
+        outs() << "[" << idx << "] " << func->getName() << "\n";
+    }
 }
 
-void Transformer4Replay::afterTransform(AliasAnalysis& AA) {
+void Transformer4Record::afterTransform(AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
         ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
@@ -69,19 +173,19 @@ void Transformer4Replay::afterTransform(AliasAnalysis& AA) {
     }
 }
 
-bool Transformer4Replay::functionToTransform(Function* f) {
+bool Transformer4Record::functionToTransform(Function* f) {
     return !f->isIntrinsic() && !f->empty() && !this->isInstrumentationFunction(f);
 }
 
-bool Transformer4Replay::blockToTransform(BasicBlock* bb) {
+bool Transformer4Record::blockToTransform(BasicBlock* bb) {
     return true;
 }
 
-bool Transformer4Replay::instructionToTransform(Instruction* ins) {
+bool Transformer4Record::instructionToTransform(Instruction* ins) {
     return true;
 }
 
-void Transformer4Replay::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
+void Transformer4Record::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -93,7 +197,7 @@ void Transformer4Replay::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     this->insertCallInstAfter(inst, F_load, tmp, debug_idx, NULL);
 }
 
-void Transformer4Replay::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
+void Transformer4Record::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -105,7 +209,7 @@ void Transformer4Replay::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) 
     this->insertCallInstAfter(inst, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4Replay::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
     this->insertCallInstBefore(ins, F_prefork, tmp, NULL);
 
@@ -114,14 +218,14 @@ void Transformer4Replay::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA
     this->insertCallInstAfter(c, F_fork, c, NULL);
 }
 
-void Transformer4Replay::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
 
     this->insertCallInstBefore(ins, F_prejoin, tmp, NULL);
     this->insertCallInstAfter(ins, F_join, tmp, NULL);
 }
 
-void Transformer4Replay::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -132,7 +236,7 @@ void Transformer4Replay::transformPthreadMutexLock(CallInst* ins, AliasAnalysis&
     this->insertCallInstAfter(ins, F_lock, tmp, NULL);
 }
 
-void Transformer4Replay::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -143,7 +247,7 @@ void Transformer4Replay::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysi
     this->insertCallInstAfter(ins, F_unlock, tmp, NULL);
 }
 
-void Transformer4Replay::transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -160,7 +264,7 @@ void Transformer4Replay::transformPthreadCondWait(CallInst* ins, AliasAnalysis& 
     this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
 }
 
-void Transformer4Replay::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -177,7 +281,7 @@ void Transformer4Replay::transformPthreadCondTimeWait(CallInst* ins, AliasAnalys
     this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
 }
 
-void Transformer4Replay::transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -188,12 +292,12 @@ void Transformer4Replay::transformPthreadCondSignal(CallInst* ins, AliasAnalysis
     this->insertCallInstAfter(ins, F_notify, tmp, NULL);
 }
 
-void Transformer4Replay::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Record::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
     this->insertCallInstBefore(ins, F_exit, tmp, NULL);
 }
 
-void Transformer4Replay::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Record::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
     Value * dst = call->getArgOperand(0);
     Value * src = call->getArgOperand(1);
     int svIdx_dst = this->getValueIndex(dst, AA);
@@ -250,7 +354,7 @@ void Transformer4Replay::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
     }
 }
 
-void Transformer4Replay::transformMemSet(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Record::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     Value * val = call->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -262,7 +366,7 @@ void Transformer4Replay::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4Replay::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Record::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
     vector<int> svIndices;
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
@@ -298,7 +402,7 @@ void Transformer4Replay::transformSpecialFunctionCall(CallInst* call, AliasAnaly
     }
 }
 
-void Transformer4Replay::transformSpecialFunctionInvoke(InvokeInst* call, AliasAnalysis& AA) {
+void Transformer4Record::transformSpecialFunctionInvoke(InvokeInst* call, AliasAnalysis& AA) {
     vector<int> svIndices;
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
@@ -335,7 +439,7 @@ void Transformer4Replay::transformSpecialFunctionInvoke(InvokeInst* call, AliasA
     }
 }
 
-bool Transformer4Replay::isInstrumentationFunction(Function * called){
+bool Transformer4Record::isInstrumentationFunction(Function * called) {
     return called == F_init || called == F_exit
             || called == F_preload || called == F_load
             || called == F_prestore || called == F_store
@@ -349,7 +453,7 @@ bool Transformer4Replay::isInstrumentationFunction(Function * called){
 
 // private functions
 
-int Transformer4Replay::getValueIndex(Value* v, AliasAnalysis & AA) {
+int Transformer4Record::getValueIndex(Value* v, AliasAnalysis & AA) {
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
         Value * rep = *it;
@@ -360,4 +464,74 @@ int Transformer4Replay::getValueIndex(Value* v, AliasAnalysis & AA) {
     }
 
     return -1;
+}
+
+
+bool Transformer4Record::isSigactFunctionStarType(Value* v) {
+    if (v != NULL && v->getType()->isPointerTy() && v->getType()->getPointerElementType()->isFunctionTy()) {
+
+        FunctionType * sigactfnty = (FunctionType*)v->getType()->getPointerElementType();
+        if (sigactfnty->getNumParams() == 3
+                && sigactfnty->getReturnType()->isIntegerTy()
+                && sigactfnty->getParamType(0)->isIntegerTy()
+                && sigactfnty->getParamType(1)->isPointerTy()
+                && sigactfnty->getParamType(1)->getPointerElementType()->isStructTy()
+                && sigactfnty->getParamType(2)->isPointerTy()
+                && sigactfnty->getParamType(2)->getPointerElementType()->isStructTy()) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool Transformer4Record::isSignalFunctionStarType(Value* v) {
+    if(v == NULL) return false;
+    
+    Type * vtype = v->getType();
+    if(!vtype->isPointerTy()) return false;
+    
+    if(vtype->getPointerElementType()->isFunctionTy()) {
+        FunctionType * signalfnty = (FunctionType*)vtype;
+        if (signalfnty->getNumParams() != 2
+                || !signalfnty->getReturnType()->isVoidTy()
+                || !signalfnty->getParamType(0)->isIntegerTy()
+                || !signalfnty->getParamType(1)->isPointerTy()
+                || !signalfnty->getParamType(1)->getPointerElementType()->isFunctionTy()) {
+            return false;
+        }
+        
+        return true;
+    } else {
+        return false;
+    }    
+}
+
+bool Transformer4Record::isSigactStructStarType(Value* v) {
+    StructType* sigactType = module->getTypeByName("struct.sigaction");
+    
+    if(v!=NULL){
+        Type* vType = v->getType();
+        if(vType->isPointerTy()){
+            return sigactType == vType->getPointerElementType();
+        }
+    }
+    
+    return false;
+}
+
+bool Transformer4Record::isSighandlerStarType(Value* v) {
+    if(v!=NULL){
+        Type* vType = v->getType();
+        if(vType->isPointerTy() && vType->getPointerElementType()->isFunctionTy()){
+            FunctionType* fnty = (FunctionType*)vType->getPointerElementType();
+            
+            if(fnty->getNumParams() == 1 
+                    && fnty->getReturnType()->isVoidTy() 
+                    && fnty->getParamType(0)->isIntegerTy()){
+                return true;
+            }
+        }
+    }
+    return false;
 }
