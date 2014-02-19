@@ -485,7 +485,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
             DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
 
             /// the label representation and feature impl is temporal. @FIXME
-            // s3: y--2-->?3
+            // s3: y--fieldIdx-->?3
             current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (fieldIdx));
 
             // update current
