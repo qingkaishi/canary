@@ -10,7 +10,7 @@
 #include "SignalRoutine.h"
 
 #define POSIX_MUTEX
-#define DEBUG
+
 #include "Lock.h"
 
 #define MAX_LOG_LEN 50000
@@ -25,7 +25,7 @@ static unsigned *GIDX = NULL;
 
 static int num_shared_vars = 0;
 
-static struct timeval tpstart, tpend;
+//static struct timeval tpstart, tpend;
 
 int static inline threadid(pthread_t tid) {
     for (int i = 1; i < thread_idx; i++) {
@@ -85,16 +85,16 @@ extern "C" {
             threadcreate(tid);
         }
 
-        gettimeofday(&tpstart, NULL);
+        //gettimeofday(&tpstart, NULL);
     }
 
     void OnExit(int nouse) {
         start = false;
 
-        gettimeofday(&tpend, NULL);
-        double timeuse = 1000000 * (tpend.tv_sec - tpstart.tv_sec) + tpend.tv_usec - tpstart.tv_usec;
-        timeuse /= 1000;
-        printf("processor time is %lf ms\n", timeuse);
+        //gettimeofday(&tpend, NULL);
+        //double timeuse = 1000000 * (tpend.tv_sec - tpstart.tv_sec) + tpend.tv_usec - tpstart.tv_usec;
+        //timeuse /= 1000;
+        //printf("processor time is %lf ms\n", timeuse);
 
         Sig* sig = new Sig;
         strcpy(sig->recorder, "leap");
