@@ -78,7 +78,7 @@ void Transformer4Record::beforeTransform(AliasAnalysis& AA) {
             continue;
         }
         
-        if(this->isSighandlerStarType()){
+        if(this->isSighandlerStarType(&f)){
             possibleSigHandlerFunctions.insert(&f);
         }
         
@@ -94,16 +94,16 @@ void Transformer4Record::beforeTransform(AliasAnalysis& AA) {
                 vector<Value*> args;
 
                 if (isa<CallInst>(inst)) {
-                    calledValue = ((CallInst*) iterI)->getCalledValue();
-                    for (unsigned i = 0; i < ((CallInst*) iterI)->getNumArgOperands(); i++) {
-                        args.push_back(((CallInst*) iterI)->getArgOperand(i));
+                    calledValue = ((CallInst*) &inst)->getCalledValue();
+                    for (unsigned i = 0; i < ((CallInst*) &inst)->getNumArgOperands(); i++) {
+                        args.push_back(((CallInst*) &inst)->getArgOperand(i));
                     }
                 }
 
                 if (isa<InvokeInst>(inst)) {
-                    calledValue = ((InvokeInst*) iterI)->getCalledValue();
-                    for (unsigned i = 0; i < ((InvokeInst*) iterI)->getNumArgOperands(); i++) {
-                        args.push_back(((CallInst*) iterI)->getArgOperand(i));
+                    calledValue = ((InvokeInst*) &inst)->getCalledValue();
+                    for (unsigned i = 0; i < ((InvokeInst*) &inst)->getNumArgOperands(); i++) {
+                        args.push_back(((CallInst*) &inst)->getArgOperand(i));
                     }
                 }
 
