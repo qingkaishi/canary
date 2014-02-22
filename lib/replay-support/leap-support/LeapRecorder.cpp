@@ -25,6 +25,9 @@ static unsigned *GIDX = NULL;
 
 static int num_shared_vars = 0;
 
+// set when log is too long
+static bool stop_recording = false;
+
 //static struct timeval tpstart, tpend;
 
 int static inline threadid(pthread_t tid) {
@@ -47,7 +50,17 @@ void static inline threadcreate(pthread_t tid) {
 }
 
 void static inline store(int svId, int tid) {
+    if(stop_recording){
+        return;
+    }
+
     int currentIdx = GIDX[svId];
+    if(currentIdx >= MAX_LOG_LEN){
+	printf("Log is too long to record! Stop recording!\n");
+	stop_recording = true;
+	return;
+    }
+
     if (currentIdx > 0 && (int) (GLOG[svId][currentIdx - 2]) == tid) {
         GLOG[svId][currentIdx - 1]++;
     } else {
