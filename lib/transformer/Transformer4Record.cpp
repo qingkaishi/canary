@@ -61,12 +61,12 @@ void Transformer4Record::beforeTransform(AliasAnalysis& AA) {
     outs() << "Distinguishing signal handler functions ...\n";
     
     Function * signalFunction = module->getFunction("signal");
-    if(!isSignalFunctionStarType(signalFunction)) {
+    if(!isSignalFunctionStarType(signalFunction->getType())) {
         signalFunction = NULL;
     }
     
     Function * signalActionFunction = module->getFunction("sigaction");
-    if(!isSigactFunctionStarType(signalActionFunction)){
+    if(!isSigactFunctionStarType(signalActionFunction->getType())){
         signalActionFunction = NULL;
     }
     
@@ -78,7 +78,7 @@ void Transformer4Record::beforeTransform(AliasAnalysis& AA) {
             continue;
         }
         
-        if(this->isSighandlerStarType(&f)){
+        if(this->isSighandlerStarType((&f)->getType())){
             possibleSigHandlerFunctions.insert(&f);
         }
         
@@ -109,7 +109,7 @@ void Transformer4Record::beforeTransform(AliasAnalysis& AA) {
 
                 if (calledValue == NULL || !calledValue->getType()->isPointerTy()) continue;
 
-                if (signalFunction != NULL && isSignalFunctionStarType(calledValue)) {
+                if (signalFunction != NULL && isSignalFunctionStarType(calledValue->getType())) {
                     if (AA.alias(calledValue, signalFunction)) {
                         if (args[1] != NULL) {
                             if (isa<Constant>(args[1])) {
@@ -121,9 +121,9 @@ void Transformer4Record::beforeTransform(AliasAnalysis& AA) {
                             }
                         }
                     }
-                } else if (signalActionFunction != NULL && isSigactFunctionStarType(calledValue)) {
+                } else if (signalActionFunction != NULL && isSigactFunctionStarType(calledValue->getType())) {
                     if (AA.alias(calledValue, signalActionFunction)) {
-                        if (args[1] != NULL && isSigactStructStarType(args[1])) {
+                        if (args[1] != NULL && isSigactStructStarType(args[1]->getType())) {
                             // although args[1] is a pointer type that points to sigact struct
                             // it also can partially alias with the handler, the first element of
                             // sigact structure
@@ -467,17 +467,15 @@ int Transformer4Record::getValueIndex(Value* v, AliasAnalysis & AA) {
 }
 
 
-bool Transformer4Record::isSigactFunctionStarType(Value* v) {
-    if (v != NULL && v->getType()->isPointerTy() && v->getType()->getPointerElementType()->isFunctionTy()) {
+bool Transformer4Record::isSigactFunctionType(Type* v) {
+    if (v != NULL && v->isFunctionTy()) {
 
-        FunctionType * sigactfnty = (FunctionType*)v->getType()->getPointerElementType();
+        FunctionType * sigactfnty = (FunctionType*)v;
         if (sigactfnty->getNumParams() == 3
                 && sigactfnty->getReturnType()->isIntegerTy()
                 && sigactfnty->getParamType(0)->isIntegerTy()
-                && sigactfnty->getParamType(1)->isPointerTy()
-                && sigactfnty->getParamType(1)->getPointerElementType()->isStructTy()
-                && sigactfnty->getParamType(2)->isPointerTy()
-                && sigactfnty->getParamType(2)->getPointerElementType()->isStructTy()) {
+                && isSigactStructStarType(sigactfnty->getParamType(1))
+		&& isSigactStructStarType(sigactfnty->getParamType(2))) {
             return true;
         }
     }
@@ -485,53 +483,58 @@ bool Transformer4Record::isSigactFunctionStarType(Value* v) {
     return false;
 }
 
-bool Transformer4Record::isSignalFunctionStarType(Value* v) {
-    if(v == NULL) return false;
+bool Transformer4Record::isSignalFunctionType(Type* vtype) {
+    if(vtype == NULL) return false;
     
-    Type * vtype = v->getType();
-    if(!vtype->isPointerTy()) return false;
-    
-    if(vtype->getPointerElementType()->isFunctionTy()) {
+    if(vtype->isFunctionTy()) {
         FunctionType * signalfnty = (FunctionType*)vtype;
-        if (signalfnty->getNumParams() != 2
-                || !signalfnty->getReturnType()->isVoidTy()
-                || !signalfnty->getParamType(0)->isIntegerTy()
-                || !signalfnty->getParamType(1)->isPointerTy()
-                || !signalfnty->getParamType(1)->getPointerElementType()->isFunctionTy()) {
-            return false;
+        if (signalfnty->getNumParams() == 2
+                && isSighandlerStarType(signalfnty->getReturnType())
+                && signalfnty->getParamType(0)->isIntegerTy()
+                && isSighandlerStarType(signalfnty->getParamType(1))) {
+            return true;
         }
         
-        return true;
+        return false;
     } else {
         return false;
     }    
 }
 
-bool Transformer4Record::isSigactStructStarType(Value* v) {
+bool Transformer4Record::isSigactStructType(Type* v) {
     StructType* sigactType = module->getTypeByName("struct.sigaction");
-    
-    if(v!=NULL){
-        Type* vType = v->getType();
-        if(vType->isPointerTy()){
-            return sigactType == vType->getPointerElementType();
-        }
-    }
-    
-    return false;
+    return v!=NULL && sigactType == v;
 }
 
-bool Transformer4Record::isSighandlerStarType(Value* v) {
-    if(v!=NULL){
-        Type* vType = v->getType();
-        if(vType->isPointerTy() && vType->getPointerElementType()->isFunctionTy()){
-            FunctionType* fnty = (FunctionType*)vType->getPointerElementType();
+bool Transformer4Record::isSighandlerType(Type* v) {
+    if(v!=NULL && v->isFunctionTy()){
+
+            FunctionType* fnty = (FunctionType*)v;
             
             if(fnty->getNumParams() == 1 
                     && fnty->getReturnType()->isVoidTy() 
                     && fnty->getParamType(0)->isIntegerTy()){
                 return true;
             }
-        }
+
     }
     return false;
 }
+
+
+bool Transformer4Record::isSigactFunctionStarType(Type* v) {
+    return v != NULL && v->isPointerTy() && isSigactFunctionType(v->getPointerElementType());
+}
+
+bool Transformer4Record::isSignalFunctionStarType(Type* v) {
+    return v != NULL && v->isPointerTy() && isSignalFunctionType(v->getPointerElementType());   
+}
+
+bool Transformer4Record::isSigactStructStarType(Type* v) {    
+    return v != NULL && v->isPointerTy() && isSigactStructType(v->getPointerElementType());
+}
+
+bool Transformer4Record::isSighandlerStarType(Type* v) {
+    return v != NULL && v->isPointerTy() && isSighandlerType(v->getPointerElementType());
+}
+

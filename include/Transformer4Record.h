@@ -57,10 +57,15 @@ private:
     set<Function *> possibleSigHandlerFunctions;
     
 private:
-    bool isSigactFunctionStarType(Value * v);
-    bool isSignalFunctionStarType(Value * v);
-    bool isSigactStructStarType(Value * v);
-    bool isSighandlerStarType(Value * v);
+    bool isSigactFunctionStarType(Type * v);
+    bool isSignalFunctionStarType(Type * v);
+    bool isSigactStructStarType(Type * v);
+    bool isSighandlerStarType(Type * v);
+
+    bool isSigactFunctionType(Type * v);
+    bool isSignalFunctionType(Type * v);
+    bool isSigactStructType(Type * v);
+    bool isSighandlerType(Type * v);
 
 private:
     int getValueIndex(Value * v, AliasAnalysis& AA);
