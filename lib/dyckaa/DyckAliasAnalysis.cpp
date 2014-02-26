@@ -1,8 +1,5 @@
-
-
 #include "DyckGraph.h"
 #include "AAAnalyzer.h"
-
 #include "Transformer.h"
 #include "Transformer4Replay.h"
 #include "Transformer4Trace.h"
@@ -14,12 +11,26 @@
 #include <stack>
 using namespace llvm;
 
-static bool 
-LeapTransformer = false, 
-PecanTransformer = false, 
-DotCallGraph = false, 
-InterAAEval = false, 
-CountFP = false;
+// cananry options
+static cl::opt<bool>
+LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
+        cl::desc("Transform programs using Leap transformer."));
+
+static cl::opt<bool>
+PecanTransformer("pecan-transformer", cl::init(false), cl::Hidden,
+        cl::desc("Transform programs using pecan transformer."));
+
+static cl::opt<bool>
+DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
+        cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
+
+static cl::opt<bool>
+InterAAEval("inter-aa-eval", cl::init(false), cl::Hidden,
+        cl::desc("Inter-procedure alias analysis evaluator."));
+
+static cl::opt<bool>
+CountFP("count-fp", cl::init(false), cl::Hidden,
+        cl::desc("Calculate how many function pointers point to."));
 
 static const Function *getParent(const Value *V) {
     if (const Instruction * inst = dyn_cast<Instruction>(V))
@@ -343,6 +354,14 @@ namespace {
 
             robot->transform(*this);
             outs() << "Done!\n";
+
+
+            if (LeapTransformer)
+                outs() << "\nPleaase add -lcanaryrecord / -lleaprecord / -lreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
+
+            if (PecanTransformer)
+                outs() << "Pleaase add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";
+
             delete robot;
 
             return true;
@@ -404,15 +423,6 @@ namespace {
 }
 
 ModulePass *createDyckAliasAnalysisPass() {
-    return new DyckAliasAnalysis();
-}
-
-ModulePass *createDyckAliasAnalysisPass(bool leap, bool pecan, bool mcg, bool eval, bool countfp) {
-    LeapTransformer = leap;
-    PecanTransformer = pecan;
-    DotCallGraph = mcg;
-    InterAAEval = eval;
-    CountFP = countfp;
     return new DyckAliasAnalysis();
 }
 

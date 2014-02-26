@@ -1,4 +1,3 @@
-
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/Triple.h"
@@ -36,9 +35,7 @@
 #include <memory>
 
 #include "DyckAliasAnalysis.h"
-#include <iostream>
 
-using namespace std;
 using namespace llvm;
 
 // The OptimizationList is automatically populated with registered Passes by the
@@ -164,26 +161,6 @@ DefaultDataLayout("default-data-layout",
           cl::desc("data layout string to use if not specified by module"),
           cl::value_desc("layout-string"), cl::init(""));
 
-// cananry options
-static cl::opt<bool>
-LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
-        cl::desc("Transform programs using Leap transformer."));
-
-static cl::opt<bool>
-PecanTransformer("pecan-transformer", cl::init(false), cl::Hidden,
-        cl::desc("Transform programs using pecan transformer."));
-
-static cl::opt<bool>
-DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
-        cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
-
-static cl::opt<bool>
-InterAAEval("inter-aa-eval", cl::init(false), cl::Hidden,
-        cl::desc("Inter-procedure alias analysis evaluator."));
-
-static cl::opt<bool>
-CountFP("count-fp", cl::init(false), cl::Hidden,
-        cl::desc("Calculate how many function pointers point to."));
 
 // ---------- Define Printers for module and function passes ------------
 namespace {
@@ -848,7 +825,7 @@ int main(int argc, char **argv) {
   }
 
   // Canary passes
-  Passes.add(createDyckAliasAnalysisPass(LeapTransformer, PecanTransformer, DotCallGraph, InterAAEval, CountFP));
+  Passes.add(createDyckAliasAnalysisPass());
 
   // Check that the module is well formed on completion of optimization
   if (!NoVerify && !VerifyEach)
@@ -871,12 +848,6 @@ int main(int argc, char **argv) {
   // Declare success.
   if (!NoOutput || PrintBreakpoints)
     Out->keep();
-
-    if (LeapTransformer)
-    cout << "\nPleaase add -lcanaryrecord / -lleaprecord / -lreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
-
-  if (PecanTransformer)
-    cout << "Pleaase add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";
 
   return 0;
 }

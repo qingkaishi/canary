@@ -16,7 +16,6 @@
 #define DYCKALIASANALYSIS_H
 
 #include "llvm/Analysis/AliasAnalysis.h"
-//#include "llvm/Analysis/Passes.h"
 #include "llvm/Pass.h"
 #include "llvm/Analysis/CaptureTracking.h"
 #include "llvm/Analysis/MemoryBuiltins.h"
@@ -32,8 +31,6 @@
 
 
 llvm::ModulePass *createDyckAliasAnalysisPass();
-
-llvm::ModulePass *createDyckAliasAnalysisPass(bool leap, bool pecan, bool mcg, bool eval, bool countfp);
 
 
 #endif
