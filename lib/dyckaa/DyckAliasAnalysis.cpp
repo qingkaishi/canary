@@ -255,7 +255,7 @@ namespace {
         while (1) {
             bool finished = dyck_graph->qirunAlgorithm();
             
-            if(finished){
+            if(itTimes!=0&&finished){
                 break;
             }
             
