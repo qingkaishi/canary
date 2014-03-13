@@ -6,7 +6,7 @@ Relative papers include "Points-to analysis in almost linear time",
 "Fast algorithms for Dyck-CFL-reachability with applications to alias 
 analysis", "LEAP: lightweight deterministic multi-processor replay of 
 concurrent java programs", "Persuasive prediction of concurrency 
-access anomalies", etc. You can read them for detals.
+access anomalies", etc. You can read them for details.
 
 Please use canary with llvm-3.4.
 
