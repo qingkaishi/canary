@@ -5,8 +5,8 @@
  * Created on December 3, 2013, 10:30 AM
  */
 
-#ifndef TRANSFORMER4REPLAY_H
-#define	TRANSFORMER4REPLAY_H
+#ifndef TRANSFORMER4LEAP_H
+#define	TRANSFORMER4LEAP_H
 
 #include "Transformer.h"
 
@@ -61,5 +61,5 @@ private:
 
 
 
-#endif	/* TRANSFORMER4TRACE_H */
+#endif	/* TRANSFORMER4LEAP_H */
 
