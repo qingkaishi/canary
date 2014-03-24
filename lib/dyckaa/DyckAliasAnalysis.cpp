@@ -166,10 +166,10 @@ namespace {
 
     private:
         DyckGraph* dyck_graph;
-        set<Value *> thread_escapes_pts;
+        //set<Value *> thread_escapes_pts;
 
     private:
-        void getThreadEscapingPointers(set<DyckVertex*>* ret);
+        void getThreadEscapingPointers(set<DyckVertex*>* ret, Module* module);
         void getBodyEmptyFunctions(set<Function*>* ret, Module* module);
         void getEscapingPointers(set<DyckVertex*>* ret, Function * from, Module* module);
     };
@@ -199,8 +199,8 @@ namespace {
             errs() << "Error in getEscapingPointers: ret or from are null!\n";
             return;
         }
-        
-        if(module == NULL)
+
+        if (module == NULL)
             module = from->getParent();
 
         set<DyckVertex*> visited;
@@ -214,14 +214,21 @@ namespace {
             }
             git++;
         }
-        
-        iplist<Argument>::iterator argIt = from->arg_begin();
-        while(argIt!=from->arg_end()){
+
+        if (from->getName().equals("pthread_create")) {
+            iplist<Argument>::iterator argIt = from->arg_begin();
+            ((argIt++)++)++; // the last one
             DyckVertex * rt = dyck_graph->retrieveDyckVertex(argIt).first->getRepresentative();
             workStack.push(rt);
-            argIt++;
+        } else {
+            iplist<Argument>::iterator argIt = from->arg_begin();
+            while (argIt != from->arg_end()) {
+                DyckVertex * rt = dyck_graph->retrieveDyckVertex(argIt).first->getRepresentative();
+                workStack.push(rt);
+                argIt++;
+            }
         }
-        
+
         /*// alias is not necessary.
         iplist<GlobalAlias>::iterator ait = module->alias_begin();
         while (ait != module->alias_end()) {
@@ -255,11 +262,14 @@ namespace {
         }
     }
 
-    void DyckAliasAnalysis::getThreadEscapingPointers(set<DyckVertex*>* ret) {
+    void DyckAliasAnalysis::getThreadEscapingPointers(set<DyckVertex*>* ret, Module * module) {
         if (ret == NULL)
             return;
 
-        set<DyckVertex*> visited;
+        Function * threadCreateFunction = module->getFunction("pthread_create");
+        this->getEscapingPointers(ret, threadCreateFunction, module);
+
+        /*set<DyckVertex*> visited;
         stack<DyckVertex*> workStack;
 
         set<Value *>::iterator teptsIt = thread_escapes_pts.begin();
@@ -310,7 +320,7 @@ namespace {
                 ret->insert(dv);
 
             vit++;
-        }
+        }*/
 
     }
 
@@ -349,10 +359,10 @@ namespace {
         aaa->end_inter_procedure_analysis();
 
 
-        /* do something others if needed */
+        /* do something others if needed 
         if (PecanTransformer || LeapTransformer) {
             aaa->getValuesEscapedFromThreadCreate(&thread_escapes_pts);
-        }
+        }*/
 
         /* call graph */
         if (DotCallGraph) {
@@ -371,7 +381,7 @@ namespace {
 
         /* instrumentation */
         if (PecanTransformer || LeapTransformer) {
-            // do something others
+            /*/ do something others
             iplist<GlobalVariable>::iterator git = M.global_begin();
             while (git != M.global_end()) {
                 if (!git->hasUnnamedAddr() && !git->isConstant() && !git->isThreadLocal()) {
@@ -385,12 +395,12 @@ namespace {
                     thread_escapes_pts.insert(git);
                 }
                 ait++;
-            }
+            }*/
 
 
             set<Value*> llvm_svs;
             set<DyckVertex*> svs;
-            this->getThreadEscapingPointers(&svs);
+            this->getThreadEscapingPointers(&svs, &M);
             //int idx = 0;
             set<DyckVertex*>::iterator svsIt = svs.begin();
             while (svsIt != svs.end()) {
@@ -420,7 +430,7 @@ namespace {
 
             Transformer * robot = NULL;
             if (LeapTransformer) {
-                robot = new Transformer4Replay(&M, &llvm_svs, ptrsize);
+                robot = new Transformer4Leap(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using leap-transformer ...\n");
             } else if (PecanTransformer) {
                 robot = new Transformer4Trace(&M, &llvm_svs, ptrsize);

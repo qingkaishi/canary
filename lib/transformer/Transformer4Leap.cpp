@@ -8,9 +8,9 @@
 #define FUNCTION_WAIT_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,INT_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),(Type*)0
 #define FUNCTION_FORK_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,POINTER_BIT_SIZE),(Type*)0
 
-int Transformer4Replay::stmt_idx = 0;
+int Transformer4Leap::stmt_idx = 0;
 
-Transformer4Replay::Transformer4Replay(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
+Transformer4Leap::Transformer4Leap(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
     int idx = 0;
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
@@ -53,14 +53,14 @@ Transformer4Replay::Transformer4Replay(Module* m, set<Value*>* svs, unsigned psi
     F_wait = cast<Function>(m->getOrInsertFunction("OnWait", FUNCTION_WAIT_ARG_TYPE));
 }
 
-bool Transformer4Replay::debug() {
+bool Transformer4Leap::debug() {
     return false;
 }
 
-void Transformer4Replay::beforeTransform(AliasAnalysis& AA) {
+void Transformer4Leap::beforeTransform(AliasAnalysis& AA) {
 }
 
-void Transformer4Replay::afterTransform(AliasAnalysis& AA) {
+void Transformer4Leap::afterTransform(AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
         ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
@@ -69,19 +69,19 @@ void Transformer4Replay::afterTransform(AliasAnalysis& AA) {
     }
 }
 
-bool Transformer4Replay::functionToTransform(Function* f) {
+bool Transformer4Leap::functionToTransform(Function* f) {
     return !f->isIntrinsic() && !f->empty() && !this->isInstrumentationFunction(f);
 }
 
-bool Transformer4Replay::blockToTransform(BasicBlock* bb) {
+bool Transformer4Leap::blockToTransform(BasicBlock* bb) {
     return true;
 }
 
-bool Transformer4Replay::instructionToTransform(Instruction* ins) {
+bool Transformer4Leap::instructionToTransform(Instruction* ins) {
     return true;
 }
 
-void Transformer4Replay::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
+void Transformer4Leap::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -93,7 +93,7 @@ void Transformer4Replay::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     this->insertCallInstAfter(inst, F_load, tmp, debug_idx, NULL);
 }
 
-void Transformer4Replay::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
+void Transformer4Leap::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -105,7 +105,7 @@ void Transformer4Replay::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) 
     this->insertCallInstAfter(inst, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4Replay::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
     this->insertCallInstBefore(ins, F_prefork, tmp, NULL);
 
@@ -114,14 +114,14 @@ void Transformer4Replay::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA
     this->insertCallInstAfter(c, F_fork, c, NULL);
 }
 
-void Transformer4Replay::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
 
     this->insertCallInstBefore(ins, F_prejoin, tmp, NULL);
     this->insertCallInstAfter(ins, F_join, tmp, NULL);
 }
 
-void Transformer4Replay::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -132,7 +132,7 @@ void Transformer4Replay::transformPthreadMutexLock(CallInst* ins, AliasAnalysis&
     this->insertCallInstAfter(ins, F_lock, tmp, NULL);
 }
 
-void Transformer4Replay::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -143,7 +143,7 @@ void Transformer4Replay::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysi
     this->insertCallInstAfter(ins, F_unlock, tmp, NULL);
 }
 
-void Transformer4Replay::transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -160,7 +160,7 @@ void Transformer4Replay::transformPthreadCondWait(CallInst* ins, AliasAnalysis& 
     this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
 }
 
-void Transformer4Replay::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -177,7 +177,7 @@ void Transformer4Replay::transformPthreadCondTimeWait(CallInst* ins, AliasAnalys
     this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
 }
 
-void Transformer4Replay::transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -188,12 +188,12 @@ void Transformer4Replay::transformPthreadCondSignal(CallInst* ins, AliasAnalysis
     this->insertCallInstAfter(ins, F_notify, tmp, NULL);
 }
 
-void Transformer4Replay::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
     this->insertCallInstBefore(ins, F_exit, tmp, NULL);
 }
 
-void Transformer4Replay::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
     Value * dst = call->getArgOperand(0);
     Value * src = call->getArgOperand(1);
     int svIdx_dst = this->getValueIndex(dst, AA);
@@ -250,7 +250,7 @@ void Transformer4Replay::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
     }
 }
 
-void Transformer4Replay::transformMemSet(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     Value * val = call->getArgOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
@@ -262,7 +262,7 @@ void Transformer4Replay::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4Replay::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
     vector<int> svIndices;
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
@@ -298,7 +298,7 @@ void Transformer4Replay::transformSpecialFunctionCall(CallInst* call, AliasAnaly
     }
 }
 
-void Transformer4Replay::transformSpecialFunctionInvoke(InvokeInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformSpecialFunctionInvoke(InvokeInst* call, AliasAnalysis& AA) {
     vector<int> svIndices;
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
@@ -335,7 +335,7 @@ void Transformer4Replay::transformSpecialFunctionInvoke(InvokeInst* call, AliasA
     }
 }
 
-bool Transformer4Replay::isInstrumentationFunction(Function * called){
+bool Transformer4Leap::isInstrumentationFunction(Function * called){
     return called == F_init || called == F_exit
             || called == F_preload || called == F_load
             || called == F_prestore || called == F_store
@@ -349,7 +349,7 @@ bool Transformer4Replay::isInstrumentationFunction(Function * called){
 
 // private functions
 
-int Transformer4Replay::getValueIndex(Value* v, AliasAnalysis & AA) {
+int Transformer4Leap::getValueIndex(Value* v, AliasAnalysis & AA) {
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
         Value * rep = *it;

@@ -10,7 +10,7 @@
 
 #include "Transformer.h"
 
-class Transformer4Replay : public Transformer{
+class Transformer4Leap : public Transformer{
 private:
     map<Value *, int> sv_idx_map;
 
@@ -24,7 +24,7 @@ private:
 
 public:
 
-    Transformer4Replay(Module * m, set<Value*> * svs, unsigned psize);
+    Transformer4Leap(Module * m, set<Value*> * svs, unsigned psize);
 
     void transform(AliasAnalysis& AA);
     
