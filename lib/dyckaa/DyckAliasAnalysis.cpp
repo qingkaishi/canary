@@ -102,18 +102,18 @@ namespace {
                 return MayAlias;
             } else {
                 set<DyckVertex*>* VAderefset = VA->getOutVertices((void*) DEREF_LABEL);
-                if(VAderefset == NULL || VAderefset->empty()){
+                if (VAderefset == NULL || VAderefset->empty()) {
                     return NoAlias;
                 }
-                
+
                 set<DyckVertex*>* VBderefset = VB->getOutVertices((void*) DEREF_LABEL);
-                if(VBderefset == NULL || VBderefset->empty()){
+                if (VBderefset == NULL || VBderefset->empty()) {
                     return NoAlias;
                 }
-                
+
                 DyckVertex* VAderef = (*(VAderefset->begin()))->getRepresentative();
                 DyckVertex* VBderef = (*(VBderefset->begin()))->getRepresentative();
-                
+
                 if (dyck_graph->havePathsWithoutLabel(VAderef, VBderef, (void*) DEREF_LABEL)) {
                     return PartialAlias;
                 } else {
@@ -170,6 +170,8 @@ namespace {
 
     private:
         void getThreadEscapingPointers(set<DyckVertex*>* ret);
+        void getBodyEmptyFunctions(set<Function*>* ret, Module* module);
+        void getEscapingPointers(set<DyckVertex*>* ret, Function * from, Module* module);
     };
 
     RegisterPass<DyckAliasAnalysis> X("dyckaa", "Alias Analysis based on Qirun's PLDI 2013 paper");
@@ -177,6 +179,81 @@ namespace {
 
     // Register this pass...
     char DyckAliasAnalysis::ID = 0;
+
+    void DyckAliasAnalysis::getBodyEmptyFunctions(set<Function*>* ret, Module* module) {
+        if (ret == NULL || module == NULL) {
+            errs() << "Error in getBodyEmptyFunctions: ret or module are null!\n";
+            return;
+        }
+
+        for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+            Function* f = iterF;
+            if (f->empty() && !f->isIntrinsic()) {
+                ret->insert(f);
+            }
+        }
+    }
+
+    void DyckAliasAnalysis::getEscapingPointers(set<DyckVertex*>* ret, Function* from, Module* module) {
+        if (ret == NULL || from == NULL) {
+            errs() << "Error in getEscapingPointers: ret or from are null!\n";
+            return;
+        }
+        
+        if(module == NULL)
+            module = from->getParent();
+
+        set<DyckVertex*> visited;
+        stack<DyckVertex*> workStack;
+
+        iplist<GlobalVariable>::iterator git = module->global_begin();
+        while (git != module->global_end()) {
+            if (!git->hasUnnamedAddr() && !git->isConstant()) {
+                DyckVertex * rt = dyck_graph->retrieveDyckVertex(git).first->getRepresentative();
+                workStack.push(rt);
+            }
+            git++;
+        }
+        
+        iplist<Argument>::iterator argIt = from->arg_begin();
+        while(argIt!=from->arg_end()){
+            DyckVertex * rt = dyck_graph->retrieveDyckVertex(argIt).first->getRepresentative();
+            workStack.push(rt);
+            argIt++;
+        }
+        
+        /*// alias is not necessary.
+        iplist<GlobalAlias>::iterator ait = module->alias_begin();
+        while (ait != module->alias_end()) {
+            if (!ait->hasUnnamedAddr()) {
+                roots.insert(git);
+            }
+            ait++;
+        }*/
+
+        while (!workStack.empty()) {
+            DyckVertex* top = workStack.top();
+            workStack.pop();
+
+            // have visited
+            if (visited.find(top) != visited.end()) {
+                continue;
+            }
+
+            visited.insert(top);
+
+            set<DyckVertex*> tars;
+            top->getOutVerticesWithout(NULL, &tars);
+            set<DyckVertex*>::iterator tit = tars.begin();
+            while (tit != tars.end()) {
+                // if it has not been visited
+                if (visited.find(*tit) == visited.end()) {
+                    workStack.push(*tit);
+                }
+                tit++;
+            }
+        }
+    }
 
     void DyckAliasAnalysis::getThreadEscapingPointers(set<DyckVertex*>* ret) {
         if (ret == NULL)
@@ -215,6 +292,7 @@ namespace {
             }
         }
 
+        /// @FIXME It seems it has some issues here. @TOREMOVE
         set<DyckVertex*>::iterator vit = visited.begin();
         while (vit != visited.end()) {
             DyckVertex* dv = *vit;
@@ -239,7 +317,7 @@ namespace {
     bool DyckAliasAnalysis::runOnModule(Module &M) {
         InitializeAliasAnalysis(this);
 
-        AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph, DotCallGraph||CountFP);
+        AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph, DotCallGraph || CountFP);
 
         /// step 1: intra-procedure analysis
         aaa->start_intra_procedure_analysis();
@@ -254,13 +332,13 @@ namespace {
         int itTimes = 0;
         while (1) {
             bool finished = dyck_graph->qirunAlgorithm();
-            
-            if(itTimes!=0&&finished){
+
+            if (itTimes != 0 && finished) {
                 break;
             }
-            
+
             outs() << "Iterating... " << ++itTimes << "             \r";
-            
+
             finished = aaa->inter_procedure_analysis();
 
             if (finished) {
@@ -275,15 +353,15 @@ namespace {
         if (PecanTransformer || LeapTransformer) {
             aaa->getValuesEscapedFromThreadCreate(&thread_escapes_pts);
         }
-        
+
         /* call graph */
-        if(DotCallGraph) {
+        if (DotCallGraph) {
             outs() << "Printing call graph...\n";
             aaa->printCallGraph(M.getModuleIdentifier());
             outs() << "Done!\n\n";
         }
-        
-        if(CountFP){
+
+        if (CountFP) {
             outs() << "Printing function pointer information...\n";
             aaa->printFunctionPointersInformation(M.getModuleIdentifier());
             outs() << "Done!\n\n";
@@ -337,7 +415,7 @@ namespace {
                 svsIt++;
             }
             outs() << "Shared variable groups number: " << llvm_svs.size() << "\n";
-            
+
             unsigned ptrsize = this->getDataLayout()->getPointerSize();
 
             Transformer * robot = NULL;
@@ -382,7 +460,7 @@ namespace {
 
                 set<DyckVertex*>::iterator asIt = aliasset->begin();
                 while (asIt != aliasset->end()) {
-                    Value * val = ((Value*)(*asIt)->getValue());
+                    Value * val = ((Value*) (*asIt)->getValue());
                     if (val != NULL && val->getType()->isPointerTy()) {
                         size++;
                     }
