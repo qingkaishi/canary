@@ -289,7 +289,9 @@ namespace {
         iplist<Argument>& alt = func->getArgumentList();
         iplist<Argument>::iterator it = alt.begin();
         if (func->hasName() && func->getName() == "pthread_create") {
-            it++++++;
+            it++;
+            it++;
+            it++;
             DyckVertex * rt = dyck_graph->retrieveDyckVertex(it).first->getRepresentative();
             workStack.push(rt);
         } else {
@@ -405,7 +407,7 @@ namespace {
                 if (val != NULL) {
                     llvm_svs.insert(val);
                     //outs() << "[" << idx++ << "] " << *val << "\n";
-                    //outs() << (*svsIt)->getEquivalentSet()->size()<<"\n"; 
+                    //outs() << (*svsIt)->getEquivalentSet()->size()<<"\n";
                 } else {
                     set<DyckVertex*>* eset = (*svsIt)->getEquivalentSet();
                     set<DyckVertex*>::iterator eit = eset->begin();
