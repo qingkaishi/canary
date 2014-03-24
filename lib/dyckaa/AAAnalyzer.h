@@ -36,7 +36,7 @@ private:
 private:
     map<Function*, FunctionWrapper *> wrapped_functions_map;
     set<FunctionWrapper*> wrapped_functions;
-    //set<Value*> valuesEscapedFromThreadCreate;
+    set<Value*> valuesEscapedFromThreadCreate;
     
 private:
     bool recordCGInfo;
@@ -54,7 +54,7 @@ public:
     bool intra_procedure_analysis();
     bool inter_procedure_analysis();
 
-    //void getValuesEscapedFromThreadCreate(set<Value*>* ret);
+    void getValuesEscapedFromThreadCreate(set<Value*>* ret);
     
     void printCallGraph(const string& mIdentifier);
     void printFunctionPointersInformation(const string& mIdentifier);

@@ -153,13 +153,13 @@ namespace {
 
     private:
         DyckGraph* dyck_graph;
-        //set<Value *> thread_escapes_pts;
+        set<Value *> thread_escapes_pts;
 
     private:
         bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
-        void getThreadEscapingPointers(set<DyckVertex*>* ret, Module* module);
+        void getThreadEscapingPointers(set<DyckVertex*>* ret);
         void getBodyEmptyFunctions(set<Function*>* ret, Module* module);
-        void getEscapingPointers(set<DyckVertex*>* ret, Function * from, Module* module);
+        void getEscapingPointers(set<DyckVertex*>* ret, Instruction * callOrInvoke);
     };
 
     RegisterPass<DyckAliasAnalysis> X("dyckaa", "Alias Analysis based on Qirun's PLDI 2013 paper");
@@ -252,14 +252,13 @@ namespace {
         }
     }
 
-    void DyckAliasAnalysis::getEscapingPointers(set<DyckVertex*>* ret, Function* from, Module* module) {
-        if (ret == NULL || from == NULL) {
-            errs() << "Error in getEscapingPointers: ret or from are null!\n";
+    void DyckAliasAnalysis::getEscapingPointers(set<DyckVertex*>* ret, Instruction* callOrInvoke) {
+        if (ret == NULL || callOrInvoke == NULL) {
+            errs() << "Error in getEscapingPointers: ret or callOrInvoke are null!\n";
             return;
         }
 
-        if (module == NULL)
-            module = from->getParent();
+        Module* module = callOrInvoke->getParent()->getParent()->getParent();
 
         set<DyckVertex*> visited;
         stack<DyckVertex*> workStack;
@@ -272,29 +271,35 @@ namespace {
             }
             git++;
         }
-
-        if (from->getName().equals("pthread_create")) {
-            iplist<Argument>::iterator argIt = from->arg_begin();
-            ((argIt++)++)++; // the last one
-            DyckVertex * rt = dyck_graph->retrieveDyckVertex(argIt).first->getRepresentative();
-            workStack.push(rt);
-        } else {
-            iplist<Argument>::iterator argIt = from->arg_begin();
-            while (argIt != from->arg_end()) {
-                DyckVertex * rt = dyck_graph->retrieveDyckVertex(argIt).first->getRepresentative();
-                workStack.push(rt);
-                argIt++;
-            }
-        }
-
-        /*// alias is not necessary.
         iplist<GlobalAlias>::iterator ait = module->alias_begin();
         while (ait != module->alias_end()) {
             if (!ait->hasUnnamedAddr()) {
-                roots.insert(git);
+                DyckVertex * rt = dyck_graph->retrieveDyckVertex(ait).first->getRepresentative();
+                workStack.push(rt);
             }
             ait++;
-        }*/
+        }
+
+        if (isa<CallInst>(callOrInvoke)) {
+            CallInst * cInst = (CallInst*) callOrInvoke;
+            unsigned argSize = cInst->getNumArgOperands();
+            for(unsigned i = 0; i < argSize; i++){
+                Value * arg = cInst->getArgOperand(i);
+                DyckVertex * rt = dyck_graph->retrieveDyckVertex(arg).first->getRepresentative();
+                workStack.push(rt);
+            }
+        } else if (isa<InvokeInst>(callOrInvoke)) {
+            InvokeInst * cInst = (InvokeInst*) callOrInvoke;
+            unsigned argSize = cInst->getNumArgOperands();
+            for(unsigned i = 0; i < argSize; i++){
+                Value * arg = cInst->getArgOperand(i);
+                DyckVertex * rt = dyck_graph->retrieveDyckVertex(arg).first->getRepresentative();
+                workStack.push(rt);
+            }
+        } else {
+            errs() << "Error in getEscapingPointers: not support other instructions!\n";
+            exit(-1);
+        }
 
         while (!workStack.empty()) {
             DyckVertex* top = workStack.top();
@@ -320,14 +325,11 @@ namespace {
         }
     }
 
-    void DyckAliasAnalysis::getThreadEscapingPointers(set<DyckVertex*>* ret, Module * module) {
+    void DyckAliasAnalysis::getThreadEscapingPointers(set<DyckVertex*>* ret) {
         if (ret == NULL)
             return;
 
-        Function * threadCreateFunction = module->getFunction("pthread_create");
-        this->getEscapingPointers(ret, threadCreateFunction, module);
-
-        /*set<DyckVertex*> visited;
+        set<DyckVertex*> visited;
         stack<DyckVertex*> workStack;
 
         set<Value *>::iterator teptsIt = thread_escapes_pts.begin();
@@ -359,27 +361,6 @@ namespace {
                 tit++;
             }
         }
-
-        /// @FIXME It seems it has some issues here. @TOREMOVE
-        set<DyckVertex*>::iterator vit = visited.begin();
-        while (vit != visited.end()) {
-            DyckVertex* dv = *vit;
-
-            bool needToAdded = true;
-            set<DyckVertex*>::iterator retIt = ret->begin();
-            while (retIt != ret->end()) {
-                if (dyck_graph->havePathsWithoutLabel(dv, *retIt, (void*) DEREF_LABEL)) {
-                    needToAdded = false;
-                    break;
-                }
-                retIt++;
-            }
-            if (needToAdded)
-                ret->insert(dv);
-
-            vit++;
-        }*/
-
     }
 
     bool DyckAliasAnalysis::runOnModule(Module &M) {
@@ -417,10 +398,24 @@ namespace {
         aaa->end_inter_procedure_analysis();
 
 
-        /* do something others if needed 
+        /* collect thread_escapes_pts before releasing aaa */
         if (PecanTransformer || LeapTransformer) {
             aaa->getValuesEscapedFromThreadCreate(&thread_escapes_pts);
-        }*/
+            iplist<GlobalVariable>::iterator git = M.global_begin();
+            while (git != M.global_end()) {
+                if (!git->hasUnnamedAddr() && !git->isConstant() && !git->isThreadLocal()) {
+                    thread_escapes_pts.insert(git);
+                }
+                git++;
+            }
+            iplist<GlobalAlias>::iterator ait = M.alias_begin();
+            while (ait != M.alias_end()) {
+                if (!ait->hasUnnamedAddr()) {
+                    thread_escapes_pts.insert(git);
+                }
+                ait++;
+            }
+        }
 
         /* call graph */
         if (DotCallGraph) {
@@ -439,26 +434,9 @@ namespace {
 
         /* instrumentation */
         if (PecanTransformer || LeapTransformer) {
-            /*/ do something others
-            iplist<GlobalVariable>::iterator git = M.global_begin();
-            while (git != M.global_end()) {
-                if (!git->hasUnnamedAddr() && !git->isConstant() && !git->isThreadLocal()) {
-                    thread_escapes_pts.insert(git);
-                }
-                git++;
-            }
-            iplist<GlobalAlias>::iterator ait = M.alias_begin();
-            while (ait != M.alias_end()) {
-                if (!ait->hasUnnamedAddr()) {
-                    thread_escapes_pts.insert(git);
-                }
-                ait++;
-            }*/
-
-
             set<Value*> llvm_svs;
             set<DyckVertex*> svs;
-            this->getThreadEscapingPointers(&svs, &M);
+            this->getThreadEscapingPointers(&svs);
             //int idx = 0;
             set<DyckVertex*>::iterator svsIt = svs.begin();
             while (svsIt != svs.end()) {

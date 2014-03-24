@@ -76,9 +76,9 @@ bool AAAnalyzer::inter_procedure_analysis() {
     return finished;
 }
 
-/*void AAAnalyzer::getValuesEscapedFromThreadCreate(set<Value*>* ret) {
+void AAAnalyzer::getValuesEscapedFromThreadCreate(set<Value*>* ret) {
     ret->insert(valuesEscapedFromThreadCreate.begin(), valuesEscapedFromThreadCreate.end());
-}*/
+}
 
 //// call graph printer
 
@@ -1202,7 +1202,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
                 }
 
                 this->handle_invoke_call_inst(ret, args->at(2), &xargs, parent);
-                //valuesEscapedFromThreadCreate.insert(args->at(3));
+                valuesEscapedFromThreadCreate.insert(args->at(3));
             }
         }
             break;
