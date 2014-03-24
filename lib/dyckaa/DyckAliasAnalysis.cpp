@@ -156,8 +156,6 @@ namespace {
 
     private:
         bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
-        void getBodyEmptyFunctions(set<Function*>* ret, Module* module);
-
         void getEscapingPointers(set<DyckVertex*>* ret, Function * func);
     };
 
@@ -242,20 +240,6 @@ namespace {
         }
 
         return false;
-    }
-
-    void DyckAliasAnalysis::getBodyEmptyFunctions(set<Function*>* ret, Module* module) {
-        if (ret == NULL || module == NULL) {
-            errs() << "Error in getBodyEmptyFunctions: ret or module are null!\n";
-            return;
-        }
-
-        for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-            Function* f = iterF;
-            if (f->empty() && !f->isIntrinsic()) {
-                ret->insert(f);
-            }
-        }
     }
 
     void DyckAliasAnalysis::getEscapingPointers(set<DyckVertex*>* ret, Function *func) {
