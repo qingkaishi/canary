@@ -8,6 +8,6 @@ LEVEL=../..
 #
 # List all of the subdirectories that we will compile.
 #
-DIRS=canary-support leap-support replay-support
+DIRS=leap-support replay-support tsxleap-support
 
 include $(LEVEL)/Makefile.common

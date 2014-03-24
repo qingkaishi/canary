@@ -138,7 +138,7 @@ extern "C" {
         printf("processor time is %lf ms\n", timeuse);
 
         Sig* sig = new Sig;
-        strcpy(sig->recorder, "canary");
+        strcpy(sig->recorder, "tsxleap");
 
         FILE * fout = fopen("log.replay.dat", "wb");
         printf("OnExit-Record\n");

@@ -107,7 +107,7 @@ extern "C" {
                 GLOG[i] = new unsigned[GIDX[i]];
                 fread(GLOG[i], sizeof (unsigned), GIDX[i], fin);
             }
-        } else if (strcmp(sig->recorder, "canary") == 0) {
+        } else if (strcmp(sig->recorder, "tsxleap") == 0) {
             // read data
             int TIDX = 0;
             unsigned ** LIDX = new unsigned*[MAX_THREAD_NUM];

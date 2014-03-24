@@ -8,6 +8,6 @@ LEVEL=..
 #
 # List all of the subdirectories that we will compile.
 #
-DIRS=dyckgraph wrapper transformer dyckaa trace-support replay-support
+DIRS=dyckgraph wrapper transformer dyckaa trace-support leap-support
 
 include $(LEVEL)/Makefile.common

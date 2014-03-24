@@ -1,7 +1,7 @@
 #include "DyckGraph.h"
 #include "AAAnalyzer.h"
 #include "Transformer.h"
-#include "Transformer4Replay.h"
+#include "Transformer4Leap.h"
 #include "Transformer4Trace.h"
 
 #include "DyckAliasAnalysis.h"
@@ -357,7 +357,7 @@ namespace {
 
 
             if (LeapTransformer)
-                outs() << "\nPleaase add -lcanaryrecord / -lleaprecord / -lreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
+                outs() << "\nPleaase add -ltsxleaprecord or -lleaprecord / -lleapreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
 
             if (PecanTransformer)
                 outs() << "Pleaase add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";

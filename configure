@@ -12884,16 +12884,16 @@ ac_config_commands="$ac_config_commands lib/dyckaa/Makefile"
 ac_config_commands="$ac_config_commands lib/transformer/Makefile"
 
 
-ac_config_commands="$ac_config_commands lib/replay-support/Makefile"
+ac_config_commands="$ac_config_commands lib/leap-support/Makefile"
 
 
-ac_config_commands="$ac_config_commands lib/replay-support/leap-support/Makefile"
+ac_config_commands="$ac_config_commands lib/leap-support/leap-support/Makefile"
 
 
-ac_config_commands="$ac_config_commands lib/replay-support/canary-support/Makefile"
+ac_config_commands="$ac_config_commands lib/leap-support/tsxleap-support/Makefile"
 
 
-ac_config_commands="$ac_config_commands lib/replay-support/replay-support/Makefile"
+ac_config_commands="$ac_config_commands lib/leap-support/replay-support/Makefile"
 
 
 ac_config_commands="$ac_config_commands lib/trace-support/Makefile"
@@ -13641,10 +13641,10 @@ do
     "lib/dyckgraph/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/dyckgraph/Makefile" ;;
     "lib/dyckaa/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/dyckaa/Makefile" ;;
     "lib/transformer/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/transformer/Makefile" ;;
-    "lib/replay-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/Makefile" ;;
-    "lib/replay-support/leap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/leap-support/Makefile" ;;
-    "lib/replay-support/canary-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/canary-support/Makefile" ;;
-    "lib/replay-support/replay-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/replay-support/replay-support/Makefile" ;;
+    "lib/leap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/leap-support/Makefile" ;;
+    "lib/leap-support/leap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/leap-support/leap-support/Makefile" ;;
+    "lib/leap-support/tsxleap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/leap-support/tsxleap-support/Makefile" ;;
+    "lib/leap-support/replay-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/leap-support/replay-support/Makefile" ;;
     "lib/trace-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/trace-support/Makefile" ;;
     "tools/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/Makefile" ;;
     "tools/pecan_analyzer/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS tools/pecan_analyzer/Makefile" ;;
@@ -14082,14 +14082,14 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/dyckaa/Makefile lib/dyckaa/Makefile ;;
     "lib/transformer/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/transformer/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/transformer/Makefile lib/transformer/Makefile ;;
-    "lib/replay-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/Makefile`
-   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/Makefile lib/replay-support/Makefile ;;
-    "lib/replay-support/leap-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/leap-support/Makefile`
-   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/leap-support/Makefile lib/replay-support/leap-support/Makefile ;;
-    "lib/replay-support/canary-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/canary-support/Makefile`
-   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/canary-support/Makefile lib/replay-support/canary-support/Makefile ;;
-    "lib/replay-support/replay-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/replay-support/replay-support/Makefile`
-   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/replay-support/replay-support/Makefile lib/replay-support/replay-support/Makefile ;;
+    "lib/leap-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/leap-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/leap-support/Makefile lib/leap-support/Makefile ;;
+    "lib/leap-support/leap-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/leap-support/leap-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/leap-support/leap-support/Makefile lib/leap-support/leap-support/Makefile ;;
+    "lib/leap-support/tsxleap-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/leap-support/tsxleap-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/leap-support/tsxleap-support/Makefile lib/leap-support/tsxleap-support/Makefile ;;
+    "lib/leap-support/replay-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/leap-support/replay-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/leap-support/replay-support/Makefile lib/leap-support/replay-support/Makefile ;;
     "lib/trace-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/trace-support/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/trace-support/Makefile lib/trace-support/Makefile ;;
     "tools/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname tools/Makefile`
