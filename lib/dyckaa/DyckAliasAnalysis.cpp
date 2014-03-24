@@ -101,20 +101,7 @@ namespace {
             if (VA == VB) {
                 return MayAlias;
             } else {
-                set<DyckVertex*>* VAderefset = VA->getOutVertices((void*) DEREF_LABEL);
-                if (VAderefset == NULL || VAderefset->empty()) {
-                    return NoAlias;
-                }
-
-                set<DyckVertex*>* VBderefset = VB->getOutVertices((void*) DEREF_LABEL);
-                if (VBderefset == NULL || VBderefset->empty()) {
-                    return NoAlias;
-                }
-
-                DyckVertex* VAderef = (*(VAderefset->begin()))->getRepresentative();
-                DyckVertex* VBderef = (*(VBderefset->begin()))->getRepresentative();
-
-                if (dyck_graph->havePathsWithoutLabel(VAderef, VBderef, (void*) DEREF_LABEL)) {
+                if (isPartialAlias(VA, VB)) {
                     return PartialAlias;
                 } else {
                     return NoAlias;
@@ -169,6 +156,7 @@ namespace {
         //set<Value *> thread_escapes_pts;
 
     private:
+        bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
         void getThreadEscapingPointers(set<DyckVertex*>* ret, Module* module);
         void getBodyEmptyFunctions(set<Function*>* ret, Module* module);
         void getEscapingPointers(set<DyckVertex*>* ret, Function * from, Module* module);
@@ -179,6 +167,76 @@ namespace {
 
     // Register this pass...
     char DyckAliasAnalysis::ID = 0;
+
+    bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex *v2) {
+        set<DyckVertex*> visited;
+        stack<DyckVertex*> workStack;
+        workStack.push(v1);
+
+        while (!workStack.empty()) {
+            DyckVertex* top = workStack.top();
+            workStack.pop();
+
+            // have visited
+            if (visited.find(top) != visited.end()) {
+                continue;
+            }
+
+            if (top == v2) {
+                return true;
+            }
+
+            visited.insert(top);
+
+            { // push out tars
+                set<void*>& outlabels = top->getOutLabels();
+                set<void*>::iterator olIt = outlabels.begin();
+                while (olIt != outlabels.end()) {
+                    long labelValue = (long) (*olIt);
+                    if (labelValue > 0) { /// address offset; @FIXME
+                        set<DyckVertex*>* tars = top->getOutVertices(*olIt);
+
+                        set<DyckVertex*>::iterator tit = tars->begin();
+                        while (tit != tars->end()) {
+                            // if it has not been visited
+                            if (visited.find(*tit) == visited.end()) {
+                                workStack.push(*tit);
+                            }
+                            tit++;
+                        }
+
+                    }
+                    olIt++;
+                }
+            }
+
+
+            { // push in srcs
+                set<void*>& inlabels = top->getInLabels();
+                set<void*>::iterator ilIt = inlabels.begin();
+                while (ilIt != inlabels.end()) {
+                    long labelValue = (long) (*ilIt);
+                    if (labelValue > 0) { /// address offset; @FIXME
+                        set<DyckVertex*>* srcs = top->getInVertices(*ilIt);
+
+                        set<DyckVertex*>::iterator sit = srcs->begin();
+                        while (sit != srcs->end()) {
+                            // if it has not been visited
+                            if (visited.find(*sit) == visited.end()) {
+                                workStack.push(*sit);
+                            }
+                            sit++;
+                        }
+
+                    }
+                    ilIt++;
+                }
+            }
+
+        }
+
+        return false;
+    }
 
     void DyckAliasAnalysis::getBodyEmptyFunctions(set<Function*>* ret, Module* module) {
         if (ret == NULL || module == NULL) {
