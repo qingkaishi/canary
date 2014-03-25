@@ -3,6 +3,8 @@
 #include "Transformer.h"
 #include "Transformer4Leap.h"
 #include "Transformer4Trace.h"
+#include "Transformer4CanaryRecord.h"
+#include "Transformer4CanaryReplay.h"
 
 #include "DyckAliasAnalysis.h"
 
@@ -67,8 +69,9 @@ namespace {
         DyckAliasAnalysis() : ModulePass(ID) {
             dyck_graph = new DyckGraph;
 
-            if (LeapTransformer && TraceTransformer) {
-                errs() << "Error: you cannot use leap-transformer and pecan-transformer together.\n";
+            if (LeapTransformer && TraceTransformer 
+                    && CanaryRecordTransformer && CanaryReplayTransformer) {
+                errs() << "Error: you cannot use different transformers together.\n";
                 exit(1);
             }
         }
@@ -388,7 +391,8 @@ namespace {
         delete aaa;
 
         /* instrumentation */
-        if (TraceTransformer || LeapTransformer) {
+        if (TraceTransformer || LeapTransformer 
+                || CanaryRecordTransformer || CanaryReplayTransformer) {
             set<Value*> llvm_svs;
             set<DyckVertex*> svs;
             this->getEscapingPointers(&svs, M.getFunction("pthread_create"));
@@ -427,8 +431,14 @@ namespace {
                 outs() << ("Start transforming using leap-transformer ...\n");
             } else if (TraceTransformer) {
                 robot = new Transformer4Trace(&M, &llvm_svs, ptrsize);
-                outs() << ("Start transforming using pecan-transformer ...\n");
-            } else {
+                outs() << ("Start transforming using trace-transformer ...\n");
+            } if(CanaryRecordTransformer) {
+                robot = new Transformer4CanaryRecord(&M, &llvm_svs, ptrsize);
+                outs() << ("Start transforming using canary-record-transformer ...\n");
+            } if(CanaryReplayTransformer) {
+                robot = new Transformer4CanaryReplay(&M, &llvm_svs, ptrsize);
+                outs() << ("Start transforming using canary-replay-transformer ...\n");
+            }else {
                 errs() << "Error: unknown transformer\n";
                 exit(1);
             }
