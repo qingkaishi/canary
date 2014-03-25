@@ -13,6 +13,14 @@ using namespace llvm;
 
 // cananry options
 static cl::opt<bool>
+CanaryRecordTransformer("canary-record-transformer", cl::init(false), cl::Hidden,
+        cl::desc("Transform programs using canary record transformer."));
+
+static cl::opt<bool>
+CanaryReplayTransformer("canary-replay-transformer", cl::init(false), cl::Hidden,
+        cl::desc("Transform programs using canary replay transformer."));
+
+static cl::opt<bool>
 LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
         cl::desc("Transform programs using Leap transformer."));
 
