@@ -1,6 +1,6 @@
 LEVEL=../..
 
-TOOLNAME = pecan_log_analyzer
+TOOLNAME = pecan
 
 REQUIRES_RTTI := 1
 REQUIRES_EH := 1

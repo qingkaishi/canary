@@ -17,8 +17,8 @@ LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
         cl::desc("Transform programs using Leap transformer."));
 
 static cl::opt<bool>
-PecanTransformer("pecan-transformer", cl::init(false), cl::Hidden,
-        cl::desc("Transform programs using pecan transformer."));
+TraceTransformer("trace-transformer", cl::init(false), cl::Hidden,
+        cl::desc("Transform programs to record a trace."));
 
 static cl::opt<bool>
 DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
@@ -59,7 +59,7 @@ namespace {
         DyckAliasAnalysis() : ModulePass(ID) {
             dyck_graph = new DyckGraph;
 
-            if (LeapTransformer && PecanTransformer) {
+            if (LeapTransformer && TraceTransformer) {
                 errs() << "Error: you cannot use leap-transformer and pecan-transformer together.\n";
                 exit(1);
             }
@@ -380,7 +380,7 @@ namespace {
         delete aaa;
 
         /* instrumentation */
-        if (PecanTransformer || LeapTransformer) {
+        if (TraceTransformer || LeapTransformer) {
             set<Value*> llvm_svs;
             set<DyckVertex*> svs;
             this->getEscapingPointers(&svs, M.getFunction("pthread_create"));
@@ -417,7 +417,7 @@ namespace {
             if (LeapTransformer) {
                 robot = new Transformer4Leap(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using leap-transformer ...\n");
-            } else if (PecanTransformer) {
+            } else if (TraceTransformer) {
                 robot = new Transformer4Trace(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using pecan-transformer ...\n");
             } else {
@@ -432,7 +432,7 @@ namespace {
             if (LeapTransformer)
                 outs() << "\nPleaase add -ltsxleaprecord or -lleaprecord / -lleapreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
 
-            if (PecanTransformer)
+            if (TraceTransformer)
                 outs() << "Pleaase add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";
 
             delete robot;

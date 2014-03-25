@@ -53,21 +53,21 @@ canary -leap-transformer <bitcode_file> -o <output_file>
 clang++ <ouput_file> -o <executable> -lleaprecord
 # execute it
 # link a replay version
-clang++ <ouput_file> -o <executable> -lreplay
+clang++ <ouput_file> -o <executable> -lleapreplay
 # now you can replay
 ```
 
-* -pecan-transformer
+* -trace-transformer
 A transformer for Pecan. Please read "Persuasive prediction of concurrency 
 access anomalies". Here is an example.
 
 ```bash
-canary -pecan-transformer <bitcode_file> -o <output_file>
+canary -trace-transformer <bitcode_file> -o <output_file>
 # link a record version 
 clang++ <ouput_file> -o <executable> -ltrace
 # a log file will be produced after executing it; using the following command
 # to analyze it.  
-pecan_log_analyzer <log_file> <result_file>
+pecan <log_file> <result_file>
 ```
 
 

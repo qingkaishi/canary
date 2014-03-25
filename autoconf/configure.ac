@@ -1508,7 +1508,7 @@ AC_CONFIG_MAKEFILE(lib/leap-support/tsxleap-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/leap-support/replay-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/trace-support/Makefile)
 AC_CONFIG_MAKEFILE(tools/Makefile)
-AC_CONFIG_MAKEFILE(tools/pecan_analyzer/Makefile)
+AC_CONFIG_MAKEFILE(tools/pecan/Makefile)
 AC_CONFIG_MAKEFILE(tools/canary/Makefile)
 
 dnl This must be last
