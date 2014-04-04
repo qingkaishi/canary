@@ -263,76 +263,11 @@ void Transformer4CanaryRecord::transformMemSet(CallInst* call, AliasAnalysis& AA
 }
 
 void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
-    vector<int> svIndices;
-    for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
-        Value * arg = call->getArgOperand(i);
-
-        int svIdx = this->getValueIndex(arg, AA);
-        if (svIdx != -1) {
-            bool contained = false;
-            vector<int>::iterator it = svIndices.begin();
-            while (it != svIndices.end()) {
-                if (*it == svIdx) {
-                    contained = true;
-                    break;
-                }
-                if (*it < svIdx) break;
-                it++;
-            }
-            if (!contained)
-                svIndices.insert(it, svIdx);
-        }
-    }
-
-    if (svIndices.empty()) {
-        return;
-    } else {
-        for (unsigned i = 0; i < svIndices.size(); i++) {
-            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIndices[i]);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
-
-            ///@FIXME
-            this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
-            this->insertCallInstBefore(call, F_store, tmp, debug_idx, NULL);
-        }
-    }
+    // do not instrument lib calls
 }
 
 void Transformer4CanaryRecord::transformSpecialFunctionInvoke(InvokeInst* call, AliasAnalysis& AA) {
-    vector<int> svIndices;
-    for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
-        Value * arg = call->getArgOperand(i);
-
-        int svIdx = this->getValueIndex(arg, AA);
-        if (svIdx != -1) {
-            bool contained = false;
-            vector<int>::iterator it = svIndices.begin();
-            while (it != svIndices.end()) {
-                if (*it == svIdx) {
-                    contained = true;
-                    break;
-                }
-                if (*it < svIdx) break;
-                it++;
-            }
-            if (!contained)
-                svIndices.insert(it, svIdx);
-        }
-    }
-
-    if (!svIndices.empty()) {
-        //BasicBlock * normal = call->getNormalDest();
-        //BasicBlock * unwind = call->getUnwindDest();
-
-        for (unsigned i = 0; i < svIndices.size(); i++) {
-            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIndices[i]);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
-
-            ///@FIXME
-            this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
-            this->insertCallInstBefore(call, F_store, tmp, debug_idx, NULL);
-        }
-    }
+    // do not instrument lib invokes
 }
 
 bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called){
