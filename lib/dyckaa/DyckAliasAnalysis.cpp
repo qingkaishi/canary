@@ -255,8 +255,8 @@ namespace {
 
     void DyckAliasAnalysis::getEscapingPointers(set<DyckVertex*>* ret, Function *func) {
         if (ret == NULL || func == NULL) {
-            errs() << "Error in getEscapingPointers: ret or func are null!\n";
-            exit(-1);
+            errs() << "Warning in getEscapingPointers: ret or func are null!\n";
+            return;
         }
 
         Module* module = func->getParent();

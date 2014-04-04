@@ -58,6 +58,29 @@ bool Transformer4CanaryReplay::debug() {
 }
 
 void Transformer4CanaryReplay::beforeTransform(AliasAnalysis& AA) {
+    for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+        Function& f = *iterF;
+        std::string name = f.getName().str();
+        if (name == "signal" || name == "exit"
+                || name.find("pthread") == 0 /*!= string::npos*/) { /// @fix add more
+            continue;
+        }
+        if (!f.isIntrinsic() && f.empty() && !this->isInstrumentationFunction(&f)) {
+            BasicBlock* bb = BasicBlock::Create(module->getContext(), "", &f);
+            FunctionType* fty = (FunctionType*) (f.getType()->getPointerElementType());
+            Type* retType = fty->getReturnType();
+            if (retType->isVoidTy()) {
+                ReturnInst::Create(module->getContext(), bb);
+            } else if (retType->isIntegerTy()) {
+                ReturnInst::Create(module->getContext(), ConstantInt::get(Type::getIntNTy(module->getContext(), AA.getDataLayout()->getTypeSizeInBits(retType)), 0), bb);
+            } else if (retType->isPointerTy()) {
+                ReturnInst::Create(module->getContext(), ConstantPointerNull::get((PointerType*) retType), bb);
+            } else {
+                errs() << "Error in canary replay trans: unknown return type.\n";
+                exit(1);
+            }
+        }
+    }
 }
 
 void Transformer4CanaryReplay::afterTransform(AliasAnalysis& AA) {
@@ -270,7 +293,7 @@ void Transformer4CanaryReplay::transformSpecialFunctionInvoke(InvokeInst* call, 
     // How to replay? ///@Thinking
 }
 
-bool Transformer4CanaryReplay::isInstrumentationFunction(Function * called){
+bool Transformer4CanaryReplay::isInstrumentationFunction(Function * called) {
     return called == F_init || called == F_exit
             || called == F_preload || called == F_load
             || called == F_prestore || called == F_store
