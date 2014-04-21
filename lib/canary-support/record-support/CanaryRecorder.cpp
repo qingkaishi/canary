@@ -11,12 +11,7 @@
 #include "util/cvector.h"
 #include <boost/unordered_map.hpp>
 
-#define POSIX_MUTEX
-
-#include "Lock.h"
-
 #define MAX_LOG_LEN 50000
-#define MAX_THREAD_NUM 50
 
 typedef struct {
     cvector VAL_LOG; // <void *>
@@ -27,16 +22,20 @@ typedef struct {
     cvector VER_LOG; // <unsigned>
 } WLOG;
 
-cvector W_VERSION;
-
 typedef struct {
     cvector SYN_LOG; // <unsigned> record ti
 } LLOG;
 
 static LLOG llog;
 
+static cvector W_VERSION;
+static cvector LOCKS;
+
 static pthread_key_t rlog_key;
 static pthread_key_t wlog_key;
+
+static pthread_mutex_t fork_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t mutex_init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
 static boost::unordered_map<void *, unsigned> mutex_ht;
@@ -48,6 +47,32 @@ static int num_shared_vars = 0;
 static bool stop_recording = false;
 
 //static struct timeval tpstart, tpend;
+
+static inline void lock(unsigned svId){
+    pthread_mutex_t * l = (pthread_mutex_t*) cvector_at(LOCKS, svId);
+    pthread_mutex_lock(l);
+}
+
+static inline void unlock(unsigned svId){
+    pthread_mutex_t * l = (pthread_mutex_t*) cvector_at(LOCKS, svId);
+    pthread_mutex_lock(l);
+}
+
+static inline void forkLock(){
+    pthread_mutex_lock(&fork_lock);
+}
+
+static inline void forkUnlock(){
+    pthread_mutex_unlock(&fork_lock);
+}
+
+static inline void mutexInitLock(){
+    pthread_mutex_lock(&mutex_init_lock);
+}
+
+static inline void mutexInitUnlock(){
+    pthread_mutex_unlock(&mutex_init_lock);
+}
 
 /* delete logs
  */
@@ -95,7 +120,7 @@ void static inline storeWrite(unsigned version, WLOG* wlog) {
     }
 }
 
-void static inline storeSync(unsigned syncId, unsigned tId){
+void static inline storeSync(unsigned syncId, unsigned tId) {
 }
 
 extern "C" {
@@ -110,10 +135,16 @@ extern "C" {
 
         W_VERSION = cvector_create(sizeof (unsigned));
         cvector_resize(W_VERSION, svsNum);
-        
+
         llog.SYN_LOG = cvector_create(sizeof (unsigned));
-        
-        initialize(svsNum + 2); // initialize locks, add one for thread_ht, the other for mutex_ht
+
+        LOCKS = cvector_create(sizeof (pthread_mutex_t *));
+        cvector_resize(LOCKS, svsNum);// initialize locks, add one for thread_ht, the other for mutex_ht
+        for(unsigned i = 0; i < svsNum; i++) {
+            pthread_mutex_t *m = new pthread_mutex_t;
+            pthread_mutex_init(m, NULL);
+            cvector_pushback(LOCKS, m);
+        }
 
         // main thread.
         pthread_t tid = pthread_self();
@@ -129,7 +160,7 @@ extern "C" {
         //double timeuse = 1000000 * (tpend.tv_sec - tpstart.tv_sec) + tpend.tv_usec - tpstart.tv_usec;
         //timeuse /= 1000;
         //printf("processor time is %lf ms\n", timeuse);
-        
+
         ///@TODO dump llog
     }
 
@@ -188,29 +219,42 @@ extern "C" {
         storeWrite(version, wlog[svId]); // version, wlog
     }
 
-    void OnLock(int nouse) {
+    void OnLock(void* mutex_ptr) {
         if (!start) {
             return;
         }
 
         pthread_t tid = pthread_self();
-        int _tid = -1;
-        do {
-            _tid = threadid(tid);
-        } while (_tid < 0);
-        store(num_shared_vars - 2, _tid);
+        while (!thread_ht.count(tid));
+        unsigned _tid = thread_ht[tid];
+
+        if (!mutex_ht.count(mutex_ptr)) {
+            fprintf(stderr, "ERROR: program bug!\n");
+            OnExit();
+            exit(1);
+        }
+        unsigned _mid = mutex_ht[mutex_ptr];
+        storeSync(_mid, _tid);
 #ifdef DEBUG
         printf("OnLock --> t%d\n", _tid);
 #endif
 
     }
-    
-    void OnPreMutexInit(pthread_mutex_t* mptr, bool race){
-    
+
+    void OnPreMutexInit(void* mutex_ptr, bool race) {
+        if(start && race){
+            mutexInitLock();
+        }
     }
-    
-    void OnMutexInit(pthread_mutex_t* mptr, bool race){
-    
+
+    void OnMutexInit(void* mutex_ptr, bool race) {
+        if (!mutex_ht.count(mutex_ptr)) {
+            mutex_ht[mutex_ptr] = mutex_ht.size() + 1;
+        }
+        
+        if(start && race){
+            mutexInitUnlock();
+        }
     }
 
     void OnPreFork(bool race) {
@@ -220,7 +264,7 @@ extern "C" {
 #ifdef DEBUG
         printf("OnPreFork\n");
 #endif
-        forklock(num_shared_vars - 1);
+        if(race) forkLock();
     }
 
     void OnFork(long forked_tid_ptr, bool race) {
@@ -229,22 +273,22 @@ extern "C" {
         }
 
         pthread_t ftid = *((pthread_t*) forked_tid_ptr);
-        if (threadid(ftid) == -1) {
-            threadcreate(ftid);
+        if (thread_ht.count(ftid)) {
+            thread_ht[ftid] = thread_ht.size();
         }
 #ifdef DEBUG
         printf("OnFork\n");
 #endif
         pthread_t tid = pthread_self();
-        int _tid = -1;
-        do {
-            _tid = threadid(tid);
-        } while (_tid < 0);
-        store(num_shared_vars - 1, _tid);
-        forkunlock(num_shared_vars - 1);
+        while (!thread_ht.count(tid));
+        unsigned _tid = thread_ht[tid];
+
+
+        storeSync(0, _tid);
+        if(race) forkUnlock();
     }
 
-    void OnWait(int condId, long cond_ptr, pthread_mutex_t* mutex_ptr) {
+    void OnWait(int condId, long cond_ptr, void* mutex_ptr) {
         if (!start) {
             return;
         }
@@ -252,11 +296,16 @@ extern "C" {
         printf("OnWait\n");
 #endif
         pthread_t tid = pthread_self();
-        int _tid = -1;
-        do {
-            _tid = threadid(tid);
-        } while (_tid < 0);
-        store(num_shared_vars - 2, _tid);
+        while (!thread_ht.count(tid));
+        unsigned _tid = thread_ht[tid];
+
+        if (!mutex_ht.count(mutex_ptr)) {
+            fprintf(stderr, "ERROR: program bug!\n");
+            OnExit();
+            exit(1);
+        }
+        unsigned _mid = mutex_ht[mutex_ptr];
+        storeSync(_mid, _tid);
     }
 }
 
