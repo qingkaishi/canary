@@ -10,6 +10,23 @@ Log::Log(size_t size) {
     __recording = true;
 }
 
+void Log::dump(const char* logfile, const char* mode){
+    FILE * fout = fopen(logfile, mode);
+    
+    fwrite(cvector_at(__log, 0), sizeof (Item), cvector_length(__log), fout);
+    
+    fclose(fout);
+}
+
+void Log::dumpWithUnsigned(const char* logfile, const char * mode, unsigned u){
+    FILE * fout = fopen(logfile, mode);
+    
+    fwrite(&u, sizeof (unsigned), 1, fout);
+    fwrite(cvector_at(__log, 0), sizeof (Item), cvector_length(__log), fout);
+    
+    fclose(fout);
+}
+
 ////////////////////////////////////////////////////////////////////////////
 
 LastOnePredictorLog::LastOnePredictorLog() : Log(){

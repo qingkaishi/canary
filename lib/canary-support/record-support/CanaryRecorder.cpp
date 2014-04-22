@@ -67,6 +67,8 @@ static pthread_mutex_t mutex_init_lock = PTHREAD_MUTEX_INITIALIZER;
  */
 static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
+static boost::unordered_map<pthread_t, l_rlog_t*> rlogs;
+static boost::unordered_map<pthread_t, l_rlog_t*> wlogs;
 
 /*
  * start to record?
@@ -111,11 +113,13 @@ static inline void mutexInitUnlock() {
 /* delete logs
  */
 void close_read_log(void* log) {
-    /// @TODO dump & delete
+    pthread_t tid = pthread_self();
+    rlogs[tid] = (l_rlog_t*) log;
 }
 
 void close_write_log(void* log) {
-    /// @TODO dump & delete
+    pthread_t tid = pthread_self();
+    wlogs[tid] = (l_wlog_t*) log;
 }
 
 extern "C" {
@@ -155,7 +159,45 @@ extern "C" {
         printf("processor time is %lf ms\n", timeuse);
 #endif
 
-        ///@TODO dump llog, flog
+        // dump, delete/free is not needed, because program will exit.
+        {//flog
+            flog.dump("fork.dat", "wb");
+        }
+
+        {
+            //mlog, llogs
+            mlog.dump("mutex.dat", "wb");
+            for (unsigned i = 0; i < cvector_length(llogs); i++) {
+                g_llog_t * llog = cvector_at(llogs, i);
+                llog->dump("mutex.dat", "ab");
+            }
+        }
+
+        {//rlog
+            boost::unordered_map<pthread_t, l_rlog_t*>::iterator rit = rlogs.begin();
+            while (rit != rlogs.end()) {
+                l_rlog_t* rlog = rit->second;
+                unsigned _tid = thread_ht[rit->first];
+                for (int i = 0; i < num_shared_vars; i++) {
+                    rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
+                    rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
+                }
+
+                rit++;
+            }
+        }
+        {//wlog
+            boost::unordered_map<pthread_t, l_rlog_t*>::iterator wit = wlogs.begin();
+            while (wit != wlogs.end()) {
+                l_wlog_t* wlog = wit->second;
+                unsigned _tid = thread_ht[wit->first];
+                for (int i = 0; i < num_shared_vars; i++) {
+                    wlog->dumpWithUnsigned("write.dat", "ab", _tid);
+                }
+
+                wit++;
+            }
+        }
     }
 
     void OnLoad(int svId, void* value, int debug) {
@@ -233,7 +275,7 @@ extern "C" {
 #endif
     }
 
-    void OnWait(int condId, long cond_ptr, void* mutex_ptr) {
+    void OnWait(pthread_cond_t* cond_ptr, pthread_mutex_t* mutex_ptr) {
         if (!start) {
             return;
         }
@@ -253,13 +295,13 @@ extern "C" {
         llog->logValue(_tid);
     }
 
-    void OnPreMutexInit(void* mutex_ptr, bool race) {
+    void OnPreMutexInit(bool race) {
         if (start && race) {
             mutexInitLock();
         }
     }
 
-    void OnMutexInit(void* mutex_ptr, bool race) {
+    void OnMutexInit(pthread_mutex_t* mutex_ptr, bool race) {
         if (!mutex_ht.count(mutex_ptr)) {
             mutex_ht[mutex_ptr] = mutex_ht.size();
             g_llog_t * llog = new g_llog_t;
@@ -286,7 +328,7 @@ extern "C" {
         if (race) forkLock();
     }
 
-    void OnFork(long forked_tid_ptr, bool race) {
+    void OnFork(pthread_t* forked_tid_ptr, bool race) {
         if (!start) {
             return;
         }
@@ -295,7 +337,7 @@ extern "C" {
         printf("OnFork\n");
 #endif
 
-        pthread_t ftid = *((pthread_t*) forked_tid_ptr);
+        pthread_t ftid = *(forked_tid_ptr);
         if (thread_ht.count(ftid)) {
             thread_ht[ftid] = thread_ht.size();
         }

@@ -26,6 +26,10 @@ public:
     Log();
 
     Log(size_t size);
+    
+    void dump(const char* logfile, const char * mode);
+    
+    void dumpWithUnsigned(const char* logfile, const char * mode, unsigned u);
 
     virtual void logValue(T val) = 0;
 };
