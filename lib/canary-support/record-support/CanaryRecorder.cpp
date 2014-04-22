@@ -68,30 +68,28 @@ static pthread_mutex_t mutex_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
 static boost::unordered_map<pthread_t, l_rlog_t*> rlogs;
-static boost::unordered_map<pthread_t, l_rlog_t*> wlogs;
+static boost::unordered_map<pthread_t, l_wlog_t*> wlogs;
 
 /*
  * start to record?
  */
-static bool start_recording = false;
+static bool start = false;
 
 /*
  * number of shared variables
  */
-static int num_shared_vars = 0;
+static unsigned num_shared_vars = 0;
 
 #ifdef NO_TIME_CMD
 static struct timeval tpstart, tpend;
 #endif
 
 static inline void lock(unsigned svId) {
-    pthread_mutex_t * l = (pthread_mutex_t*) cvector_at(LOCKS, svId);
-    pthread_mutex_lock(l);
+    pthread_mutex_lock(&locks[svId]);
 }
 
 static inline void unlock(unsigned svId) {
-    pthread_mutex_t * l = (pthread_mutex_t*) cvector_at(LOCKS, svId);
-    pthread_mutex_lock(l);
+    pthread_mutex_unlock(&locks[svId]);
 }
 
 static inline void forkLock() {
@@ -124,7 +122,7 @@ void close_write_log(void* log) {
 
 extern "C" {
 
-    void OnInit(int svsNum) {
+    void OnInit(unsigned svsNum) {
         printf("OnInit-Record\n");
         num_shared_vars = svsNum;
         initializeSigRoutine();
@@ -134,7 +132,7 @@ extern "C" {
 
         llogs = cvector_create(sizeof (g_llog_t));
         write_versions = new unsigned[svsNum];
-        locks = new unsigned[svsNum];
+        locks = new pthread_mutex_t[svsNum];
 
         for (unsigned i = 0; i < svsNum; i++) {
             pthread_mutex_init(&locks[i], NULL);
@@ -168,7 +166,7 @@ extern "C" {
             //mlog, llogs
             mlog.dump("mutex.dat", "wb");
             for (unsigned i = 0; i < cvector_length(llogs); i++) {
-                g_llog_t * llog = cvector_at(llogs, i);
+                g_llog_t * llog = (g_llog_t*)cvector_at(llogs, i);
                 llog->dump("mutex.dat", "ab");
             }
         }
@@ -178,7 +176,7 @@ extern "C" {
             while (rit != rlogs.end()) {
                 l_rlog_t* rlog = rit->second;
                 unsigned _tid = thread_ht[rit->first];
-                for (int i = 0; i < num_shared_vars; i++) {
+                for (unsigned i = 0; i < num_shared_vars; i++) {
                     rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
                     rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
                 }
@@ -187,11 +185,11 @@ extern "C" {
             }
         }
         {//wlog
-            boost::unordered_map<pthread_t, l_rlog_t*>::iterator wit = wlogs.begin();
+            boost::unordered_map<pthread_t, l_wlog_t*>::iterator wit = wlogs.begin();
             while (wit != wlogs.end()) {
                 l_wlog_t* wlog = wit->second;
                 unsigned _tid = thread_ht[wit->first];
-                for (int i = 0; i < num_shared_vars; i++) {
+                for (unsigned i = 0; i < num_shared_vars; i++) {
                     wlog->dumpWithUnsigned("write.dat", "ab", _tid);
                 }
 
@@ -216,13 +214,13 @@ extern "C" {
             pthread_setspecific(rlog_key, rlog);
         }
 
-        rlog[svId]->VAL_LOG.logValue(value);
-        rlog[svId]->VER_LOG.logValue(write_versions[svId]);
+        rlog[svId].VAL_LOG.logValue(value);
+        rlog[svId].VER_LOG.logValue(write_versions[svId]);
     }
 
     unsigned OnPreStore(int svId, int debug) {
         if (!start) {
-            return;
+            return 0;
         }
 
         lock(svId);
@@ -252,7 +250,7 @@ extern "C" {
         wlog[svId].logValue(version);
     }
 
-    void OnLock(void* mutex_ptr) {
+    void OnLock(pthread_mutex_t* mutex_ptr) {
         if (!start) {
             return;
         }
@@ -363,6 +361,6 @@ extern "C" {
 void sigroutine(int dunno) {
     printSigInformation(dunno);
 
-    OnExit(num_shared_vars);
+    OnExit();
     exit(dunno);
 }

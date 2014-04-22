@@ -12,7 +12,7 @@
 
 #define MAX_LOG_LEN 50000
 
-template<T> class Log {
+template<typename T> class Log {
 private:
     cvector __log;
     bool __recording;
@@ -34,7 +34,7 @@ public:
     virtual void logValue(T val) = 0;
 };
 
-template<T> class LastOnePredictorLog : public Log<T> {
+template<typename T> class LastOnePredictorLog : public Log<T> {
 private:
 
     typedef union {

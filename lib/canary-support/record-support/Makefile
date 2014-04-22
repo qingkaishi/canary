@@ -17,3 +17,13 @@ USEDLIBS = util.a
 #
 include $(LEVEL)/Makefile.common
 
+ifeq (${TIME}, 1)
+    CFLAGS += -DNO_TIME_CMD
+    CXXFLAGS += -DNO_TIME_CMD
+endif
+
+
+ifeq (${DEBUG}, 1)
+    CFLAGS += -DDEBUG
+    CXXFLAGS += -DDEBUG
+endif
