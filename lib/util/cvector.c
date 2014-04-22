@@ -41,6 +41,27 @@ cvector cvector_create(const size_t size)
 	return cv;
 }
 
+cvector cvector_create_x(const size_t size, size_t length)
+{
+	cvector cv = (cvector)malloc(sizeof (struct _cvector));
+
+	if (!cv) return NULL;
+
+	cv->cv_pdata = malloc(length * size);
+
+	if (!cv->cv_pdata)
+	{
+		free(cv);
+		return NULL;
+	}
+
+	cv->cv_size = size;
+	cv->cv_tot_len = length;
+	cv->cv_len = 0;
+
+	return cv;
+}
+
 void cvector_resize(const cvector cv, const size_t len)
 {
 	if(cv->cv_len > len)
@@ -69,7 +90,16 @@ void cvector_destroy(const cvector cv)
 size_t cvector_length(const cvector cv)  
 {  
 	return cv->cv_len;  
-}  
+}
+
+void cvector_set_at(const cvector cv, size_t index, void *mem)
+{
+    if(index >= cvector_length(cv)){
+        fprintf(stderr, "error, cvector_set_at\n");
+    }
+    
+    memcpy((char *)cv->cv_pdata + index * cv->cv_size, mem, cv->cv_size);
+}
 
 int cvector_pushback(const cvector cv, void *memb)  
 {  

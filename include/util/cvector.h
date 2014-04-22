@@ -23,6 +23,7 @@ extern "C" {
 # endif
 
 	cvector   cvector_create   (const size_t size                           );
+        cvector   cvector_create_x (const size_t size, size_t length            );
 	void      cvector_destroy  (const cvector cv                            );
 	size_t    cvector_length   (const cvector cv                            );
 	int       cvector_pushback (const cvector cv, void *memb                );
@@ -38,7 +39,8 @@ extern "C" {
 	int       cvector_rm       (const cvector cv, citerator iter            );
 	int       cvector_rm_at    (const cvector cv, size_t index              );
         void      cvector_clear    (const cvector cv                            );
-        void      cvector_resize   (const cvector cv, size_t len                ); 
+        void      cvector_resize   (const cvector cv, size_t len                );
+        void      cvector_set_at   (const cvector cv, size_t index, void *mem   );
 	/* for test  */
 	void      cv_info          (const cvector cv                            );
 	void      cv_print         (const cvector cv                            );
