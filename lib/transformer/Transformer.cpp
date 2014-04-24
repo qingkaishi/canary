@@ -6,7 +6,7 @@ Transformer::Transformer(Module* m, set<Value*>* svs, unsigned psize) {
     ptrsize = psize;
 }
 
-void Transformer::insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...){
+CallInst* Transformer::insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...){
     std::vector<Value *> args;
     
     va_list ap; 
@@ -22,9 +22,10 @@ void Transformer::insertCallInstBefore(Instruction* beforeInst, Function* tocall
     
     CallInst *InstCall = CallInst::Create(tocall, args);
     InstCall->insertBefore(beforeInst);
+    return InstCall;
 }
 
-void Transformer::insertCallInstAfter(Instruction* afterInst, Function* tocall, ...){
+CallInst* Transformer::insertCallInstAfter(Instruction* afterInst, Function* tocall, ...){
     std::vector<Value *> args;
     
     va_list ap; 
@@ -40,6 +41,7 @@ void Transformer::insertCallInstAfter(Instruction* afterInst, Function* tocall, 
     
     CallInst *InstCall = CallInst::Create(tocall, args);
     InstCall->insertAfter(afterInst);
+    return InstCall;
 }
 
 void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...){
@@ -56,7 +58,6 @@ void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...)
     
     va_end(ap);
     
-    bool add = false;
     ilist_iterator<BasicBlock> iterB = theFunc->getBasicBlockList().begin();
     while (iterB != theFunc->getBasicBlockList().end()) {
         BasicBlock& BB = *(theFunc->getBasicBlockList().begin());
@@ -69,14 +70,14 @@ void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...)
                 CallInst *InstCall = CallInst::Create(tocall, args);
                 InstCall->insertBefore(&inst);
                 
-                add = true;
-                break;
+                return;
             }
             iterI++;
         }
-        if (add) break;
         iterB++;
     }
+    errs() << "Instruction insert failed in insertCallInstAtHead\n";
+    errs() << theFunc->getName() <<"\n";
 }
 
 void Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall, ...){
@@ -227,7 +228,6 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
     } else if (cf.getName().str() == "pthread_mutex_lock") {
         // lock & unlock
         transformPthreadMutexLock(call, AA);
-
         return true;
     } else if (cf.getName().str() == "pthread_mutex_unlock") {
         transformPthreadMutexUnlock(call, AA);
@@ -242,6 +242,9 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
         return true;
     } else if (cf.getName().str() == "pthread_cond_signal") {
         transformPthreadCondSignal(call, AA);
+        return true;
+    } else if(cf.getName().str() == "pthread_mutex_init") {
+        transformPthreadMutexInit(call, AA);
         return true;
     } else if (cf.getName().str() == "exit") {
         // system exit

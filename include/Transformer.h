@@ -10,21 +10,11 @@
 
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/Passes.h"
-//#include "llvm/Constants.h"
-//#include "llvm/DerivedTypes.h"
-//#include "llvm/Function.h"
-//#include "llvm/GlobalAlias.h"
-//#include "llvm/GlobalVariable.h"
-//#include "llvm/Instructions.h"
-//#include "llvm/IntrinsicInst.h"
-//#include "llvm/LLVMContext.h"
-//#include "llvm/Operator.h"
 #include "llvm/Pass.h"
 #include "llvm/Analysis/CaptureTracking.h"
 #include "llvm/Analysis/MemoryBuiltins.h"
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/Analysis/ValueTracking.h"
-//#include "llvm/DataLayout.h"
 #include "llvm/Target/TargetLibraryInfo.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
@@ -58,8 +48,8 @@ public:
     
     /// the var agrs are the arguments of the call inst.
     /// the last one must be NULL, otherwise the behavior is not defined.
-    void insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...);
-    void insertCallInstAfter(Instruction* afterInst, Function* tocall, ...);
+    CallInst* insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...);
+    CallInst* insertCallInstAfter(Instruction* afterInst, Function* tocall, ...);
     void insertCallInstAtHead(Function* theFunc, Function * tocall, ...);
     void insertCallInstAtTail(Function* theFunc, Function * tocall, ...);
 
@@ -96,6 +86,9 @@ public:
     }
 
     virtual void transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
+    }
+    
+    virtual void transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) {
     }
 
     virtual void transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {

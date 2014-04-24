@@ -51,6 +51,9 @@ Transformer4CanaryReplay::Transformer4CanaryReplay(Module* m, set<Value*>* svs, 
 
     F_prewait = cast<Function>(m->getOrInsertFunction("OnPreWait", FUNCTION_ARG_TYPE));
     F_wait = cast<Function>(m->getOrInsertFunction("OnWait", FUNCTION_WAIT_ARG_TYPE));
+    
+    errs() << "Unsupported yet!\n";
+    exit(1);
 }
 
 bool Transformer4CanaryReplay::debug() {

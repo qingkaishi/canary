@@ -121,7 +121,7 @@ void close_write_log(void* log) {
 }
 
 extern "C" {
-
+    
     void OnInit(unsigned svsNum) {
         printf("OnInit-Record\n");
         num_shared_vars = svsNum;
@@ -156,6 +156,7 @@ extern "C" {
         timeuse /= 1000;
         printf("processor time is %lf ms\n", timeuse);
 #endif
+        printf("OnExit-Record\n");
 
         // dump, delete/free is not needed, because program will exit.
         {//flog
