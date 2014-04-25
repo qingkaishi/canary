@@ -224,7 +224,7 @@ extern "C" {
 
         lock(svId);
 #ifdef DEBUG
-        printf("OnPreStore: %d at t%d [%d]\n", svId, _tid, debug);
+        printf("OnPreStore: %d [%d]\n", svId, debug);
 #endif
         unsigned version = write_versions[svId];
         write_versions[svId] = version + 1;

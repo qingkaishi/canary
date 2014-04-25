@@ -134,7 +134,7 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function& f = *iterF;
-        bool ignored = false;
+        bool ignored = true;
         for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
             BasicBlock &b = *iterB;
             for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
@@ -142,17 +142,18 @@ void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
                 MDNode* mdn = inst.getMetadata("dbg");
                 DILocation LOC(mdn);
                 std::string filename = LOC.getFilename().str();
-                if (IS_LIB_FILE(filename)) {
-                    ignored = true;
+                if (filename != "" && !IS_LIB_FILE(filename)) {
+                    ignored = false;
                     break;
                 }
             }
-            if (ignored) {
+            if (!ignored) {
                 break;
             }
         }
 
-        if (ignored) {
+        if (!f.empty() && ignored) {
+            outs() << "Ignore library function: " << f.getName() << "\n";
             ignored_funcs.insert(&f);
         }
     }

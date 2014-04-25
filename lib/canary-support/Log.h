@@ -39,6 +39,10 @@ public:
             delete __log[i];
         }
     }
+    
+    unsigned size(){
+        return __log.size();
+    }
 
     void dump(const char* logfile, const char * mode) {
         FILE * fout = fopen(logfile, mode);
