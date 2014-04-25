@@ -125,10 +125,6 @@ public:
         return false;
     }
 
-    virtual bool debug() {
-        return false;
-    }
-
 private:
     bool handleCalls(CallInst * call, Function* calledFunction, AliasAnalysis& AA);
     bool handleInvokes(InvokeInst * call, Function* calledFunction, AliasAnalysis& AA);

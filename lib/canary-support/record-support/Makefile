@@ -10,7 +10,6 @@ LEVEL=../../..
 #
 LIBRARYNAME=canaryrecord
 
-USEDLIBS = util.a
 
 #
 # Include Makefile.common so we know what to do.

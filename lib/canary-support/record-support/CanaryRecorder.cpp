@@ -10,8 +10,7 @@
 #include <boost/unordered_map.hpp>
 
 #include "SignalRoutine.h"
-#include "util/cvector.h"
-#include "Log.h"
+#include "../Log.h"
 
 /*
  * Define log types
@@ -24,7 +23,7 @@
  * f  -> fork
  */
 typedef struct {
-    LastOnePredictorLog<void*> VAL_LOG; // <void *>
+    LastOnePredictorLog<long> VAL_LOG; // <void *>
     LastOnePredictorLog<unsigned> VER_LOG; // <unsigned>
 } l_rlog_t;
 
@@ -45,7 +44,7 @@ static pthread_key_t wlog_key;
 /*
  * Define global log variables, each shared var has one
  */
-static cvector llogs; // <g_llog_t> size is not fixed, and should be determined at runtime
+static std::vector<g_llog_t *> llogs; // <g_llog_t *> size is not fixed, and should be determined at runtime
 static g_flog_t flog;
 static g_mlog_t mlog;
 
@@ -130,7 +129,6 @@ extern "C" {
         pthread_key_create(&rlog_key, close_read_log);
         pthread_key_create(&wlog_key, close_write_log);
 
-        llogs = cvector_create(sizeof (g_llog_t));
         write_versions = new unsigned[svsNum];
         locks = new pthread_mutex_t[svsNum];
 
@@ -166,8 +164,8 @@ extern "C" {
         {
             //mlog, llogs
             mlog.dump("mutex.dat", "wb");
-            for (unsigned i = 0; i < cvector_length(llogs); i++) {
-                g_llog_t * llog = (g_llog_t*)cvector_at(llogs, i);
+            for (unsigned i = 0; i < llogs.size(); i++) {
+                g_llog_t * llog = llogs[i];
                 llog->dump("mutex.dat", "ab");
             }
         }
@@ -199,7 +197,7 @@ extern "C" {
         }
     }
 
-    void OnLoad(int svId, void* value, int debug) {
+    void OnLoad(int svId, long value, int debug) {
         if (!start) {
             return;
         }
@@ -266,7 +264,7 @@ extern "C" {
             exit(1);
         }
 
-        g_llog_t* llog = (g_llog_t*) cvector_at(llogs, mutex_ht[mutex_ptr]);
+        g_llog_t* llog = llogs[mutex_ht[mutex_ptr]];
         llog->logValue(_tid);
 
 #ifdef DEBUG
@@ -290,7 +288,7 @@ extern "C" {
             OnExit();
             exit(1);
         }
-        g_llog_t* llog = (g_llog_t*) cvector_at(llogs, mutex_ht[mutex_ptr]);
+        g_llog_t* llog = llogs[mutex_ht[mutex_ptr]];
         llog->logValue(_tid);
     }
 
@@ -304,7 +302,7 @@ extern "C" {
         if (!mutex_ht.count(mutex_ptr)) {
             mutex_ht[mutex_ptr] = mutex_ht.size();
             g_llog_t * llog = new g_llog_t;
-            cvector_pushback(llogs, llog);
+            llogs.push_back(llog);
         }
 
         if (start && race) {

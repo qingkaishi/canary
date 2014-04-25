@@ -69,7 +69,7 @@ namespace {
         DyckAliasAnalysis() : ModulePass(ID) {
             dyck_graph = new DyckGraph;
 
-            if (LeapTransformer && TraceTransformer 
+            if (LeapTransformer && TraceTransformer
                     && CanaryRecordTransformer && CanaryReplayTransformer) {
                 errs() << "Error: you cannot use different transformers together.\n";
                 exit(1);
@@ -391,7 +391,7 @@ namespace {
         delete aaa;
 
         /* instrumentation */
-        if (TraceTransformer || LeapTransformer 
+        if (TraceTransformer || LeapTransformer
                 || CanaryRecordTransformer || CanaryReplayTransformer) {
             set<Value*> llvm_svs;
             set<DyckVertex*> svs;
@@ -432,13 +432,13 @@ namespace {
             } else if (TraceTransformer) {
                 robot = new Transformer4Trace(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using trace-transformer ...\n");
-            } if(CanaryRecordTransformer) {
+            } else if (CanaryRecordTransformer) {
                 robot = new Transformer4CanaryRecord(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using canary-record-transformer ...\n");
-            } if(CanaryReplayTransformer) {
+            } else if (CanaryReplayTransformer) {
                 robot = new Transformer4CanaryReplay(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using canary-replay-transformer ...\n");
-            }else {
+            } else {
                 errs() << "Error: unknown transformer\n";
                 exit(1);
             }
@@ -451,8 +451,12 @@ namespace {
                 outs() << "\nPleaase add -ltsxleaprecord or -lleaprecord / -lleapreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
 
             if (TraceTransformer)
-                outs() << "Pleaase add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";
+                outs() << "Please add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";
 
+            if (CanaryRecordTransformer) {
+                outs() << "Maker sure your bitcode files are compiled using \"-c -emit-llvm -O2 -g\" options\n";
+                outs() << "Please add -lcanaryrecord for record at link time\n";
+            }
             delete robot;
 
             return true;

@@ -8,6 +8,6 @@ LEVEL=..
 #
 # List all of the subdirectories that we will compile.
 #
-DIRS=util dyckgraph wrapper transformer dyckaa trace-support leap-support canary-support
+DIRS=dyckgraph wrapper transformer dyckaa trace-support leap-support canary-support
 
 include $(LEVEL)/Makefile.common

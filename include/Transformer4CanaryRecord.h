@@ -22,6 +22,7 @@ private:
     Function *F_init, *F_exit;
 private:
     static int stmt_idx;
+    set<Function*> ignored_funcs;
 
 public:
 
@@ -46,8 +47,6 @@ public:
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) ;
     virtual bool isInstrumentationFunction(Function *f);
     
-    virtual bool debug();
-
 private:
 
     int getValueIndex(Value * v, AliasAnalysis& AA);

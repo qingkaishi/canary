@@ -8,6 +8,7 @@
 #define VOID_PTR_TY(m) Type::getInt8PtrTy(m->getContext())
 #define THREAD_PTR_TY(m) Type::getIntNPtrTy(m->getContext(), POINTER_BIT_SIZE)
 #define INT_TY(m) INT_N_TY(m,32)
+#define LONG_TY(m) INT_N_TY(m, POINTER_BIT_SIZE)
 #define BOOL_TY(m) INT_N_TY(m, 1)
 
 #define MUTEX_TY(m) m->getTypeByName("union.pthread_mutex_t")
@@ -48,6 +49,14 @@ static bool IS_MUTEX_INIT_TY(Type* t, Module* m) {
     return true;
 }
 
+static bool IS_LIB_FILE(std::string & filename) {
+    if (filename.find("include/c++/") != std::string::npos) {
+        return true;
+    }
+
+    return false;
+}
+
 int Transformer4CanaryRecord::stmt_idx = 0;
 
 Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
@@ -70,7 +79,7 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
 
     F_load = cast<Function>(m->getOrInsertFunction("OnLoad",
             VOID_TY(m),
-            INT_TY(m), VOID_PTR_TY(m), INT_TY(m),
+            INT_TY(m), LONG_TY(m), INT_TY(m),
             NULL));
 
     F_prestore = cast<Function>(m->getOrInsertFunction("OnPreStore",
@@ -115,18 +124,38 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
                     CONDN_PTR_TY(m), MUTEX_PTR_TY(m),
                     NULL));
         } else {
-            errs()<< "********************no pthread_cond_t type\n";
+            errs() << "********************no pthread_cond_t type\n";
         }
     } else {
-        errs()<< "********************no pthread_mutex_t type\n";
+        errs() << "********************no pthread_mutex_t type\n";
     }
 }
 
-bool Transformer4CanaryRecord::debug() {
-    return false;
-}
-
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
+    for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+        Function& f = *iterF;
+        bool ignored = false;
+        for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
+            BasicBlock &b = *iterB;
+            for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
+                Instruction &inst = *iterI;
+                MDNode* mdn = inst.getMetadata("dbg");
+                DILocation LOC(mdn);
+                std::string filename = LOC.getFilename().str();
+                if (IS_LIB_FILE(filename)) {
+                    ignored = true;
+                    break;
+                }
+            }
+            if (ignored) {
+                break;
+            }
+        }
+
+        if (ignored) {
+            ignored_funcs.insert(&f);
+        }
+    }
 }
 
 void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
@@ -161,7 +190,9 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
 }
 
 bool Transformer4CanaryRecord::functionToTransform(Function* f) {
-    return !f->isIntrinsic() && !f->empty() && !this->isInstrumentationFunction(f);
+    return !f->isIntrinsic() && !f->empty()
+            && ignored_funcs.find(f) == ignored_funcs.end()
+            && !this->isInstrumentationFunction(f);
 }
 
 bool Transformer4CanaryRecord::blockToTransform(BasicBlock* bb) {
@@ -176,8 +207,13 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
     Value * val = inst->getOperand(0);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
-    
-    CastInst* ci = CastInst::CreateZExtOrBitCast(inst, VOID_PTR_TY(module));
+
+    CastInst* ci = NULL;
+    if (inst->getType()->isPointerTy()) {
+        ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
+    } else {
+        ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), true);
+    }
     ci->insertAfter(inst);
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
@@ -195,7 +231,7 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * ci = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    
+
     this->insertCallInstAfter(inst, F_store, tmp, ci, debug_idx, NULL);
 }
 

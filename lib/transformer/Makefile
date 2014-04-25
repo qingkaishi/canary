@@ -14,3 +14,8 @@ LIBRARYNAME=transformer
 # Include Makefile.common so we know what to do.
 #
 include $(LEVEL)/Makefile.common
+
+ifeq (${TDEBUG}, 1)
+    CFLAGS += -DTRANSFORMER_DEBUG
+    CXXFLAGS += -DTRANSFORMER_DEBUG
+endif

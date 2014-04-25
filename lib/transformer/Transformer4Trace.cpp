@@ -69,6 +69,13 @@ void Transformer4Trace::beforeTransform(AliasAnalysis& AA) {
                 MDNode* mdn = inst.getMetadata("dbg");
                 DILocation LOC(mdn);
                 std::string filename = LOC.getFilename().str();
+//                unsigned ln = LOC.getLineNumber();
+//                errs() << inst << "\n";
+//                errs() << f.getName() << "\n";
+//                errs() << filename; 
+//                errs() << " : " << ln << "\n";
+//                errs() <<"************************"<< "\n";
+//                errs().flush();
                 if (filename == "pbzip2.cpp") {
                     ignored = false;
                     break;

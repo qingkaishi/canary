@@ -129,9 +129,9 @@ void Transformer::transform(AliasAnalysis& AA) {
                     continue;
                 }
 
-                if (this->debug()) {
+#ifdef TRANSFORMER_DEBUG
                     errs() << "Transforming: " << inst << "\n";
-                }
+#endif
 
                 if (isa<LoadInst>(inst)) {
                     this->transformLoadInst((LoadInst*)&inst, AA);
