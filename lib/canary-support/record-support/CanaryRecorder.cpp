@@ -171,25 +171,40 @@ extern "C" {
         }
 
         {//rlog
+            bool created = false;
             boost::unordered_map<pthread_t, l_rlog_t*>::iterator rit = rlogs.begin();
             while (rit != rlogs.end()) {
                 l_rlog_t* rlog = rit->second;
                 unsigned _tid = thread_ht[rit->first];
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
-                    rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
+                    if(!created) {
+                        rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "wb", _tid);
+                        rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
+                        
+                        created = true;
+                    } else {
+                        rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
+                        rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
+                    }
                 }
 
                 rit++;
             }
         }
         {//wlog
+            bool created = false;
             boost::unordered_map<pthread_t, l_wlog_t*>::iterator wit = wlogs.begin();
             while (wit != wlogs.end()) {
                 l_wlog_t* wlog = wit->second;
                 unsigned _tid = thread_ht[wit->first];
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    wlog->dumpWithUnsigned("write.dat", "ab", _tid);
+                    if(!created){
+                        wlog->dumpWithUnsigned("write.dat", "wb", _tid);
+                        
+                        created = true;
+                    }else{
+                        wlog->dumpWithUnsigned("write.dat", "ab", _tid);
+                    }
                 }
 
                 wit++;
@@ -335,7 +350,7 @@ extern "C" {
 #endif
 
         pthread_t ftid = *(forked_tid_ptr);
-        if (thread_ht.count(ftid)) {
+        if (!thread_ht.count(ftid)) {
             thread_ht[ftid] = thread_ht.size();
         }
 
