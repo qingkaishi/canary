@@ -94,7 +94,7 @@ void Transformer4Leap::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
 }
 
 void Transformer4Leap::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
-    Value * val = inst->getOperand(0);
+    Value * val = inst->getOperand(1);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 

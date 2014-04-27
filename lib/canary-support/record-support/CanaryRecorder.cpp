@@ -68,6 +68,7 @@ static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
 static boost::unordered_map<pthread_t, l_rlog_t*> rlogs;
 static boost::unordered_map<pthread_t, l_wlog_t*> wlogs;
+static boost::unordered_map<long, unsigned> value_ht;
 
 /*
  * start to record?
@@ -228,11 +229,16 @@ extern "C" {
             pthread_setspecific(rlog_key, rlog);
         }
 
-        rlog[svId].VAL_LOG.logValue(value);
+        if(value_ht.count(value)){
+            rlog[svId].VAL_LOG.logValue(value_ht[value]);
+        } else {
+            rlog[svId].VAL_LOG.logValue(value);
+        }
+        
         rlog[svId].VER_LOG.logValue(write_versions[svId]);
     }
 
-    unsigned OnPreStore(int svId, int debug) {
+    unsigned OnPreStore(int svId, long value, int debug) {
         if (!start) {
             return 0;
         }
@@ -243,6 +249,10 @@ extern "C" {
 #endif
         unsigned version = write_versions[svId];
         write_versions[svId] = version + 1;
+        
+        if(!value_ht.count(value)){
+            value_ht[value] = value_ht.size();
+        }
 
         return version;
     }
