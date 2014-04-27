@@ -68,7 +68,11 @@ static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
 static boost::unordered_map<pthread_t, l_rlog_t*> rlogs;
 static boost::unordered_map<pthread_t, l_wlog_t*> wlogs;
-static boost::unordered_map<long, unsigned> value_ht;
+
+/*
+ * address table
+ */
+static boost::unordered_map<void*, unsigned> address_ht;
 
 /*
  * start to record?
@@ -121,7 +125,7 @@ void close_write_log(void* log) {
 }
 
 extern "C" {
-    
+
     void OnInit(unsigned svsNum) {
         printf("OnInit-Record\n");
         num_shared_vars = svsNum;
@@ -178,10 +182,10 @@ extern "C" {
                 l_rlog_t* rlog = rit->second;
                 unsigned _tid = thread_ht[rit->first];
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    if(!created) {
+                    if (!created) {
                         rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "wb", _tid);
                         rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
-                        
+
                         created = true;
                     } else {
                         rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
@@ -199,11 +203,11 @@ extern "C" {
                 l_wlog_t* wlog = wit->second;
                 unsigned _tid = thread_ht[wit->first];
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    if(!created){
+                    if (!created) {
                         wlog->dumpWithUnsigned("write.dat", "wb", _tid);
-                        
+
                         created = true;
-                    }else{
+                    } else {
                         wlog->dumpWithUnsigned("write.dat", "ab", _tid);
                     }
                 }
@@ -212,6 +216,14 @@ extern "C" {
             }
         }
     }
+
+    void OnGlobalInit(void* value) {
+        if(!address_ht.count(value)){
+            address_ht[value] = address_ht.size();
+        }
+    }
+    
+    /// @TODO Malloc hook
 
     void OnLoad(int svId, long value, int debug) {
         if (!start) {
@@ -229,16 +241,16 @@ extern "C" {
             pthread_setspecific(rlog_key, rlog);
         }
 
-        if(value_ht.count(value)){
-            rlog[svId].VAL_LOG.logValue(value_ht[value]);
+        if (address_ht.count((void*)value)) {
+            rlog[svId].VAL_LOG.logValue(address_ht[(void*)value]);
         } else {
             rlog[svId].VAL_LOG.logValue(value);
         }
-        
+
         rlog[svId].VER_LOG.logValue(write_versions[svId]);
     }
 
-    unsigned OnPreStore(int svId, long value, int debug) {
+    unsigned OnPreStore(int svId, int debug) {
         if (!start) {
             return 0;
         }
@@ -249,10 +261,6 @@ extern "C" {
 #endif
         unsigned version = write_versions[svId];
         write_versions[svId] = version + 1;
-        
-        if(!value_ht.count(value)){
-            value_ht[value] = value_ht.size();
-        }
 
         return version;
     }

@@ -19,7 +19,7 @@ private:
     Function *F_prefork, *F_fork;
     Function *F_premutexinit, *F_mutexinit;
     Function *F_wait;
-    Function *F_init, *F_exit;
+    Function *F_init, *F_exit, F_globalinit;
 private:
     static int stmt_idx;
     set<Function*> ignored_funcs;

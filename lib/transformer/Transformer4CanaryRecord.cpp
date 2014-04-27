@@ -101,6 +101,11 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
             VOID_TY(m),
             THREAD_PTR_TY(m), BOOL_TY(m),
             NULL));
+    
+    F_globalinit = cast<Function>(m->getOrInsertFunction("OnGlobalInit",
+            VOID_TY(m),
+            VOID_PTR_TY(m),
+            NULL));
 
     if (MUTEX_TY(m) != NULL) {
         F_lock = cast<Function>(m->getOrInsertFunction("OnLock",
@@ -166,22 +171,30 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
         this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, NULL);
 
-        if (MUTEX_ANON_TY(module) != NULL) {
-            iplist<GlobalVariable>::iterator git = module->global_begin();
-            while (git != module->global_end()) {
-                GlobalVariable& gv = *git;
-                if (!gv.isThreadLocal() && gv.getType()->getPointerElementType() == MUTEX_TY(module)) {
-                    outs() << "Find a global mutex...\n";
-                    outs() << gv << "\n";
-                    if (IS_MUTEX_INIT_TY(gv.getInitializer()->getType(), module)) {
-                        Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
-                        ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
-                        this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
-                    }
+        bool has_mutex_anon = (MUTEX_ANON_TY(module) != NULL);
+        iplist<GlobalVariable>::iterator git = module->global_begin();
+        while (git != module->global_end()) {
+            GlobalVariable& gv = *git;
+            if (!gv.isThreadLocal() && gv.getType()->getPointerElementType() == MUTEX_TY(module)) {
+                outs() << "Find a global mutex...\n";
+                outs() << gv << "\n";
+                if (has_mutex_anon && IS_MUTEX_INIT_TY(gv.getInitializer()->getType(), module)) {
+                    Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
+                    ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
+                    this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
                 }
-                git++;
             }
-        } else {
+            
+            if(!gv.hasUnnamedAddr()){
+                /// @TODO
+                Constant* globalstar = ConstantExpr::getBitCast(&gv, VOID_PTR_TY(module));
+                this->insertCallInstAtHead(mainFunction, F_globalinit, globalstar, NULL);
+            }
+            
+            git++;
+        }
+
+        if (!has_mutex_anon) {
             errs() << "No mutex anon type ... \n";
         }
     } else {
@@ -227,20 +240,11 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     Value * val = inst->getOperand(1);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
-    
-    CastInst* ci = NULL;
-    if (inst->getType()->isPointerTy()) {
-        ci = CastInst::CreatePointerCast(inst->getOperand(0), LONG_TY(module));
-    } else {
-        ci = CastInst::CreateIntegerCast(inst->getOperand(0), LONG_TY(module), true);
-    }
-    ci->insertBefore(inst);
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
-    CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, ci, debug_idx, NULL);
-
+    CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
     this->insertCallInstAfter(inst, F_store, tmp, call, debug_idx, NULL);
 }
 
