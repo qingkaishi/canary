@@ -1,6 +1,0 @@
-eclipse.preferences.version=1
-environment/project/0.255330353/CPLUS_INCLUDE_PATH/delimiter=\:
-environment/project/0.255330353/CPLUS_INCLUDE_PATH/operation=replace
-environment/project/0.255330353/CPLUS_INCLUDE_PATH/value=/usr/include/i386-linux-gnu/c++/4.8/\:usr/include/\:/usr/local/include${CPLUS_INCLUDE_PATH}
-environment/project/0.255330353/append=true
-environment/project/0.255330353/appendContributed=true
