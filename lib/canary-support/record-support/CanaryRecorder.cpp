@@ -29,11 +29,11 @@ typedef struct {
 
 typedef VLastOnePredictorLog l_wlog_t;
 
-typedef LastOnePredictorLog<unsigned> g_llog_t;
+typedef LastOnePredictorLog<pthread_t> g_llog_t;
 
-typedef LastOnePredictorLog<unsigned> g_mlog_t;
+typedef LastOnePredictorLog<pthread_t> g_mlog_t;
 
-typedef LastOnePredictorLog<unsigned> g_flog_t;
+typedef LastOnePredictorLog<pthread_t> g_flog_t;
 
 /*
  * Define local log keys
@@ -64,6 +64,7 @@ static pthread_mutex_t mutex_init_lock = PTHREAD_MUTEX_INITIALIZER;
  * mutex_t-> mutex_id hashmap
  * pthread_t -> thread_id hashmap
  */
+static unsigned mutex_id = 0;
 static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
 static boost::unordered_map<pthread_t, l_rlog_t*> rlogs;
@@ -72,7 +73,7 @@ static boost::unordered_map<pthread_t, l_wlog_t*> wlogs;
 /*
  * address table
  */
-static boost::unordered_map<void*, unsigned> address_ht;
+static boost::unordered_map<void*, long> address_ht;
 
 /*
  * start to record?
@@ -163,15 +164,15 @@ extern "C" {
 
         // dump, delete/free is not needed, because program will exit.
         {//flog
-            flog.dump("fork.dat", "wb");
+            flog.dumpWithValueUnsignedMap("fork.dat", "wb", thread_ht);
         }
 
         {
             //mlog, llogs
-            mlog.dump("mutex.dat", "wb");
+            mlog.dumpWithValueUnsignedMap("mutex.dat", "wb", thread_ht);
             for (unsigned i = 0; i < llogs.size(); i++) {
                 g_llog_t * llog = llogs[i];
-                llog->dump("mutex.dat", "ab");
+                llog->dumpWithValueUnsignedMap("mutex.dat", "ab", thread_ht);
             }
         }
 
@@ -217,13 +218,12 @@ extern "C" {
         }
     }
 
-    void OnGlobalInit(void* value) {
-        if(!address_ht.count(value)){
+    void OnAddressInit(void* value, size_t range) {
+        /// @TODO
+        if (!address_ht.count(value)) {
             address_ht[value] = address_ht.size();
         }
     }
-    
-    /// @TODO Malloc hook
 
     void OnLoad(int svId, long value, int debug) {
         if (!start) {
@@ -241,8 +241,8 @@ extern "C" {
             pthread_setspecific(rlog_key, rlog);
         }
 
-        if (address_ht.count((void*)value)) {
-            rlog[svId].VAL_LOG.logValue(address_ht[(void*)value]);
+        if (address_ht.count((void*) value)) {
+            rlog[svId].VAL_LOG.logValue(address_ht[(void*) value]);
         } else {
             rlog[svId].VAL_LOG.logValue(value);
         }
@@ -287,21 +287,22 @@ extern "C" {
             return;
         }
 
-        pthread_t tid = pthread_self();
-        while (!thread_ht.count(tid));
-        unsigned _tid = thread_ht[tid];
-
+        // if map does not contain it, it must be a bug
+        // because lock and init have a race.
         if (!mutex_ht.count(mutex_ptr)) {
             fprintf(stderr, "ERROR: program bug!\n");
             OnExit();
             exit(1);
         }
 
+        // here, the same address mutex_ptr is impossible to init a new lock
+        // because the lock has been locked
+        // therefore mutex_ht[mutex_ptr] is safe
         g_llog_t* llog = llogs[mutex_ht[mutex_ptr]];
-        llog->logValue(_tid);
+        llog->logValue(pthread_self()); // exchange to _tid at last
 
 #ifdef DEBUG
-        printf("OnLock --> t%d\n", _tid);
+        printf("OnLock --> t%d\n", thread_ht[tid]);
 #endif
     }
 
@@ -312,9 +313,6 @@ extern "C" {
 #ifdef DEBUG
         printf("OnWait\n");
 #endif
-        pthread_t tid = pthread_self();
-        while (!thread_ht.count(tid));
-        unsigned _tid = thread_ht[tid];
 
         if (!mutex_ht.count(mutex_ptr)) {
             fprintf(stderr, "ERROR: program bug!\n");
@@ -322,7 +320,7 @@ extern "C" {
             exit(1);
         }
         g_llog_t* llog = llogs[mutex_ht[mutex_ptr]];
-        llog->logValue(_tid);
+        llog->logValue(pthread_self());
     }
 
     void OnPreMutexInit(bool race) {
@@ -332,17 +330,16 @@ extern "C" {
     }
 
     void OnMutexInit(pthread_mutex_t* mutex_ptr, bool race) {
-        if (!mutex_ht.count(mutex_ptr)) {
-            mutex_ht[mutex_ptr] = mutex_ht.size();
-            g_llog_t * llog = new g_llog_t;
-            llogs.push_back(llog);
-        }
+        // if mutex_ht contains mutex_ptr, it means that the original one may be
+        // destroyed; No matther mutex_ht contains it or not, it is a new lock
+        mutex_ht[mutex_ptr] = mutex_id++;
+        g_llog_t * llog = new g_llog_t;
+        llogs.push_back(llog);
+
 
         if (start && race) {
             pthread_t tid = pthread_self();
-            while (!thread_ht.count(tid));
-            unsigned _tid = thread_ht[tid];
-            mlog.logValue(_tid);
+            mlog.logValue(tid);
 
             mutexInitUnlock();
         }
@@ -374,10 +371,7 @@ extern "C" {
 
         if (race) {
             pthread_t tid = pthread_self();
-            while (!thread_ht.count(tid));
-            unsigned _tid = thread_ht[tid];
-
-            flog.logValue(_tid);
+            flog.logValue(tid);
 
             forkUnlock();
         }

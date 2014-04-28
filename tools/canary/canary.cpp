@@ -31,6 +31,7 @@
 #include "llvm/Target/TargetLibraryInfo.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/Scalar.h"
 #include <algorithm>
 #include <memory>
 
@@ -824,6 +825,9 @@ int main(int argc, char **argv) {
     FPasses->doFinalization();
   }
 
+  Passes.add(createLowerInvokePass());
+  Passes.add(createCFGSimplificationPass());
+  
   // Canary passes
   Passes.add(createDyckAliasAnalysisPass());
 

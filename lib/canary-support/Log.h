@@ -34,17 +34,17 @@ public:
         __recording = true;
     }
 
-    ~Log() {
+    virtual ~Log() {
         for (unsigned i = 0; i < __log.size(); i++) {
             delete __log[i];
         }
     }
     
-    unsigned size(){
+    virtual unsigned size(){
         return __log.size();
     }
 
-    void dump(const char* logfile, const char * mode) {
+    virtual void dump(const char* logfile, const char * mode) {
         FILE * fout = fopen(logfile, mode);
 
         for (unsigned i = 0; i < __log.size(); i++) {
@@ -54,8 +54,23 @@ public:
 
         fclose(fout);
     }
+    
+    virtual void dumpWithValueUnsignedMap(const char* logfile, const char * mode, boost::unordered_map<T, unsigned>& map) {
+        FILE * fout = fopen(logfile, mode);
 
-    void dumpWithUnsigned(const char* logfile, const char * mode, unsigned u) {
+        for (unsigned i = 0; i < __log.size(); i++) {
+            Item<T> * item = __log[i];
+            unsigned value = map[item->t];
+            unsigned idx = item->idx;
+            
+            fwrite(&value, sizeof (unsigned), 1, fout);
+            fwrite(&idx, sizeof (unsigned), 1, fout);
+        }
+
+        fclose(fout);
+    }
+
+    virtual void dumpWithUnsigned(const char* logfile, const char * mode, unsigned u) {
         FILE * fout = fopen(logfile, mode);
 
         fwrite(&u, sizeof (unsigned), 1, fout);

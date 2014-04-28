@@ -6,58 +6,58 @@ Transformer::Transformer(Module* m, set<Value*>* svs, unsigned psize) {
     ptrsize = psize;
 }
 
-CallInst* Transformer::insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...){
+CallInst* Transformer::insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...) {
     std::vector<Value *> args;
-    
-    va_list ap; 
-    va_start( ap, tocall );
-    Value* arg = va_arg( ap, Value* );
-    
-    while(arg!=NULL){
+
+    va_list ap;
+    va_start(ap, tocall);
+    Value* arg = va_arg(ap, Value*);
+
+    while (arg != NULL) {
         args.push_back(arg);
-        arg = va_arg( ap, Value* );
+        arg = va_arg(ap, Value*);
     }
-    
+
     va_end(ap);
-    
+
     CallInst *InstCall = CallInst::Create(tocall, args);
     InstCall->insertBefore(beforeInst);
     return InstCall;
 }
 
-CallInst* Transformer::insertCallInstAfter(Instruction* afterInst, Function* tocall, ...){
+CallInst* Transformer::insertCallInstAfter(Instruction* afterInst, Function* tocall, ...) {
     std::vector<Value *> args;
-    
-    va_list ap; 
-    va_start( ap, tocall );
-    Value* arg = va_arg( ap, Value* );
-    
-    while(arg!=NULL){
+
+    va_list ap;
+    va_start(ap, tocall);
+    Value* arg = va_arg(ap, Value*);
+
+    while (arg != NULL) {
         args.push_back(arg);
-        arg = va_arg( ap, Value* );
+        arg = va_arg(ap, Value*);
     }
-    
+
     va_end(ap);
-    
+
     CallInst *InstCall = CallInst::Create(tocall, args);
     InstCall->insertAfter(afterInst);
     return InstCall;
 }
 
-void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...){
+void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...) {
     std::vector<Value *> args;
-    
-    va_list ap; 
-    va_start( ap, tocall );
-    Value* arg = va_arg( ap, Value* );
-    
-    while(arg!=NULL){
+
+    va_list ap;
+    va_start(ap, tocall);
+    Value* arg = va_arg(ap, Value*);
+
+    while (arg != NULL) {
         args.push_back(arg);
-        arg = va_arg( ap, Value* );
+        arg = va_arg(ap, Value*);
     }
-    
+
     va_end(ap);
-    
+
     ilist_iterator<BasicBlock> iterB = theFunc->getBasicBlockList().begin();
     while (iterB != theFunc->getBasicBlockList().end()) {
         BasicBlock& BB = *(theFunc->getBasicBlockList().begin());
@@ -66,10 +66,10 @@ void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...)
             Instruction &inst = *iterI;
             if (inst.getOpcodeName()[0] == '<') break;
             if (!(isa<AllocaInst>(inst) || isa<PHINode>(inst))) {
-                
+
                 CallInst *InstCall = CallInst::Create(tocall, args);
                 InstCall->insertBefore(&inst);
-                
+
                 return;
             }
             iterI++;
@@ -77,23 +77,23 @@ void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...)
         iterB++;
     }
     errs() << "Instruction insert failed in insertCallInstAtHead\n";
-    errs() << theFunc->getName() <<"\n";
+    errs() << theFunc->getName() << "\n";
 }
 
-void Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall, ...){
+void Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall, ...) {
     std::vector<Value *> args;
-    
-    va_list ap; 
-    va_start( ap, tocall );
-    Value* arg = va_arg( ap, Value* );
-    
-    while(arg!=NULL){
+
+    va_list ap;
+    va_start(ap, tocall);
+    Value* arg = va_arg(ap, Value*);
+
+    while (arg != NULL) {
         args.push_back(arg);
-        arg = va_arg( ap, Value* );
+        arg = va_arg(ap, Value*);
     }
-    
+
     va_end(ap);
-    
+
     ilist_iterator<BasicBlock> iterB = theFunc->getBasicBlockList().begin();
     for (; iterB != theFunc->getBasicBlockList().end(); iterB++) {
         BasicBlock &b = *iterB;
@@ -130,15 +130,15 @@ void Transformer::transform(AliasAnalysis& AA) {
                 }
 
 #ifdef TRANSFORMER_DEBUG
-                    errs() << "Transforming: " << inst << "\n";
+                errs() << "Transforming: " << inst << "\n";
 #endif
 
                 if (isa<LoadInst>(inst)) {
-                    this->transformLoadInst((LoadInst*)&inst, AA);
+                    this->transformLoadInst((LoadInst*) & inst, AA);
                 }
 
                 if (isa<StoreInst>(inst)) {
-                    this->transformStoreInst((StoreInst*)&inst, AA);
+                    this->transformStoreInst((StoreInst*) & inst, AA);
                 }
 
                 if (isa<CallInst>(inst)) {
@@ -243,12 +243,25 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
     } else if (cf.getName().str() == "pthread_cond_signal") {
         transformPthreadCondSignal(call, AA);
         return true;
-    } else if(cf.getName().str() == "pthread_mutex_init") {
+    } else if (cf.getName().str() == "pthread_mutex_init") {
         transformPthreadMutexInit(call, AA);
         return true;
     } else if (cf.getName().str() == "exit") {
         // system exit
         transformSystemExit(call, AA);
+        return true;
+    } else if (cf.getName().str() == "malloc" || cf.getName().str() == "calloc" 
+            || cf.getName().str() == "realloc"
+            || cf.getName().str() == "_Znaj"
+            || cf.getName().str() == "_ZnajRKSt9nothrow_t"
+            || cf.getName().str() == "_Znam"
+            || cf.getName().str() == "_ZnamRKSt9nothrow_t"
+            || cf.getName().str() == "_Znwj"
+            || cf.getName().str() == "_ZnwjRKSt9nothrow_t"
+            || cf.getName().str() == "_Znwm"
+            || cf.getName().str() == "_ZnwmRKSt9nothrow_t") {
+        // new / malloc
+        transformAddressInit(call, AA);
         return true;
     } else if (cf.isIntrinsic()) {
         switch (cf.getIntrinsicID()) {

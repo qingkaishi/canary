@@ -19,7 +19,7 @@ private:
     Function *F_prefork, *F_fork;
     Function *F_premutexinit, *F_mutexinit;
     Function *F_wait;
-    Function *F_init, *F_exit, F_globalinit;
+    Function *F_init, *F_exit, *F_address_init;
 private:
     static int stmt_idx;
     set<Function*> ignored_funcs;
@@ -46,6 +46,8 @@ public:
     virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA);
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) ;
     virtual bool isInstrumentationFunction(Function *f);
+    
+    virtual void transformAddressInit(CallInst* ins, AliasAnalysis& AA);
     
 private:
 

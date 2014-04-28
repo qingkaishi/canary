@@ -102,9 +102,9 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
             THREAD_PTR_TY(m), BOOL_TY(m),
             NULL));
     
-    F_globalinit = cast<Function>(m->getOrInsertFunction("OnGlobalInit",
+    F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
             VOID_TY(m),
-            VOID_PTR_TY(m),
+            VOID_PTR_TY(m), LONG_TY(m),
             NULL));
 
     if (MUTEX_TY(m) != NULL) {
@@ -186,9 +186,11 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
             }
             
             if(!gv.hasUnnamedAddr()){
-                /// @TODO
+                size_t size = (size_t) AA.getTypeStoreSize(gv.getInitializer()->getType());
+                ConstantInt* sizeValue = ConstantInt::get(LONG_TY(module), size);
+                
                 Constant* globalstar = ConstantExpr::getBitCast(&gv, VOID_PTR_TY(module));
-                this->insertCallInstAtHead(mainFunction, F_globalinit, globalstar, NULL);
+                this->insertCallInstAtHead(mainFunction, F_address_init, globalstar, sizeValue, NULL);
             }
             
             git++;
@@ -215,6 +217,24 @@ bool Transformer4CanaryRecord::blockToTransform(BasicBlock* bb) {
 
 bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
     return true;
+}
+
+/// such instructions need not synchronize
+/// in llvm, it firstly initialize a memory space
+/// and then store the address to a variable
+/// so, we need care about store inst
+void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA){
+    Value * val = inst;
+    int svIdx = this->getValueIndex(val, AA);
+    if (svIdx == -1) return;
+    
+    Value * sizeValue = inst->getArgOperand(0);
+    if(sizeValue->getType()->isIntegerTy(32)){
+        CastInst* ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+        ci->insertAfter(inst);
+        sizeValue = ci;
+    }
+    this->insertCallInstAfter(inst, F_address_init, inst, sizeValue, NULL);
 }
 
 void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {

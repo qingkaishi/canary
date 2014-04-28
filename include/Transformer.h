@@ -121,6 +121,9 @@ public:
     virtual void transformSpecialFunctionInvoke(InvokeInst* ins, AliasAnalysis& AA) {
     }
     
+    virtual void transformAddressInit(CallInst* ins, AliasAnalysis& AA){
+    }
+    
     virtual bool isInstrumentationFunction(Function *f){
         return false;
     }
