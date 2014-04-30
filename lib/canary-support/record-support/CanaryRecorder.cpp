@@ -24,8 +24,11 @@
  * f  -> fork
  */
 typedef struct {
-    LastOnePredictorLog<long> VAL_LOG; // <void *>
-    LastOnePredictorLog<unsigned> VER_LOG; // <unsigned>
+    // <long/void *> sizeof pointer usually equals to sizeof long
+    LastOnePredictorLog<long> VAL_LOG; 
+    // <int>, -1 is the place holder, means the read operation reads
+    // the local value
+    LastOnePredictorLog<int> VER_LOG; 
 } l_rlog_t;
 
 typedef VLastOnePredictorLog l_wlog_t;
@@ -63,7 +66,7 @@ static g_flog_t flog;
 static g_mlog_t mlog;
 
 /*
- * write versions, each shared var has one
+ * write versions, each shared var has a version
  */
 static unsigned* write_versions;
 
@@ -314,11 +317,12 @@ extern "C" {
         }
 
         Cache* cache = (Cache*) pthread_getspecific(cache_key);
-        if (cache != NULL && !cache->query(address, value)) {
+        if (cache != NULL && cache->query(address, value)) {
+            rlog[svId].VER_LOG.logValue(write_versions[svId]);
+        } else {
             rlog[svId].VAL_LOG.logValue(value);
+            rlog[svId].VER_LOG.logValue(-1);
         }
-
-        rlog[svId].VER_LOG.logValue(write_versions[svId]);
     }
 
     unsigned OnPreStore(int svId, int debug) {
