@@ -47,6 +47,8 @@ public:
     virtual void dump(const char* logfile, const char * mode) {
         FILE * fout = fopen(logfile, mode);
 
+        unsigned size = __log.size();
+        fwrite(&size, sizeof (unsigned), 1, fout);
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
             fwrite(item, sizeof (Item<T>), 1, fout);
@@ -58,6 +60,8 @@ public:
     virtual void dumpWithValueUnsignedMap(const char* logfile, const char * mode, boost::unordered_map<T, unsigned>& map) {
         FILE * fout = fopen(logfile, mode);
 
+        unsigned size = __log.size();
+        fwrite(&size, sizeof (unsigned), 1, fout);
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
             unsigned value = map[item->t];
@@ -73,6 +77,8 @@ public:
     virtual void dumpWithUnsigned(const char* logfile, const char * mode, unsigned u) {
         FILE * fout = fopen(logfile, mode);
 
+        unsigned size = __log.size();
+        fwrite(&size, sizeof (unsigned), 1, fout);
         fwrite(&u, sizeof (unsigned), 1, fout);
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
@@ -82,13 +88,13 @@ public:
         fclose(fout);
     }
 
-    virtual void logValue(T& val) = 0;
+    virtual void logValue(T val) = 0;
 };
 
 template<typename T> class LastOnePredictorLog : public Log<T> {
 private:
 
-    void lastOnePredictorStore(T& val) {
+    void lastOnePredictorStore(T val) {
         size_t currentIdx = Log<T>::__log.size();
         if (currentIdx >= MAX_LOG_LEN) {
             if (Log<T>::__recording)
@@ -116,16 +122,16 @@ public:
     LastOnePredictorLog(size_t size) : Log<T>(size) {
     }
 
-    virtual void logValue(T& val) {
+    virtual void logValue(T val) {
         lastOnePredictorStore(val);
     }
 
 };
 
-class VLastOnePredictorLog : public Log<unsigned> {
+class VLastOnePredictorLog : public Log<size_t> {
 private:
 
-    void vLastOnePredictorStore(unsigned& val) {
+    void vLastOnePredictorStore(size_t val) {
         size_t log_len = __log.size();
         if (log_len >= MAX_LOG_LEN) {
             if (__recording)
@@ -134,11 +140,11 @@ private:
             return;
         }
 
-        Item<unsigned> * x = __log[log_len - 1];
+        Item<size_t> * x = __log[log_len - 1];
         if (log_len > 0 && x->idx + x->t == val) {
             x->idx = x->idx + 1;
         } else {
-            Item<unsigned> * vI = new Item<unsigned>;
+            Item<size_t> * vI = new Item<size_t>;
             vI->t = val;
             vI->t = 1;
             __log.push_back(vI);
@@ -147,13 +153,13 @@ private:
 
 public:
 
-    VLastOnePredictorLog() : Log<unsigned>() {
+    VLastOnePredictorLog() : Log<size_t>() {
     }
 
-    VLastOnePredictorLog(size_t size) : Log<unsigned>(size) {
+    VLastOnePredictorLog(size_t size) : Log<size_t>(size) {
     }
 
-    virtual void logValue(unsigned& val) {
+    virtual void logValue(size_t val) {
         vLastOnePredictorStore(val);
     }
 };
