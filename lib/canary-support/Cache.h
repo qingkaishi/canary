@@ -83,7 +83,7 @@ public:
     }
 
     bool query(size_t address, size_t value) {
-        return __map.count(address) && __cache_lines[__map[address]] == value;
+        return __map.count(address) && __cache_lines[__map[address]].value == value;
     }
 
 };

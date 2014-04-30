@@ -102,9 +102,9 @@ private:
             Log<T>::__recording = false;
             return;
         }
-
-        Item<T>* x = Log<T>::__log[currentIdx - 1];
-        if (currentIdx > 0 && memcmp(&(x->t), &val, sizeof (T)) == 0) {
+        
+        Item<T>* x = 0;
+        if (currentIdx > 0 && (x = Log<T>::__log[currentIdx - 1]) && memcmp(&(x->t), &val, sizeof (T)) == 0) {
             x->idx = x->idx + 1;
         } else {
             Item<T> * vI = new Item<T>;
@@ -140,8 +140,8 @@ private:
             return;
         }
 
-        Item<size_t> * x = __log[log_len - 1];
-        if (log_len > 0 && x->idx + x->t == val) {
+        Item<size_t> * x = 0;
+        if (log_len > 0 && (x = __log[log_len - 1]) && x->idx + x->t == val) {
             x->idx = x->idx + 1;
         } else {
             Item<size_t> * vI = new Item<size_t>;

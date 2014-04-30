@@ -8,6 +8,6 @@ LEVEL=../..
 #
 # List all of the subdirectories that we will compile.
 #
-DIRS=record-support replay-support
+DIRS=record-support replay-support dummy-support
 
 include $(LEVEL)/Makefile.common

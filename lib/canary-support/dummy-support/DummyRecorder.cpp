@@ -27,7 +27,7 @@ extern "C" {
 
     void OnExit() {
         start = false;
-
+        printf("OnExit-Record\n");
 #ifdef NO_TIME_CMD
         gettimeofday(&tpend, NULL);
         double timeuse = 1000000 * (tpend.tv_sec - tpstart.tv_sec) + tpend.tv_usec - tpstart.tv_usec;

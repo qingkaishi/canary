@@ -84,7 +84,7 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
 
     F_prestore = cast<Function>(m->getOrInsertFunction("OnPreStore",
             INT_TY(m),
-            INT_TY(m), LONG_TY(m), INT_TY(m),
+            INT_TY(m), INT_TY(m),
             NULL));
 
     F_store = cast<Function>(m->getOrInsertFunction("OnStore",
@@ -177,20 +177,20 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
             GlobalVariable& gv = *git;
             if (!gv.isThreadLocal() && gv.getType()->getPointerElementType() == MUTEX_TY(module)) {
                 outs() << "Find a global mutex...\n";
-                outs() << gv << "\n";
-                if (has_mutex_anon && IS_MUTEX_INIT_TY(gv.getInitializer()->getType(), module)) {
+                if (has_mutex_anon && IS_MUTEX_INIT_TY(gv.getType()->getPointerElementType(), module)) {
                     Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
                     ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
                     this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
                 }
             }
             
-            if(!gv.hasUnnamedAddr()){
-                size_t size = (size_t) AA.getTypeStoreSize(gv.getInitializer()->getType());
+            if(!gv.hasPrivateLinkage() && !gv.getName().startswith("llvm.")){
+                size_t size = (size_t) AA.getTypeStoreSize(gv.getType()->getPointerElementType());
                 ConstantInt* sizeValue = ConstantInt::get(LONG_TY(module), size);
+                ConstantInt* nValue = ConstantInt::get(LONG_TY(module), 1);
                 
                 Constant* globalstar = ConstantExpr::getBitCast(&gv, VOID_PTR_TY(module));
-                this->insertCallInstAtHead(mainFunction, F_address_init, globalstar, sizeValue, NULL);
+                this->insertCallInstAtHead(mainFunction, F_address_init, globalstar, sizeValue, nValue, NULL);
             }
             
             git++;
@@ -228,6 +228,8 @@ void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysi
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
     
+    Instruction * tmp = inst;
+    
     Value * sizeValue = inst->getArgOperand(0);
     Value * nValue = ConstantInt::get(LONG_TY(module), 1);
     if(inst->getCalledFunction()->getName().str() == "realloc"){
@@ -238,11 +240,12 @@ void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysi
     }
     
     if(sizeValue->getType()->isIntegerTy(32)){
-        CastInst* ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+        CastInst* ci = CastInst::CreateIntegerCast(sizeValue, LONG_TY(module), false);
         ci->insertAfter(inst);
         sizeValue = ci;
+        tmp = ci;
     }
-    this->insertCallInstAfter(inst, F_address_init, inst, sizeValue, nValue, NULL);
+    this->insertCallInstAfter(tmp, F_address_init, inst, sizeValue, nValue, NULL);
 }
 
 void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
@@ -287,7 +290,7 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, addci, ci, debug_idx, NULL);
+    this->insertCallInstAfter(ci, F_store, tmp, call, addci, ci, debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {

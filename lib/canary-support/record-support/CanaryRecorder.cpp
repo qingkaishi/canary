@@ -309,7 +309,7 @@ extern "C" {
         }
 
 #ifdef DEBUG
-        printf("OnLoad\n");
+        printf("OnLoad === 1\n");
 #endif
         // using thread_key to tell whether log has been established
         // if so, use it, otherwise, new one
@@ -318,6 +318,10 @@ extern "C" {
             rlog = new l_rlog_t[num_shared_vars];
             pthread_setspecific(rlog_key, rlog);
         }
+        
+#ifdef DEBUG
+        printf("OnLoad === 2\n");
+#endif
 
         Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache != NULL && cache->query(address, value)) {
@@ -326,6 +330,9 @@ extern "C" {
             rlog[svId].VAL_LOG.logValue(value);
             rlog[svId].VER_LOG.logValue(-1);
         }
+#ifdef DEBUG
+        printf("OnLoad === 3\n");
+#endif
     }
 
     unsigned OnPreStore(int svId, int debug) {
@@ -362,6 +369,7 @@ extern "C" {
         Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache == NULL) {
             cache = new Cache;
+            pthread_setspecific(cache_key, cache);
         }
 
         cache->add(address, value);
@@ -387,7 +395,7 @@ extern "C" {
         llog->logValue(pthread_self()); // exchange to _tid at last
 
 #ifdef DEBUG
-        printf("OnLock --> t%d\n", thread_ht[tid]);
+        printf("OnLock --> t%d\n", thread_ht[pthread_self()]);
 #endif
     }
 

@@ -5,7 +5,6 @@
 #include "Transformer4Trace.h"
 #include "Transformer4CanaryRecord.h"
 #include "Transformer4CanaryReplay.h"
-#include "Transformer4Dummy.h"
 
 #include "DyckAliasAnalysis.h"
 
@@ -23,9 +22,9 @@ static cl::opt<bool>
 CanaryReplayTransformer("canary-replay-transformer", cl::init(false), cl::Hidden,
         cl::desc("Transform programs using canary replay transformer."));
 
-static cl::opt<bool>
-DummyTransformer("dummy-transformer", cl::init(false), cl::Hidden,
-        cl::desc("Dummy transformer for overhead evaluation."));
+static cl::opt<std::string> LockSmithDumpFile("locksmith-dump-file",
+       cl::desc("The Locksmith dump file using \"cilly --merge --list-shared --list-guardedby\""), 
+       cl::Hidden);
 
 static cl::opt<bool>
 LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
@@ -397,7 +396,7 @@ namespace {
 
         /* instrumentation */
         if (TraceTransformer || LeapTransformer
-                || CanaryRecordTransformer || CanaryReplayTransformer || DummyTransformer) {
+                || CanaryRecordTransformer || CanaryReplayTransformer) {
             set<Value*> llvm_svs;
             set<DyckVertex*> svs;
             this->getEscapingPointers(&svs, M.getFunction("pthread_create"));
@@ -445,9 +444,6 @@ namespace {
                 exit(1);
                 robot = new Transformer4CanaryReplay(&M, &llvm_svs, ptrsize);
                 outs() << ("Start transforming using canary-replay-transformer ...\n");
-            } else if (DummyTransformer) {
-                robot = new Transformer4Dummy(&M, &llvm_svs, ptrsize);
-                outs() << ("Start transforming using dummy-transformer ...\n");
             } else {
                 errs() << "Error: unknown transformer\n";
                 exit(1);
@@ -464,10 +460,8 @@ namespace {
             } else if (CanaryRecordTransformer) {
                 outs() << "Maker sure your bitcode files are compiled using \"-c -emit-llvm -O2 -g\" options\n";
                 outs() << "Please add -lcanaryrecord for record at link time\n";
-            } else if(DummyTransformer){
-                outs() << "Maker sure your bitcode files are compiled using \"-c -emit-llvm -O2 -g\" options\n";
-                outs() << "Please add -ldummyrecord for record at link time\n";
             }
+            
             delete robot;
 
             return true;

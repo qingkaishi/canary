@@ -3,12 +3,13 @@
 #
 # Indicate where we are relative to the top of the source tree.
 #
-LEVEL=../..
+LEVEL=../../..
 
 #
 # Give the name of a library.  This will build a dynamic version.
 #
 LIBRARYNAME=dummyrecord
+
 
 #
 # Include Makefile.common so we know what to do.
@@ -18,4 +19,10 @@ include $(LEVEL)/Makefile.common
 ifeq (${TIME}, 1)
     CFLAGS += -DNO_TIME_CMD
     CXXFLAGS += -DNO_TIME_CMD
+endif
+
+
+ifeq (${DEBUG}, 1)
+    CFLAGS += -DDEBUG
+    CXXFLAGS += -DDEBUG
 endif
