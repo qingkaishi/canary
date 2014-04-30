@@ -126,7 +126,10 @@ static inline void mutexInitUnlock() {
     pthread_mutex_unlock(&mutex_init_lock);
 }
 
-/* delete logs
+/* we do not dump logs here, because it is time consuming
+ * we store them in a global map, dump them at last
+ * 
+ * in practice, we can dump them here to avoid memory leak
  */
 void close_read_log(void* log) {
     pthread_t tid = pthread_self();
