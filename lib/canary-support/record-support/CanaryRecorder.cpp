@@ -25,10 +25,10 @@
  */
 typedef struct {
     // <long/void *> sizeof pointer usually equals to sizeof long
-    LastOnePredictorLog<long> VAL_LOG; 
+    LastOnePredictorLog<long> VAL_LOG;
     // <int>, -1 is the place holder, means the read operation reads
     // the local value
-    LastOnePredictorLog<int> VER_LOG; 
+    LastOnePredictorLog<int> VER_LOG;
 } l_rlog_t;
 
 typedef VLastOnePredictorLog l_wlog_t;
@@ -193,72 +193,71 @@ extern "C" {
 
         // dump, delete/free is not needed, because program will exit.
         {//flog
-            flog.dumpWithValueUnsignedMap("fork.dat", "wb", thread_ht);
+#ifdef DEBUG
+            printf("dumping flog...\n");
+#endif
+            FILE * fout = fopen("fork.dat", "wb");
+            flog.dumpWithValueUnsignedMap(fout, thread_ht);
+            fclose(fout);
         }
 
-        {
-            //mlog, llogs
-            mlog.dumpWithValueUnsignedMap("mutex.dat", "wb", thread_ht);
+        {//mlog, llogs
+#ifdef DEBUG
+            printf("dumping mlog, llog...\n");
+#endif
+            FILE * fout = fopen("mutex.dat", "wb");
+            mlog.dumpWithValueUnsignedMap(fout, thread_ht);
             for (unsigned i = 0; i < llogs.size(); i++) {
                 g_llog_t * llog = llogs[i];
-                llog->dumpWithValueUnsignedMap("mutex.dat", "ab", thread_ht);
+                llog->dumpWithValueUnsignedMap(fout, thread_ht);
             }
+            fclose(fout);
         }
 
         {//rlog
-            bool created = false;
+#ifdef DEBUG
+            printf("dumping rlog...\n");
+#endif
+            FILE * fout = fopen("read.dat", "wb");
             boost::unordered_map<pthread_t, l_rlog_t*>::iterator rit = rlogs.begin();
             while (rit != rlogs.end()) {
                 l_rlog_t* rlog = rit->second;
                 unsigned _tid = thread_ht[rit->first];
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    if (!created) {
-                        rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "wb", _tid);
-                        rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
-
-                        created = true;
-                    } else {
-                        rlog[i].VAL_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
-                        rlog[i].VER_LOG.dumpWithUnsigned("read.dat", "ab", _tid);
-                    }
+                    rlog[i].VAL_LOG.dumpWithUnsigned(fout, _tid);
+                    rlog[i].VER_LOG.dumpWithUnsigned(fout, _tid);
                 }
 
                 rit++;
             }
+            fclose(fout);
         }
         {//wlog
-            bool created = false;
+#ifdef DEBUG
+            printf("dumping wlog...\n");
+#endif
+            FILE * fout = fopen("write.dat", "wb");
             boost::unordered_map<pthread_t, l_wlog_t*>::iterator wit = wlogs.begin();
             while (wit != wlogs.end()) {
                 l_wlog_t* wlog = wit->second;
                 unsigned _tid = thread_ht[wit->first];
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    if (!created) {
-                        wlog->dumpWithUnsigned("write.dat", "wb", _tid);
-
-                        created = true;
-                    } else {
-                        wlog->dumpWithUnsigned("write.dat", "ab", _tid);
-                    }
+                    wlog->dumpWithUnsigned(fout, _tid);
                 }
 
                 wit++;
             }
+            fclose(fout);
         }
         {//address birthday map
-            bool created = false;
+#ifdef DEBUG
+            printf("dumping addressmap...\n");
+#endif
+            FILE * fout = fopen("addressmap.dat", "wb");
             boost::unordered_map<pthread_t, l_addmap_t*>::iterator it = addlogs.begin();
             while (it != addlogs.end()) {
                 unsigned _tid = thread_ht[it->first];
                 l_addmap_t * addmap = it->second;
-
-                FILE * fout = NULL;
-                if (!created) {
-                    fout = fopen("addressmap.dat", "wb");
-                    created = true;
-                } else {
-                    fout = fopen("addressmap.dat", "ab");
-                }
 
                 unsigned size = addmap->ADDRESS_LOG.size();
                 fwrite(&size, sizeof (unsigned), 1, fout);
@@ -268,12 +267,12 @@ extern "C" {
                     fwrite(&m->address, sizeof (void*), 1, fout);
                     fwrite(&m->range, sizeof (size_t), 1, fout);
                 }
-                fclose(fout);
 
-                addmap->BIRTHDAY_LOG.dump("addressmap.dat", "ab");
+                addmap->BIRTHDAY_LOG.dump(fout);
 
                 it++;
             }
+            fclose(fout);
         }
     }
 
@@ -318,7 +317,7 @@ extern "C" {
             rlog = new l_rlog_t[num_shared_vars];
             pthread_setspecific(rlog_key, rlog);
         }
-        
+
 #ifdef DEBUG
         printf("OnLoad === 2\n");
 #endif
