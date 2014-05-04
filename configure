@@ -2582,9 +2582,9 @@ $as_echo "no" >&6; }
 	as_fn_error $? "We need boost library for support." "$LINENO" 5
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking gawk" >&5
-$as_echo_n "checking gawk... " >&6; }
-which gawk
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for gawk" >&5
+$as_echo_n "checking for gawk... " >&6; }
+which gawk >/dev/null
 if test $? = 0
 then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -2593,6 +2593,19 @@ else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	as_fn_error $? "We need gawk." "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for zip" >&5
+$as_echo_n "checking for zip... " >&6; }
+which zip >/dev/null
+if test $? = 0
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	as_fn_error $? "We need zip." "$LINENO" 5
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gcc version" >&5
@@ -9190,7 +9203,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9193 "configure"
+#line 9206 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12881,7 +12894,22 @@ ac_config_commands="$ac_config_commands lib/dyckgraph/Makefile"
 ac_config_commands="$ac_config_commands lib/dyckaa/Makefile"
 
 
+ac_config_commands="$ac_config_commands lib/wrapper/Makefile"
+
+
 ac_config_commands="$ac_config_commands lib/transformer/Makefile"
+
+
+ac_config_commands="$ac_config_commands lib/canary-support/Makefile"
+
+
+ac_config_commands="$ac_config_commands lib/canary-support/record-support/Makefile"
+
+
+ac_config_commands="$ac_config_commands lib/canary-support/dummy-support/Makefile"
+
+
+ac_config_commands="$ac_config_commands lib/canary-support/replay-support/Makefile"
 
 
 ac_config_commands="$ac_config_commands lib/leap-support/Makefile"
@@ -13640,7 +13668,12 @@ do
     "lib/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/Makefile" ;;
     "lib/dyckgraph/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/dyckgraph/Makefile" ;;
     "lib/dyckaa/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/dyckaa/Makefile" ;;
+    "lib/wrapper/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/wrapper/Makefile" ;;
     "lib/transformer/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/transformer/Makefile" ;;
+    "lib/canary-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/canary-support/Makefile" ;;
+    "lib/canary-support/record-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/canary-support/record-support/Makefile" ;;
+    "lib/canary-support/dummy-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/canary-support/dummy-support/Makefile" ;;
+    "lib/canary-support/replay-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/canary-support/replay-support/Makefile" ;;
     "lib/leap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/leap-support/Makefile" ;;
     "lib/leap-support/leap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/leap-support/leap-support/Makefile" ;;
     "lib/leap-support/tsxleap-support/Makefile") CONFIG_COMMANDS="$CONFIG_COMMANDS lib/leap-support/tsxleap-support/Makefile" ;;
@@ -14080,8 +14113,18 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/dyckgraph/Makefile lib/dyckgraph/Makefile ;;
     "lib/dyckaa/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/dyckaa/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/dyckaa/Makefile lib/dyckaa/Makefile ;;
+    "lib/wrapper/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/wrapper/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/wrapper/Makefile lib/wrapper/Makefile ;;
     "lib/transformer/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/transformer/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/transformer/Makefile lib/transformer/Makefile ;;
+    "lib/canary-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/canary-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/canary-support/Makefile lib/canary-support/Makefile ;;
+    "lib/canary-support/record-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/canary-support/record-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/canary-support/record-support/Makefile lib/canary-support/record-support/Makefile ;;
+    "lib/canary-support/dummy-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/canary-support/dummy-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/canary-support/dummy-support/Makefile lib/canary-support/dummy-support/Makefile ;;
+    "lib/canary-support/replay-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/canary-support/replay-support/Makefile`
+   ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/canary-support/replay-support/Makefile lib/canary-support/replay-support/Makefile ;;
     "lib/leap-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/leap-support/Makefile`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/lib/leap-support/Makefile lib/leap-support/Makefile ;;
     "lib/leap-support/leap-support/Makefile":C) ${llvm_src}/autoconf/mkinstalldirs `dirname lib/leap-support/leap-support/Makefile`

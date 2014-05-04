@@ -1,4 +1,4 @@
-m4trace:/usr/share/aclocal-1.13/cond.m4:12: -1- AC_DEFUN([AM_CONDITIONAL], [AC_PREREQ([2.52])dnl
+m4trace:/usr/share/aclocal-1.14/cond.m4:12: -1- AC_DEFUN([AM_CONDITIONAL], [AC_PREREQ([2.52])dnl
  m4_if([$1], [TRUE],  [AC_FATAL([$0: invalid condition: $1])],
        [$1], [FALSE], [AC_FATAL([$0: invalid condition: $1])])dnl
 AC_SUBST([$1_TRUE])dnl
@@ -18,9 +18,9 @@ AC_CONFIG_COMMANDS_PRE(
   AC_MSG_ERROR([[conditional "$1" was never defined.
 Usually this means the macro was only invoked conditionally.]])
 fi])])
-m4trace:/usr/share/aclocal-1.13/substnot.m4:12: -1- AC_DEFUN([_AM_SUBST_NOTMAKE])
-m4trace:/usr/share/aclocal-1.13/substnot.m4:17: -1- AC_DEFUN([AM_SUBST_NOTMAKE], [_AM_SUBST_NOTMAKE($@)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/build_exeext.m4:4: -1- AC_DEFUN([AC_BUILD_EXEEXT], [
+m4trace:/usr/share/aclocal-1.14/substnot.m4:12: -1- AC_DEFUN([_AM_SUBST_NOTMAKE])
+m4trace:/usr/share/aclocal-1.14/substnot.m4:17: -1- AC_DEFUN([AM_SUBST_NOTMAKE], [_AM_SUBST_NOTMAKE($@)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/build_exeext.m4:4: -1- AC_DEFUN([AC_BUILD_EXEEXT], [
 AC_MSG_CHECKING([for executable suffix on build platform])
 AC_CACHE_VAL(ac_cv_build_exeext,
 [if test "$CYGWIN" = yes || test "$MINGW32" = yes; then
@@ -58,7 +58,7 @@ test x"${ac_cv_build_exeext}" != xblank && BUILD_EXEEXT=${ac_cv_build_exeext}
 AC_MSG_RESULT(${ac_cv_build_exeext})
 ac_build_exeext=$BUILD_EXEEXT
 AC_SUBST(BUILD_EXEEXT)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/c_printf_a.m4:5: -1- AC_DEFUN([AC_C_PRINTF_A], [AC_CACHE_CHECK([if printf has the %a format character],[llvm_cv_c_printf_a],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/c_printf_a.m4:5: -1- AC_DEFUN([AC_C_PRINTF_A], [AC_CACHE_CHECK([if printf has the %a format character],[llvm_cv_c_printf_a],
 [AC_LANG_PUSH([C])
  AC_RUN_IFELSE([
   AC_LANG_PROGRAM([[
@@ -84,7 +84,7 @@ return (0);]])],
    AC_DEFINE([HAVE_PRINTF_A],[1],[Define to have the %a format string])
  fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/check_gnu_make.m4:5: -1- AC_DEFUN([AC_CHECK_GNU_MAKE], [AC_CACHE_CHECK([for GNU make],[llvm_cv_gnu_make_command],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/check_gnu_make.m4:5: -1- AC_DEFUN([AC_CHECK_GNU_MAKE], [AC_CACHE_CHECK([for GNU make],[llvm_cv_gnu_make_command],
 dnl Search all the common names for GNU make
 [llvm_cv_gnu_make_command=''
  for a in "$MAKE" make gmake gnumake ; do
@@ -105,11 +105,11 @@ dnl '#' otherwise
  fi
  AC_SUBST(ifGNUmake)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/config_makefile.m4:5: -1- AC_DEFUN([AC_CONFIG_MAKEFILE], [AC_CONFIG_COMMANDS($1,
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/config_makefile.m4:5: -1- AC_DEFUN([AC_CONFIG_MAKEFILE], [AC_CONFIG_COMMANDS($1,
   [${llvm_src}/autoconf/mkinstalldirs `dirname $1`
    ${SHELL} ${llvm_src}/autoconf/install-sh -m 0644 -c ${srcdir}/$1 $1])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/config_project.m4:4: -1- AC_DEFUN([LLVM_CONFIG_PROJECT], [AC_ARG_WITH([llvmsrc],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/config_project.m4:4: -1- AC_DEFUN([LLVM_CONFIG_PROJECT], [AC_ARG_WITH([llvmsrc],
     AS_HELP_STRING([--with-llvmsrc],[Location of LLVM Source Code]),
     [llvm_src="$withval"],[llvm_src="]$1["])
   AC_SUBST(LLVM_SRC,$llvm_src)
@@ -119,8 +119,8 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/config_project.m4:4: 
   AC_SUBST(LLVM_OBJ,$llvm_obj)
   AC_CONFIG_COMMANDS([setup],,[llvm_src="${LLVM_SRC}"])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/cxx_flag_check.m4:1: -1- AC_DEFUN([CXX_FLAG_CHECK], [AC_SUBST($1, `$CXX -Werror $2 -fsyntax-only -xc /dev/null 2>/dev/null && echo $2`)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isinf.m4:5: -1- AC_DEFUN([AC_FUNC_ISINF], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/cxx_flag_check.m4:1: -1- AC_DEFUN([CXX_FLAG_CHECK], [AC_SUBST($1, `$CXX -Werror $2 -fsyntax-only -xc /dev/null 2>/dev/null && echo $2`)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isinf.m4:5: -1- AC_DEFUN([AC_FUNC_ISINF], [
 AC_SINGLE_CXX_CHECK([ac_cv_func_isinf_in_math_h],   
                     [isinf], [<math.h>],
                     [float f; isinf(f);])
@@ -150,7 +150,7 @@ if test "$ac_cv_func_finite_in_ieeefp_h" = "yes" ; then
 fi
 
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isnan.m4:5: -1- AC_DEFUN([AC_FUNC_ISNAN], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isnan.m4:5: -1- AC_DEFUN([AC_FUNC_ISNAN], [
 AC_SINGLE_CXX_CHECK([ac_cv_func_isnan_in_math_h],   
                     [isnan], [<math.h>],
                     [float f; isnan(f);])
@@ -173,7 +173,7 @@ if test "$ac_cv_func_std_isnan_in_cmath" = "yes" ; then
   AC_DEFINE([HAVE_STD_ISNAN_IN_CMATH],1,[Set to 1 if the std::isnan function is found in <cmath>])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_mmap_file.m4:4: -1- AC_DEFUN([AC_FUNC_MMAP_FILE], [AC_CACHE_CHECK(for mmap of files,
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_mmap_file.m4:4: -1- AC_DEFUN([AC_FUNC_MMAP_FILE], [AC_CACHE_CHECK(for mmap of files,
 ac_cv_func_mmap_file,
 [ AC_LANG_PUSH([C])
   AC_RUN_IFELSE([
@@ -195,7 +195,7 @@ if test "$ac_cv_func_mmap_file" = yes; then
    AC_SUBST(MMAP_FILE,[yes])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/header_mmap_anonymous.m4:5: -1- AC_DEFUN([AC_HEADER_MMAP_ANONYMOUS], [AC_CACHE_CHECK(for MAP_ANONYMOUS vs. MAP_ANON,
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/header_mmap_anonymous.m4:5: -1- AC_DEFUN([AC_HEADER_MMAP_ANONYMOUS], [AC_CACHE_CHECK(for MAP_ANONYMOUS vs. MAP_ANON,
 ac_cv_header_mmap_anon,
 [ AC_LANG_PUSH([C])
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
@@ -211,7 +211,7 @@ if test "$ac_cv_header_mmap_anon" = yes; then
    AC_DEFINE([HAVE_MMAP_ANONYMOUS],[1],[Define if mmap() uses MAP_ANONYMOUS to map anonymous pages, or undefine if it uses MAP_ANON])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/huge_val.m4:5: -1- AC_DEFUN([AC_HUGE_VAL_CHECK], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/huge_val.m4:5: -1- AC_DEFUN([AC_HUGE_VAL_CHECK], [
   AC_CACHE_CHECK([for HUGE_VAL sanity], [ac_cv_huge_val_sanity],[
     AC_LANG_PUSH([C++])
     ac_save_CXXFLAGS=$CXXFLAGS
@@ -227,7 +227,7 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/huge_val.m4:5: -1- AC
     ])
   AC_SUBST(HUGE_VAL_SANITY,$ac_cv_huge_val_sanity)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:25: -1- AC_DEFUN([AC_PROG_LIBTOOL], [AC_REQUIRE([_AC_PROG_LIBTOOL])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:25: -1- AC_DEFUN([AC_PROG_LIBTOOL], [AC_REQUIRE([_AC_PROG_LIBTOOL])dnl
 dnl If AC_PROG_CXX has already been expanded, run AC_LIBTOOL_CXX
 dnl immediately, otherwise, hook it in at the end of AC_PROG_CXX.
   AC_PROVIDE_IFELSE([AC_PROG_CXX],
@@ -257,7 +257,7 @@ dnl AC_LIBTOOL_GCJ immediately, otherwise, hook it in at the end of both.
 	     [define([LT_AC_PROG_GCJ],
 		defn([LT_AC_PROG_GCJ])[AC_LIBTOOL_GCJ])])])])
 ])])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:60: -1- AC_DEFUN([_AC_PROG_LIBTOOL], [AC_REQUIRE([AC_LIBTOOL_SETUP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:60: -1- AC_DEFUN([_AC_PROG_LIBTOOL], [AC_REQUIRE([AC_LIBTOOL_SETUP])dnl
 AC_BEFORE([$0],[AC_LIBTOOL_CXX])dnl
 AC_BEFORE([$0],[AC_LIBTOOL_F77])dnl
 AC_BEFORE([$0],[AC_LIBTOOL_GCJ])dnl
@@ -272,7 +272,7 @@ AC_SUBST(LIBTOOL)dnl
 # Prevent multiple expansion
 define([AC_PROG_LIBTOOL], [])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:80: -1- AC_DEFUN([AC_LIBTOOL_SETUP], [AC_PREREQ(2.60)dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:80: -1- AC_DEFUN([AC_LIBTOOL_SETUP], [AC_PREREQ(2.60)dnl
 AC_REQUIRE([AC_ENABLE_SHARED])dnl
 AC_REQUIRE([AC_ENABLE_STATIC])dnl
 AC_REQUIRE([AC_ENABLE_FAST_INSTALL])dnl
@@ -410,7 +410,7 @@ tagname=
 AC_LIBTOOL_LANG_C_CONFIG
 _LT_AC_TAGCONFIG
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:223: -1- AC_DEFUN([_LT_AC_SYS_COMPILER], [AC_REQUIRE([AC_PROG_CC])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:223: -1- AC_DEFUN([_LT_AC_SYS_COMPILER], [AC_REQUIRE([AC_PROG_CC])dnl
 
 # If no C compiler was specified, use CC.
 LTCC=${LTCC-"$CC"}
@@ -421,7 +421,7 @@ LTCFLAGS=${LTCFLAGS-"$CFLAGS"}
 # Allow CC to be a program name with arguments.
 compiler=$CC
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:240: -1- AC_DEFUN([_LT_CC_BASENAME], [for cc_temp in $1""; do
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:240: -1- AC_DEFUN([_LT_CC_BASENAME], [for cc_temp in $1""; do
   case $cc_temp in
     compile | *[[\\/]]compile | ccache | *[[\\/]]ccache ) ;;
     distcc | *[[\\/]]distcc | purify | *[[\\/]]purify ) ;;
@@ -431,19 +431,19 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:240: -1- A
 done
 cc_basename=`$echo "X$cc_temp" | $Xsed -e 's%.*/%%' -e "s%^$host_alias-%%"`
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:257: -1- AC_DEFUN([_LT_COMPILER_BOILERPLATE], [ac_outfile=conftest.$ac_objext
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:257: -1- AC_DEFUN([_LT_COMPILER_BOILERPLATE], [ac_outfile=conftest.$ac_objext
 printf "$lt_simple_compile_test_code" >conftest.$ac_ext
 eval "$ac_compile" 2>&1 >/dev/null | $SED '/^$/d; /^ *+/d' >conftest.err
 _lt_compiler_boilerplate=`cat conftest.err`
 $rm conftest*
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:270: -1- AC_DEFUN([_LT_LINKER_BOILERPLATE], [ac_outfile=conftest.$ac_objext
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:270: -1- AC_DEFUN([_LT_LINKER_BOILERPLATE], [ac_outfile=conftest.$ac_objext
 printf "$lt_simple_link_test_code" >conftest.$ac_ext
 eval "$ac_link" 2>&1 >/dev/null | $SED '/^$/d; /^ *+/d' >conftest.err
 _lt_linker_boilerplate=`cat conftest.err`
 $rm conftest*
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:287: -1- AC_DEFUN([_LT_AC_SYS_LIBPATH_AIX], [AC_LINK_IFELSE(AC_LANG_PROGRAM,[
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:287: -1- AC_DEFUN([_LT_AC_SYS_LIBPATH_AIX], [AC_LINK_IFELSE(AC_LANG_PROGRAM,[
 aix_libpath=`dump -H conftest$ac_exeext 2>/dev/null | $SED -n -e '/Import File Strings/,/^$/ { /^0/ { s/^0  *\(.*\)$/\1/; p; }
 }'`
 # Check for a 64-bit object if we didn't find anything.
@@ -451,13 +451,13 @@ if test -z "$aix_libpath"; then aix_libpath=`dump -HX64 conftest$ac_exeext 2>/de
 }'`; fi],[])
 if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:300: -1- AC_DEFUN([_LT_AC_SHELL_INIT], [ifdef([AC_DIVERSION_NOTICE],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:300: -1- AC_DEFUN([_LT_AC_SHELL_INIT], [ifdef([AC_DIVERSION_NOTICE],
 	     [AC_DIVERT_PUSH(AC_DIVERSION_NOTICE)],
 	 [AC_DIVERT_PUSH(NOTICE)])
 $1
 AC_DIVERT_POP
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:313: -1- AC_DEFUN([_LT_AC_PROG_ECHO_BACKSLASH], [_LT_AC_SHELL_INIT([
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:313: -1- AC_DEFUN([_LT_AC_PROG_ECHO_BACKSLASH], [_LT_AC_SHELL_INIT([
 # Check that we are running under the correct shell.
 SHELL=${CONFIG_SHELL-/bin/sh}
 
@@ -606,7 +606,7 @@ fi
 
 AC_SUBST(ECHO)
 ])])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:467: -1- AC_DEFUN([_LT_AC_LOCK], [AC_ARG_ENABLE([libtool-lock],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:467: -1- AC_DEFUN([_LT_AC_LOCK], [AC_ARG_ENABLE([libtool-lock],
     [AS_HELP_STRING([--disable-libtool-lock],[avoid locking (might break parallel builds)])])
 test "x$enable_libtool_lock" != xno && enable_libtool_lock=yes
 
@@ -744,7 +744,7 @@ esac
 need_locks="$enable_libtool_lock"
 
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:612: -1- AC_DEFUN([AC_LIBTOOL_COMPILER_OPTION], [AC_REQUIRE([LT_AC_PROG_SED])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:612: -1- AC_DEFUN([AC_LIBTOOL_COMPILER_OPTION], [AC_REQUIRE([LT_AC_PROG_SED])
 AC_CACHE_CHECK([$1], [$2],
   [$2=no
   ifelse([$4], , [ac_outfile=conftest.$ac_objext], [ac_outfile=$4])
@@ -782,7 +782,7 @@ else
     ifelse([$6], , :, [$6])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:657: -1- AC_DEFUN([AC_LIBTOOL_LINKER_OPTION], [AC_CACHE_CHECK([$1], [$2],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:657: -1- AC_DEFUN([AC_LIBTOOL_LINKER_OPTION], [AC_CACHE_CHECK([$1], [$2],
   [$2=no
    save_LDFLAGS="$LDFLAGS"
    LDFLAGS="$LDFLAGS $3"
@@ -812,7 +812,7 @@ else
     ifelse([$5], , :, [$5])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:692: -1- AC_DEFUN([AC_LIBTOOL_SYS_MAX_CMD_LEN], [# find the maximum length of command line arguments
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:692: -1- AC_DEFUN([AC_LIBTOOL_SYS_MAX_CMD_LEN], [# find the maximum length of command line arguments
 AC_MSG_CHECKING([the maximum length of command line arguments])
 AC_CACHE_VAL([lt_cv_sys_max_cmd_len], [dnl
   i=0
@@ -922,9 +922,9 @@ else
   AC_MSG_RESULT(none)
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:807: -1- AC_DEFUN([_LT_AC_CHECK_DLFCN], [AC_CHECK_HEADERS(dlfcn.h)dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:807: -1- AC_DEFUN([_LT_AC_CHECK_DLFCN], [AC_CHECK_HEADERS(dlfcn.h)dnl
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:815: -1- AC_DEFUN([_LT_AC_TRY_DLOPEN_SELF], [AC_REQUIRE([_LT_AC_CHECK_DLFCN])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:815: -1- AC_DEFUN([_LT_AC_TRY_DLOPEN_SELF], [AC_REQUIRE([_LT_AC_CHECK_DLFCN])dnl
 if test "$cross_compiling" = yes; then :
   [$4]
 else
@@ -1009,7 +1009,7 @@ EOF
 fi
 rm -fr conftest*
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:905: -1- AC_DEFUN([AC_LIBTOOL_DLOPEN_SELF], [AC_REQUIRE([_LT_AC_CHECK_DLFCN])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:905: -1- AC_DEFUN([AC_LIBTOOL_DLOPEN_SELF], [AC_REQUIRE([_LT_AC_CHECK_DLFCN])dnl
 if test "x$enable_dlopen" != xyes; then
   enable_dlopen=unknown
   enable_dlopen_self=unknown
@@ -1117,7 +1117,7 @@ else
   esac
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1019: -1- AC_DEFUN([AC_LIBTOOL_PROG_CC_C_O], [AC_REQUIRE([_LT_AC_SYS_COMPILER])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1019: -1- AC_DEFUN([AC_LIBTOOL_PROG_CC_C_O], [AC_REQUIRE([_LT_AC_SYS_COMPILER])dnl
 AC_CACHE_CHECK([if $compiler supports -c -o file.$ac_objext],
   [_LT_AC_TAGVAR(lt_cv_prog_compiler_c_o, $1)],
   [_LT_AC_TAGVAR(lt_cv_prog_compiler_c_o, $1)=no
@@ -1162,7 +1162,7 @@ AC_CACHE_CHECK([if $compiler supports -c -o file.$ac_objext],
    $rm conftest*
 ])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1070: -1- AC_DEFUN([AC_LIBTOOL_SYS_HARD_LINK_LOCKS], [AC_REQUIRE([_LT_AC_LOCK])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1070: -1- AC_DEFUN([AC_LIBTOOL_SYS_HARD_LINK_LOCKS], [AC_REQUIRE([_LT_AC_LOCK])dnl
 
 hard_links="nottested"
 if test "$_LT_AC_TAGVAR(lt_cv_prog_compiler_c_o, $1)" = no && test "$need_locks" != no; then
@@ -1183,7 +1183,7 @@ else
   need_locks=no
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1096: -1- AC_DEFUN([AC_LIBTOOL_OBJDIR], [AC_CACHE_CHECK([for objdir], [lt_cv_objdir],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1096: -1- AC_DEFUN([AC_LIBTOOL_OBJDIR], [AC_CACHE_CHECK([for objdir], [lt_cv_objdir],
 [rm -f .libs 2>/dev/null
 mkdir .libs 2>/dev/null
 if test -d .libs; then
@@ -1195,7 +1195,7 @@ fi
 rmdir .libs 2>/dev/null])
 objdir=$lt_cv_objdir
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1114: -1- AC_DEFUN([AC_LIBTOOL_PROG_LD_HARDCODE_LIBPATH], [AC_MSG_CHECKING([how to hardcode library paths into programs])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1114: -1- AC_DEFUN([AC_LIBTOOL_PROG_LD_HARDCODE_LIBPATH], [AC_MSG_CHECKING([how to hardcode library paths into programs])
 _LT_AC_TAGVAR(hardcode_action, $1)=
 if test -n "$_LT_AC_TAGVAR(hardcode_libdir_flag_spec, $1)" || \
    test -n "$_LT_AC_TAGVAR(runpath_var, $1)" || \
@@ -1230,7 +1230,7 @@ elif test "$shlibpath_overrides_runpath" = yes ||
   enable_fast_install=needless
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1154: -1- AC_DEFUN([AC_LIBTOOL_SYS_LIB_STRIP], [striplib=
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1154: -1- AC_DEFUN([AC_LIBTOOL_SYS_LIB_STRIP], [striplib=
 old_striplib=
 AC_MSG_CHECKING([whether stripping libraries is possible])
 if test -n "$STRIP" && $STRIP -V 2>&1 | grep "GNU strip" >/dev/null; then
@@ -1254,7 +1254,7 @@ fi
   esac
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1184: -1- AC_DEFUN([AC_LIBTOOL_SYS_DYNAMIC_LINKER], [AC_MSG_CHECKING([dynamic linker characteristics])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1184: -1- AC_DEFUN([AC_LIBTOOL_SYS_DYNAMIC_LINKER], [AC_MSG_CHECKING([dynamic linker characteristics])
 library_names_spec=
 libname_spec='lib$name'
 soname_spec=
@@ -1849,7 +1849,7 @@ if test "$GCC" = yes; then
   variables_saved_for_relink="$variables_saved_for_relink GCC_EXEC_PREFIX COMPILER_PATH LIBRARY_PATH"
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1784: -1- AC_DEFUN([_LT_AC_TAGCONFIG], [AC_ARG_WITH([tags],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1784: -1- AC_DEFUN([_LT_AC_TAGCONFIG], [AC_ARG_WITH([tags],
     [AS_HELP_STRING([--with-tags@<:@=TAGS@:>@],[include additional configurations @<:@automatic@:>@])],
     [tagnames="$withval"])
 
@@ -1947,11 +1947,11 @@ if test -f "$ltmain" && test -n "$tagnames"; then
   fi
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1888: -1- AC_DEFUN([AC_LIBTOOL_DLOPEN], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1888: -1- AC_DEFUN([AC_LIBTOOL_DLOPEN], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1896: -1- AC_DEFUN([AC_LIBTOOL_WIN32_DLL], [AC_BEFORE([$0], [AC_LIBTOOL_SETUP])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1896: -1- AC_DEFUN([AC_LIBTOOL_WIN32_DLL], [AC_BEFORE([$0], [AC_LIBTOOL_SETUP])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1905: -1- AC_DEFUN([AC_ENABLE_SHARED], [define([enable_shared_default], ifelse($1, no, no, yes))dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1905: -1- AC_DEFUN([AC_ENABLE_SHARED], [define([enable_shared_default], ifelse($1, no, no, yes))dnl
 AC_ARG_ENABLE([shared],
     AS_HELP_STRING([--enable-shared@<:@=PKGS@:>@],[build shared libraries @<:@default=enable_shared_default@:>@]),
     [p=${PACKAGE-default}
@@ -1973,10 +1973,10 @@ AC_ARG_ENABLE([shared],
     esac],
     [enable_shared=]enable_shared_default)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1933: -1- AC_DEFUN([AC_DISABLE_SHARED], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1933: -1- AC_DEFUN([AC_DISABLE_SHARED], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
 AC_ENABLE_SHARED(no)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1943: -1- AC_DEFUN([AC_ENABLE_STATIC], [define([enable_static_default], ifelse($1, no, no, yes))dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1943: -1- AC_DEFUN([AC_ENABLE_STATIC], [define([enable_static_default], ifelse($1, no, no, yes))dnl
 AC_ARG_ENABLE([static],
     AS_HELP_STRING([--enable-static@<:@=PKGS@:>@],[build static libraries @<:@default=enable_static_default@:>@]),
     [p=${PACKAGE-default}
@@ -1998,10 +1998,10 @@ AC_ARG_ENABLE([static],
     esac],
     [enable_static=]enable_static_default)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1971: -1- AC_DEFUN([AC_DISABLE_STATIC], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1971: -1- AC_DEFUN([AC_DISABLE_STATIC], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
 AC_ENABLE_STATIC(no)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:1981: -1- AC_DEFUN([AC_ENABLE_FAST_INSTALL], [define([enable_Fast_install_default], ifelse($1, no, no, yes))dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:1981: -1- AC_DEFUN([AC_ENABLE_FAST_INSTALL], [define([enable_Fast_install_default], ifelse($1, no, no, yes))dnl
 AC_ARG_ENABLE([fast-install],
     AS_HELP_STRING([--enable-fast-install@<:@=PKGS@:>@],[optimize for fast installation @<:@default=enable_Fast_install_default@:>@]),
     [p=${PACKAGE-default}
@@ -2023,13 +2023,13 @@ AC_ARG_ENABLE([fast-install],
     esac],
     [enable_fast_install=]enable_Fast_install_default)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2009: -1- AC_DEFUN([AC_DISABLE_FAST_INSTALL], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2009: -1- AC_DEFUN([AC_DISABLE_FAST_INSTALL], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
 AC_ENABLE_FAST_INSTALL(no)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2019: -1- AC_DEFUN([AC_LIBTOOL_PICMODE], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2019: -1- AC_DEFUN([AC_LIBTOOL_PICMODE], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
 pic_mode=ifelse($#,1,$1,default)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2043: -1- AC_DEFUN([AC_PATH_TOOL_PREFIX], [AC_REQUIRE([AC_PROG_EGREP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2043: -1- AC_DEFUN([AC_PATH_TOOL_PREFIX], [AC_REQUIRE([AC_PROG_EGREP])dnl
 AC_MSG_CHECKING([for $1])
 AC_CACHE_VAL(lt_cv_path_MAGIC_CMD,
 [case $MAGIC_CMD in
@@ -2086,7 +2086,7 @@ else
   AC_MSG_RESULT(no)
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2106: -1- AC_DEFUN([AC_PATH_MAGIC], [AC_PATH_TOOL_PREFIX(${ac_tool_prefix}file, /usr/bin$PATH_SEPARATOR$PATH)
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2106: -1- AC_DEFUN([AC_PATH_MAGIC], [AC_PATH_TOOL_PREFIX(${ac_tool_prefix}file, /usr/bin$PATH_SEPARATOR$PATH)
 if test -z "$lt_cv_path_MAGIC_CMD"; then
   if test -n "$ac_tool_prefix"; then
     AC_PATH_TOOL_PREFIX(file, /usr/bin$PATH_SEPARATOR$PATH)
@@ -2095,7 +2095,7 @@ if test -z "$lt_cv_path_MAGIC_CMD"; then
   fi
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2121: -1- AC_DEFUN([AC_PROG_LD], [AC_ARG_WITH([gnu-ld],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2121: -1- AC_DEFUN([AC_PROG_LD], [AC_ARG_WITH([gnu-ld],
     [AS_HELP_STRING([--with-gnu-ld],[assume the C compiler uses GNU ld @<:@default=no@:>@])],
     [test "$withval" = no || with_gnu_ld=yes],
     [with_gnu_ld=no])
@@ -2173,7 +2173,7 @@ fi
 test -z "$LD" && AC_MSG_ERROR([no acceptable ld found in \$PATH])
 AC_PROG_LD_GNU
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2204: -1- AC_DEFUN([AC_PROG_LD_GNU], [AC_REQUIRE([AC_PROG_EGREP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2204: -1- AC_DEFUN([AC_PROG_LD_GNU], [AC_REQUIRE([AC_PROG_EGREP])dnl
 AC_CACHE_CHECK([if the linker ($LD) is GNU ld], lt_cv_prog_gnu_ld,
 [# I'd rather use --version here, but apparently some GNU lds only accept -v.
 case `$LD -v 2>&1 </dev/null` in
@@ -2186,7 +2186,7 @@ case `$LD -v 2>&1 </dev/null` in
 esac])
 with_gnu_ld=$lt_cv_prog_gnu_ld
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2224: -1- AC_DEFUN([AC_PROG_LD_RELOAD_FLAG], [AC_CACHE_CHECK([for $LD option to reload object files],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2224: -1- AC_DEFUN([AC_PROG_LD_RELOAD_FLAG], [AC_CACHE_CHECK([for $LD option to reload object files],
   lt_cv_ld_reload_flag,
   [lt_cv_ld_reload_flag='-r'])
 reload_flag=$lt_cv_ld_reload_flag
@@ -2205,7 +2205,7 @@ case $host_os in
     ;;
 esac
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2250: -1- AC_DEFUN([AC_DEPLIBS_CHECK_METHOD], [AC_CACHE_CHECK([how to recognise dependent libraries],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2250: -1- AC_DEFUN([AC_DEPLIBS_CHECK_METHOD], [AC_CACHE_CHECK([how to recognise dependent libraries],
 lt_cv_deplibs_check_method,
 [lt_cv_file_magic_cmd='$MAGIC_CMD'
 lt_cv_file_magic_test_file=
@@ -2381,7 +2381,7 @@ file_magic_cmd=$lt_cv_file_magic_cmd
 deplibs_check_method=$lt_cv_deplibs_check_method
 test -z "$deplibs_check_method" && deplibs_check_method=unknown
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2432: -1- AC_DEFUN([AC_PROG_NM], [AC_CACHE_CHECK([for BSD-compatible nm], lt_cv_path_NM,
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2432: -1- AC_DEFUN([AC_PROG_NM], [AC_CACHE_CHECK([for BSD-compatible nm], lt_cv_path_NM,
 [if test -n "$NM"; then
   # Let the user override the test.
   lt_cv_path_NM="$NM"
@@ -2427,7 +2427,7 @@ else
 fi])
 NM="$lt_cv_path_NM"
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2484: -1- AC_DEFUN([AC_CHECK_LIBM], [AC_REQUIRE([AC_CANONICAL_HOST])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2484: -1- AC_DEFUN([AC_CHECK_LIBM], [AC_REQUIRE([AC_CANONICAL_HOST])dnl
 LIBM=
 case $host in
 *-*-beos* | *-*-cygwin* | *-*-pw32* | *-*-darwin*)
@@ -2442,7 +2442,7 @@ case $host in
   ;;
 esac
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2513: -1- AC_DEFUN([AC_LIBLTDL_CONVENIENCE], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2513: -1- AC_DEFUN([AC_LIBLTDL_CONVENIENCE], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
   case $enable_ltdl_convenience in
   no) AC_MSG_ERROR([this package needs a convenience libltdl]) ;;
   "") enable_ltdl_convenience=yes
@@ -2453,7 +2453,7 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2513: -1- 
   # For backwards non-gettext consistent compatibility...
   INCLTDL="$LTDLINCL"
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2539: -1- AC_DEFUN([AC_LIBLTDL_INSTALLABLE], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2539: -1- AC_DEFUN([AC_LIBLTDL_INSTALLABLE], [AC_BEFORE([$0],[AC_LIBTOOL_SETUP])dnl
   AC_CHECK_LIB(ltdl, lt_dlinit,
   [test x"$enable_ltdl_install" != xyes && enable_ltdl_install=no],
   [if test x"$enable_ltdl_install" = xno; then
@@ -2474,13 +2474,13 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2539: -1- 
   # For backwards non-gettext consistent compatibility...
   INCLTDL="$LTDLINCL"
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2566: -1- AC_DEFUN([AC_LIBTOOL_CXX], [AC_REQUIRE([_LT_AC_LANG_CXX])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2566: -1- AC_DEFUN([AC_LIBTOOL_CXX], [AC_REQUIRE([_LT_AC_LANG_CXX])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2573: -1- AC_DEFUN([_LT_AC_LANG_CXX], [AC_REQUIRE([AC_PROG_CXX])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2573: -1- AC_DEFUN([_LT_AC_LANG_CXX], [AC_REQUIRE([AC_PROG_CXX])
 AC_REQUIRE([_LT_AC_PROG_CXXCPP])
 _LT_AC_SHELL_INIT([tagnames=${tagnames+${tagnames},}CXX])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2581: -1- AC_DEFUN([_LT_AC_PROG_CXXCPP], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2581: -1- AC_DEFUN([_LT_AC_PROG_CXXCPP], [
 AC_REQUIRE([AC_PROG_CXX])
 if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
     ( (test "X$CXX" = "Xg++" && `g++ -v >/dev/null 2>&1` ) ||
@@ -2488,14 +2488,14 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
   AC_PROG_CXXCPP
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2594: -1- AC_DEFUN([AC_LIBTOOL_F77], [AC_REQUIRE([_LT_AC_LANG_F77])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2594: -1- AC_DEFUN([AC_LIBTOOL_F77], [AC_REQUIRE([_LT_AC_LANG_F77])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2601: -1- AC_DEFUN([_LT_AC_LANG_F77], [AC_REQUIRE([AC_PROG_F77])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2601: -1- AC_DEFUN([_LT_AC_LANG_F77], [AC_REQUIRE([AC_PROG_F77])
 _LT_AC_SHELL_INIT([tagnames=${tagnames+${tagnames},}F77])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2610: -1- AC_DEFUN([AC_LIBTOOL_GCJ], [AC_REQUIRE([_LT_AC_LANG_GCJ])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2610: -1- AC_DEFUN([AC_LIBTOOL_GCJ], [AC_REQUIRE([_LT_AC_LANG_GCJ])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2617: -1- AC_DEFUN([_LT_AC_LANG_GCJ], [AC_PROVIDE_IFELSE([AC_PROG_GCJ],[],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2617: -1- AC_DEFUN([_LT_AC_LANG_GCJ], [AC_PROVIDE_IFELSE([AC_PROG_GCJ],[],
   [AC_PROVIDE_IFELSE([A][M_PROG_GCJ],[],
     [AC_PROVIDE_IFELSE([LT_AC_PROG_GCJ],[],
       [ifdef([AC_PROG_GCJ],[AC_REQUIRE([AC_PROG_GCJ])],
@@ -2503,11 +2503,11 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2617: -1- 
 	   [AC_REQUIRE([A][C_PROG_GCJ_OR_A][M_PROG_GCJ])])])])])])
 _LT_AC_SHELL_INIT([tagnames=${tagnames+${tagnames},}GCJ])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2631: -1- AC_DEFUN([AC_LIBTOOL_RC], [AC_REQUIRE([LT_AC_PROG_RC])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2631: -1- AC_DEFUN([AC_LIBTOOL_RC], [AC_REQUIRE([LT_AC_PROG_RC])
 _LT_AC_SHELL_INIT([tagnames=${tagnames+${tagnames},}RC])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2642: -1- AC_DEFUN([AC_LIBTOOL_LANG_C_CONFIG], [_LT_AC_LANG_C_CONFIG])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2643: -1- AC_DEFUN([_LT_AC_LANG_C_CONFIG], [lt_save_CC="$CC"
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2642: -1- AC_DEFUN([AC_LIBTOOL_LANG_C_CONFIG], [_LT_AC_LANG_C_CONFIG])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2643: -1- AC_DEFUN([_LT_AC_LANG_C_CONFIG], [lt_save_CC="$CC"
 AC_LANG_PUSH(C)
 
 # Source file extension for C test sources.
@@ -2579,8 +2579,8 @@ AC_LIBTOOL_CONFIG($1)
 AC_LANG_POP
 CC="$lt_save_CC"
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2723: -1- AC_DEFUN([AC_LIBTOOL_LANG_CXX_CONFIG], [_LT_AC_LANG_CXX_CONFIG(CXX)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:2724: -1- AC_DEFUN([_LT_AC_LANG_CXX_CONFIG], [AC_LANG_PUSH(C++)
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2723: -1- AC_DEFUN([AC_LIBTOOL_LANG_CXX_CONFIG], [_LT_AC_LANG_CXX_CONFIG(CXX)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:2724: -1- AC_DEFUN([_LT_AC_LANG_CXX_CONFIG], [AC_LANG_PUSH(C++)
 AC_REQUIRE([AC_PROG_CXX])
 AC_REQUIRE([_LT_AC_PROG_CXXCPP])
 
@@ -3579,7 +3579,7 @@ lt_cv_path_LD=$lt_save_path_LD
 lt_cv_prog_gnu_ldcxx=$lt_cv_prog_gnu_ld
 lt_cv_prog_gnu_ld=$lt_save_with_gnu_ld
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:3731: -1- AC_DEFUN([AC_LIBTOOL_POSTDEP_PREDEP], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:3731: -1- AC_DEFUN([AC_LIBTOOL_POSTDEP_PREDEP], [
 dnl we can't use the lt_simple_compile_test_code here,
 dnl because it contains code intended for an executable,
 dnl not a library.  It's possible we should let each
@@ -3732,8 +3732,8 @@ case " $_LT_AC_TAGVAR(postdeps, $1) " in
 *" -lc "*) _LT_AC_TAGVAR(archive_cmds_need_lc, $1)=no ;;
 esac
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:3890: -1- AC_DEFUN([AC_LIBTOOL_LANG_F77_CONFIG], [_LT_AC_LANG_F77_CONFIG(F77)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:3891: -1- AC_DEFUN([_LT_AC_LANG_F77_CONFIG], [AC_REQUIRE([AC_PROG_F77])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:3890: -1- AC_DEFUN([AC_LIBTOOL_LANG_F77_CONFIG], [_LT_AC_LANG_F77_CONFIG(F77)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:3891: -1- AC_DEFUN([_LT_AC_LANG_F77_CONFIG], [AC_REQUIRE([AC_PROG_F77])
 AC_LANG_PUSH(Fortran 77)
 
 _LT_AC_TAGVAR(archive_cmds_need_lc, $1)=no
@@ -3826,8 +3826,8 @@ AC_LIBTOOL_CONFIG($1)
 AC_LANG_POP
 CC="$lt_save_CC"
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:3992: -1- AC_DEFUN([AC_LIBTOOL_LANG_GCJ_CONFIG], [_LT_AC_LANG_GCJ_CONFIG(GCJ)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:3993: -1- AC_DEFUN([_LT_AC_LANG_GCJ_CONFIG], [AC_LANG_PUSH(C)
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:3992: -1- AC_DEFUN([AC_LIBTOOL_LANG_GCJ_CONFIG], [_LT_AC_LANG_GCJ_CONFIG(GCJ)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:3993: -1- AC_DEFUN([_LT_AC_LANG_GCJ_CONFIG], [AC_LANG_PUSH(C)
 
 # Source file extension for Java test sources.
 ac_ext=java
@@ -3878,8 +3878,8 @@ AC_LIBTOOL_CONFIG($1)
 AC_LANG_POP([])
 CC="$lt_save_CC"
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:4052: -1- AC_DEFUN([AC_LIBTOOL_LANG_RC_CONFIG], [_LT_AC_LANG_RC_CONFIG(RC)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:4053: -1- AC_DEFUN([_LT_AC_LANG_RC_CONFIG], [AC_LANG_PUSH(C)
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:4052: -1- AC_DEFUN([AC_LIBTOOL_LANG_RC_CONFIG], [_LT_AC_LANG_RC_CONFIG(RC)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:4053: -1- AC_DEFUN([_LT_AC_LANG_RC_CONFIG], [AC_LANG_PUSH(C)
 
 # Source file extension for RC test sources.
 ac_ext=rc
@@ -3914,7 +3914,7 @@ AC_LIBTOOL_CONFIG($1)
 AC_LANG_POP([])
 CC="$lt_save_CC"
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:4097: -1- AC_DEFUN([AC_LIBTOOL_CONFIG], [# The else clause should only fire when bootstrapping the
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:4097: -1- AC_DEFUN([AC_LIBTOOL_CONFIG], [# The else clause should only fire when bootstrapping the
 # libtool distribution, otherwise you forgot to ship ltmain.sh
 # with your package, and you will get complaints that there are
 # no rules to generate ltmain.sh.
@@ -4399,7 +4399,7 @@ else
   fi
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:4587: -1- AC_DEFUN([AC_LIBTOOL_PROG_COMPILER_NO_RTTI], [AC_REQUIRE([_LT_AC_SYS_COMPILER])dnl
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:4587: -1- AC_DEFUN([AC_LIBTOOL_PROG_COMPILER_NO_RTTI], [AC_REQUIRE([_LT_AC_SYS_COMPILER])dnl
 
 _LT_AC_TAGVAR(lt_prog_compiler_no_builtin_flag, $1)=
 
@@ -4412,7 +4412,7 @@ if test "$GCC" = yes; then
     [_LT_AC_TAGVAR(lt_prog_compiler_no_builtin_flag, $1)="$_LT_AC_TAGVAR(lt_prog_compiler_no_builtin_flag, $1) -fno-rtti -fno-exceptions"])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:4605: -1- AC_DEFUN([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE], [AC_REQUIRE([AC_CANONICAL_HOST])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:4605: -1- AC_DEFUN([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE], [AC_REQUIRE([AC_CANONICAL_HOST])
 AC_REQUIRE([AC_PROG_NM])
 AC_REQUIRE([AC_OBJEXT])
 # Check for command to grab the raw symbol name followed by C symbol from nm.
@@ -4609,7 +4609,7 @@ else
   AC_MSG_RESULT(ok)
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:4807: -1- AC_DEFUN([AC_LIBTOOL_PROG_COMPILER_PIC], [_LT_AC_TAGVAR(lt_prog_compiler_wl, $1)=
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:4807: -1- AC_DEFUN([AC_LIBTOOL_PROG_COMPILER_PIC], [_LT_AC_TAGVAR(lt_prog_compiler_wl, $1)=
 _LT_AC_TAGVAR(lt_prog_compiler_pic, $1)=
 _LT_AC_TAGVAR(lt_prog_compiler_static, $1)=
 
@@ -5130,7 +5130,7 @@ AC_LIBTOOL_LINKER_OPTION([if $compiler static flag $lt_tmp_static_flag works],
   [],
   [_LT_AC_TAGVAR(lt_prog_compiler_static, $1)=])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:5334: -1- AC_DEFUN([AC_LIBTOOL_PROG_LD_SHLIBS], [AC_MSG_CHECKING([whether the $compiler linker ($LD) supports shared libraries])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:5334: -1- AC_DEFUN([AC_LIBTOOL_PROG_LD_SHLIBS], [AC_MSG_CHECKING([whether the $compiler linker ($LD) supports shared libraries])
 ifelse([$1],[CXX],[
   _LT_AC_TAGVAR(export_symbols_cmds, $1)='$NM $libobjs $convenience | $global_symbol_pipe | $SED '\''s/.* //'\'' | sort | uniq > $export_symbols'
   case $host_os in
@@ -6054,7 +6054,7 @@ x|xyes)
   ;;
 esac
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6264: -1- AC_DEFUN([_LT_AC_FILE_LTDLL_C], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6264: -1- AC_DEFUN([_LT_AC_FILE_LTDLL_C], [
 # /* ltdll.c starts here */
 # #define WIN32_LEAN_AND_MEAN
 # #include <windows.h>
@@ -6089,21 +6089,21 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6264: -1- 
 # }
 # /* ltdll.c ends here */
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6303: -1- AC_DEFUN([_LT_AC_TAGVAR], [ifelse([$2], [], [$1], [$1_$2])])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6307: -1- AC_DEFUN([AM_PROG_LIBTOOL], [AC_PROG_LIBTOOL])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6308: -1- AC_DEFUN([AM_ENABLE_SHARED], [AC_ENABLE_SHARED($@)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6309: -1- AC_DEFUN([AM_ENABLE_STATIC], [AC_ENABLE_STATIC($@)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6310: -1- AC_DEFUN([AM_DISABLE_SHARED], [AC_DISABLE_SHARED($@)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6311: -1- AC_DEFUN([AM_DISABLE_STATIC], [AC_DISABLE_STATIC($@)])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6312: -1- AC_DEFUN([AM_PROG_LD], [AC_PROG_LD])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6313: -1- AC_DEFUN([AM_PROG_NM], [AC_PROG_NM])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6318: -1- AC_DEFUN([LT_AC_PROG_GCJ], [AC_CHECK_TOOL(GCJ, gcj, no)
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6303: -1- AC_DEFUN([_LT_AC_TAGVAR], [ifelse([$2], [], [$1], [$1_$2])])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6307: -1- AC_DEFUN([AM_PROG_LIBTOOL], [AC_PROG_LIBTOOL])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6308: -1- AC_DEFUN([AM_ENABLE_SHARED], [AC_ENABLE_SHARED($@)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6309: -1- AC_DEFUN([AM_ENABLE_STATIC], [AC_ENABLE_STATIC($@)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6310: -1- AC_DEFUN([AM_DISABLE_SHARED], [AC_DISABLE_SHARED($@)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6311: -1- AC_DEFUN([AM_DISABLE_STATIC], [AC_DISABLE_STATIC($@)])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6312: -1- AC_DEFUN([AM_PROG_LD], [AC_PROG_LD])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6313: -1- AC_DEFUN([AM_PROG_NM], [AC_PROG_NM])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6318: -1- AC_DEFUN([LT_AC_PROG_GCJ], [AC_CHECK_TOOL(GCJ, gcj, no)
   test "x${GCJFLAGS+set}" = xset || GCJFLAGS="-g -O2"
   AC_SUBST(GCJFLAGS)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6324: -1- AC_DEFUN([LT_AC_PROG_RC], [AC_CHECK_TOOL(RC, windres, no)
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6324: -1- AC_DEFUN([LT_AC_PROG_RC], [AC_CHECK_TOOL(RC, windres, no)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/libtool.m4:6338: -1- AC_DEFUN([LT_AC_PROG_SED], [AC_MSG_CHECKING([for a sed that does not truncate output])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/libtool.m4:6338: -1- AC_DEFUN([LT_AC_PROG_SED], [AC_MSG_CHECKING([for a sed that does not truncate output])
 AC_CACHE_VAL(lt_cv_path_SED,
 [# Loop through the user's path and test for sed and gsed.
 # Then use that list of sed's as ones to test for truncation.
@@ -6154,7 +6154,7 @@ done
 SED=$lt_cv_path_SED
 AC_MSG_RESULT([$SED])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/link_options.m4:6: -1- AC_DEFUN([AC_LINK_GET_VERSION], [AC_CACHE_CHECK([for linker version],[llvm_cv_link_version],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/link_options.m4:6: -1- AC_DEFUN([AC_LINK_GET_VERSION], [AC_CACHE_CHECK([for linker version],[llvm_cv_link_version],
   [
    version_string="$(ld -v 2>&1 | head -1)"
 
@@ -6168,7 +6168,7 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/link_options.m4:6: -1
   AC_DEFINE_UNQUOTED([HOST_LINK_VERSION],"$llvm_cv_link_version",
                      [Linker version detected at compile time.])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/link_options.m4:27: -1- AC_DEFUN([AC_LINK_USE_R], [AC_CACHE_CHECK([for compiler -Wl,-R<path> option],[llvm_cv_link_use_r],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/link_options.m4:27: -1- AC_DEFUN([AC_LINK_USE_R], [AC_CACHE_CHECK([for compiler -Wl,-R<path> option],[llvm_cv_link_use_r],
 [ AC_LANG_PUSH([C])
   oldcflags="$CFLAGS"
   CFLAGS="$CFLAGS -Wl,-R."
@@ -6181,7 +6181,7 @@ if test "$llvm_cv_link_use_r" = yes ; then
   AC_DEFINE([HAVE_LINK_R],[1],[Define if you can use -Wl,-R. to pass -R. to the linker, in order to add the current directory to the dynamic linker search path.])
   fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/link_options.m4:47: -1- AC_DEFUN([AC_LINK_EXPORT_DYNAMIC], [AC_CACHE_CHECK([for compiler -Wl,-export-dynamic option],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/link_options.m4:47: -1- AC_DEFUN([AC_LINK_EXPORT_DYNAMIC], [AC_CACHE_CHECK([for compiler -Wl,-export-dynamic option],
                 [llvm_cv_link_use_export_dynamic],
 [ AC_LANG_PUSH([C])
   oldcflags="$CFLAGS"
@@ -6195,7 +6195,7 @@ if test "$llvm_cv_link_use_export_dynamic" = yes ; then
   AC_DEFINE([HAVE_LINK_EXPORT_DYNAMIC],[1],[Define if you can use -Wl,-export-dynamic.])
   fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/link_options.m4:69: -1- AC_DEFUN([AC_LINK_VERSION_SCRIPT], [AC_CACHE_CHECK([for compiler -Wl,--version-script option],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/link_options.m4:69: -1- AC_DEFUN([AC_LINK_VERSION_SCRIPT], [AC_CACHE_CHECK([for compiler -Wl,--version-script option],
                 [llvm_cv_link_use_version_script],
 [ AC_LANG_PUSH([C])
   oldcflags="$CFLAGS"
@@ -6233,7 +6233,7 @@ if test "$llvm_cv_link_use_version_script" = yes ; then
   AC_SUBST(HAVE_LINK_VERSION_SCRIPT,1)
   fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/linux_mixed_64_32.m4:5: -1- AC_DEFUN([AC_IS_LINUX_MIXED], [AC_CACHE_CHECK(for 32-bit userspace on 64-bit system,llvm_cv_linux_mixed,
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/linux_mixed_64_32.m4:5: -1- AC_DEFUN([AC_IS_LINUX_MIXED], [AC_CACHE_CHECK(for 32-bit userspace on 64-bit system,llvm_cv_linux_mixed,
 [ AC_LANG_PUSH([C])
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
       [[#ifndef __x86_64__
@@ -6245,7 +6245,7 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/linux_mixed_64_32.m4:
   AC_LANG_POP([C])
 ])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:15: -1- AC_DEFUN([AC_WITH_LTDL], [AC_REQUIRE([AC_LIB_LTDL])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:15: -1- AC_DEFUN([AC_WITH_LTDL], [AC_REQUIRE([AC_LIB_LTDL])
 AC_SUBST([LIBLTDL])
 AC_SUBST([INCLTDL])
 
@@ -6285,7 +6285,7 @@ AC_MSG_RESULT([$with_included_ltdl])
 
 AC_CONFIG_SUBDIRS([libltdl])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:62: -1- AC_DEFUN([AC_LIB_LTDL], [AC_PREREQ(2.60)
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:62: -1- AC_DEFUN([AC_LIB_LTDL], [AC_PREREQ(2.60)
 AC_REQUIRE([AC_PROG_CC])
 AC_REQUIRE([AC_C_CONST])
 AC_REQUIRE([AC_HEADER_STDC])
@@ -6314,13 +6314,13 @@ AC_CHECK_FUNCS([memcpy bcopy], [break])
 AC_CHECK_FUNCS([memmove strcmp])
 AC_CHECK_FUNCS([closedir opendir readdir])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:96: -1- AC_DEFUN([AC_LTDL_ENABLE_INSTALL], [AC_ARG_ENABLE([ltdl-install],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:96: -1- AC_DEFUN([AC_LTDL_ENABLE_INSTALL], [AC_ARG_ENABLE([ltdl-install],
     [AS_HELP_STRING([--enable-ltdl-install],[install libltdl])])
 
 AM_CONDITIONAL(INSTALL_LTDL, test x"${enable_ltdl_install-no}" != xno)
 AM_CONDITIONAL(CONVENIENCE_LTDL, test x"${enable_ltdl_convenience-no}" != xno)
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:107: -1- AC_DEFUN([AC_LTDL_SYS_DLOPEN_DEPLIBS], [AC_REQUIRE([AC_CANONICAL_HOST])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:107: -1- AC_DEFUN([AC_LTDL_SYS_DLOPEN_DEPLIBS], [AC_REQUIRE([AC_CANONICAL_HOST])
 AC_CACHE_CHECK([whether deplibs are loaded by dlopen],
   [libltdl_cv_sys_dlopen_deplibs],
   [# PORTME does your system automatically load deplibs for dlopen?
@@ -6403,7 +6403,7 @@ if test "$libltdl_cv_sys_dlopen_deplibs" != yes; then
     [Define if the OS needs help to load dependent libraries for dlopen().])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:195: -1- AC_DEFUN([AC_LTDL_SHLIBEXT], [AC_REQUIRE([AC_LIBTOOL_SYS_DYNAMIC_LINKER])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:195: -1- AC_DEFUN([AC_LTDL_SHLIBEXT], [AC_REQUIRE([AC_LIBTOOL_SYS_DYNAMIC_LINKER])
 AC_CACHE_CHECK([which extension is used for loadable modules],
   [libltdl_cv_shlibext],
 [
@@ -6415,7 +6415,7 @@ if test -n "$libltdl_cv_shlibext"; then
     [Define to the extension used for shared libraries, say, ".so".])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:212: -1- AC_DEFUN([AC_LTDL_SHLIBPATH], [AC_REQUIRE([AC_LIBTOOL_SYS_DYNAMIC_LINKER])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:212: -1- AC_DEFUN([AC_LTDL_SHLIBPATH], [AC_REQUIRE([AC_LIBTOOL_SYS_DYNAMIC_LINKER])
 AC_CACHE_CHECK([which variable specifies run-time library path],
   [libltdl_cv_shlibpath_var], [libltdl_cv_shlibpath_var="$shlibpath_var"])
 if test -n "$libltdl_cv_shlibpath_var"; then
@@ -6423,7 +6423,7 @@ if test -n "$libltdl_cv_shlibpath_var"; then
     [Define to the name of the environment variable that determines the dynamic library search path.])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:225: -1- AC_DEFUN([AC_LTDL_SYSSEARCHPATH], [AC_REQUIRE([AC_LIBTOOL_SYS_DYNAMIC_LINKER])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:225: -1- AC_DEFUN([AC_LTDL_SYSSEARCHPATH], [AC_REQUIRE([AC_LIBTOOL_SYS_DYNAMIC_LINKER])
 AC_CACHE_CHECK([for the default library search path],
   [libltdl_cv_sys_search_path],
   [libltdl_cv_sys_search_path="$sys_lib_dlsearch_path_spec"])
@@ -6440,7 +6440,7 @@ if test -n "$libltdl_cv_sys_search_path"; then
     [Define to the system default library search path.])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:247: -1- AC_DEFUN([AC_LTDL_OBJDIR], [AC_CACHE_CHECK([for objdir],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:247: -1- AC_DEFUN([AC_LTDL_OBJDIR], [AC_CACHE_CHECK([for objdir],
   [libltdl_cv_objdir],
   [libltdl_cv_objdir="$objdir"
   if test -n "$objdir"; then
@@ -6460,7 +6460,7 @@ m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:247: -1- AC_D
 AC_DEFINE_UNQUOTED([LTDL_OBJDIR], ["$libltdl_cv_objdir/"],
   [Define to the sub-directory in which libtool stores uninstalled libraries.])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:272: -1- AC_DEFUN([AC_LTDL_DLPREOPEN], [AC_REQUIRE([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:272: -1- AC_DEFUN([AC_LTDL_DLPREOPEN], [AC_REQUIRE([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE])
 AC_CACHE_CHECK([whether libtool supports -dlopen/-dlpreopen],
   [libltdl_cv_preloaded_symbols],
   [if test -n "$lt_cv_sys_global_symbol_pipe"; then
@@ -6474,7 +6474,7 @@ if test x"$libltdl_cv_preloaded_symbols" = xyes; then
     [Define if libtool can extract symbol lists from object files.])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:291: -1- AC_DEFUN([AC_LTDL_DLLIB], [LIBADD_DL=
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:291: -1- AC_DEFUN([AC_LTDL_DLLIB], [LIBADD_DL=
 AC_SUBST(LIBADD_DL)
 AC_LANG_PUSH([C])
 
@@ -6520,7 +6520,7 @@ then
 fi
 AC_LANG_POP
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:343: -1- AC_DEFUN([AC_LTDL_SYMBOL_USCORE], [AC_REQUIRE([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:343: -1- AC_DEFUN([AC_LTDL_SYMBOL_USCORE], [AC_REQUIRE([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE])
 AC_CACHE_CHECK([for _ prefix in compiled symbols],
   [ac_cv_sys_symbol_underscore],
   [ac_cv_sys_symbol_underscore=no
@@ -6552,7 +6552,7 @@ EOF
   rm -rf conftest*
   ])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:380: -1- AC_DEFUN([AC_LTDL_DLSYM_USCORE], [AC_REQUIRE([AC_LTDL_SYMBOL_USCORE])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:380: -1- AC_DEFUN([AC_LTDL_DLSYM_USCORE], [AC_REQUIRE([AC_LTDL_SYMBOL_USCORE])
 if test x"$ac_cv_sys_symbol_underscore" = xyes; then
   if test x"$libltdl_cv_func_dlopen" = xyes ||
      test x"$libltdl_cv_lib_dl_dlopen" = xyes ; then
@@ -6574,7 +6574,7 @@ if test x"$libltdl_cv_need_uscore" = xyes; then
     [Define if dlsym() requires a leading underscore in symbol names.])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/ltdl.m4:406: -1- AC_DEFUN([AC_LTDL_FUNC_ARGZ], [AC_CHECK_HEADERS([argz.h])
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/ltdl.m4:406: -1- AC_DEFUN([AC_LTDL_FUNC_ARGZ], [AC_CHECK_HEADERS([argz.h])
 
 AC_CHECK_TYPES([error_t],
   [],
@@ -6586,7 +6586,7 @@ AC_CHECK_TYPES([error_t],
 
 AC_CHECK_FUNCS([argz_append argz_create_sep argz_insert argz_next argz_stringify])
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/need_dev_zero_for_mmap.m4:5: -1- AC_DEFUN([AC_NEED_DEV_ZERO_FOR_MMAP], [AC_CACHE_CHECK([if /dev/zero is needed for mmap],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/need_dev_zero_for_mmap.m4:5: -1- AC_DEFUN([AC_NEED_DEV_ZERO_FOR_MMAP], [AC_CACHE_CHECK([if /dev/zero is needed for mmap],
 ac_cv_need_dev_zero_for_mmap,
 [if test "$llvm_cv_os_type" = "Interix" ; then
    ac_cv_need_dev_zero_for_mmap=yes
@@ -6598,7 +6598,7 @@ if test "$ac_cv_need_dev_zero_for_mmap" = yes; then
   AC_DEFINE([NEED_DEV_ZERO_FOR_MMAP],[1],
    [Define if /dev/zero should be used when mapping RWX memory, or undefine if its not necessary])
 fi])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/path_tclsh.m4:5: -1- AC_DEFUN([DJ_AC_PATH_TCLSH], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/path_tclsh.m4:5: -1- AC_DEFUN([DJ_AC_PATH_TCLSH], [
 no_itcl=true
 AC_MSG_CHECKING(for the tclsh program in tclinclude directory)
 AC_ARG_WITH(tclinclude,
@@ -6632,7 +6632,7 @@ else
   AC_SUBST(TCLSH)
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/rand48.m4:5: -1- AC_DEFUN([AC_FUNC_RAND48], [
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/rand48.m4:5: -1- AC_DEFUN([AC_FUNC_RAND48], [
 AC_SINGLE_CXX_CHECK([ac_cv_func_rand48],   
                     [srand48/lrand48/drand48], [<stdlib.h>],
                     [srand48(0);lrand48();drand48();])
@@ -6640,12 +6640,12 @@ if test "$ac_cv_func_rand48" = "yes" ; then
 AC_DEFINE([HAVE_RAND48],1,[Define to 1 if srand48/lrand48/drand48 exist in <stdlib.h>])
 fi
 ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: -1- AC_DEFUN([AC_SINGLE_CXX_CHECK], [AC_CACHE_CHECK([for $2 in $3], [$1],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: -1- AC_DEFUN([AC_SINGLE_CXX_CHECK], [AC_CACHE_CHECK([for $2 in $3], [$1],
   [AC_LANG_PUSH([C++])
    AC_COMPILE_IFELSE(AC_LANG_PROGRAM([#include $3],[$4]),[$1=yes],[$1=no])
   AC_LANG_POP([C++])])
  ])
-m4trace:/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/visibility_inlines_hidden.m4:6: -1- AC_DEFUN([AC_CXX_USE_VISIBILITY_INLINES_HIDDEN], [AC_CACHE_CHECK([for compiler -fvisibility-inlines-hidden option],
+m4trace:/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/visibility_inlines_hidden.m4:6: -1- AC_DEFUN([AC_CXX_USE_VISIBILITY_INLINES_HIDDEN], [AC_CACHE_CHECK([for compiler -fvisibility-inlines-hidden option],
                 [llvm_cv_cxx_visibility_inlines_hidden],
 [ AC_LANG_PUSH([C++])
   oldcxxflags="$CXXFLAGS"
@@ -6717,524 +6717,523 @@ m4trace:configure.ac:4: -1- m4_pattern_allow([^target_alias$])
 m4trace:configure.ac:16: -1- LLVM_CONFIG_PROJECT([$LLVM_ABS_SRC_ROOT], [$LLVM_ABS_OBJ_ROOT])
 m4trace:configure.ac:16: -1- m4_pattern_allow([^LLVM_SRC$])
 m4trace:configure.ac:16: -1- m4_pattern_allow([^LLVM_OBJ$])
-m4trace:configure.ac:56: -1- m4_pattern_allow([^LLVM_VERSION$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^CC$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^CFLAGS$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^LDFLAGS$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^LIBS$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^CPPFLAGS$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^CC$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^ac_ct_CC$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^EXEEXT$])
-m4trace:configure.ac:75: -1- m4_pattern_allow([^OBJEXT$])
-m4trace:configure.ac:76: -1- m4_pattern_allow([^CXX$])
-m4trace:configure.ac:76: -1- m4_pattern_allow([^CXXFLAGS$])
-m4trace:configure.ac:76: -1- m4_pattern_allow([^LDFLAGS$])
-m4trace:configure.ac:76: -1- m4_pattern_allow([^LIBS$])
-m4trace:configure.ac:76: -1- m4_pattern_allow([^CPPFLAGS$])
-m4trace:configure.ac:76: -1- m4_pattern_allow([^CXX$])
-m4trace:configure.ac:76: -1- m4_pattern_allow([^ac_ct_CXX$])
-m4trace:configure.ac:77: -1- m4_pattern_allow([^CPP$])
-m4trace:configure.ac:77: -1- m4_pattern_allow([^CPPFLAGS$])
-m4trace:configure.ac:77: -1- m4_pattern_allow([^CPP$])
-m4trace:configure.ac:98: -1- m4_pattern_allow([^ENABLE_POLLY$])
-m4trace:configure.ac:99: -1- m4_pattern_allow([^ENABLE_POLLY$])
-m4trace:configure.ac:100: -1- m4_pattern_allow([^ENABLE_POLLY$])
-m4trace:configure.ac:108: -1- m4_pattern_allow([^LLVM_HAS_POLLY$])
-m4trace:configure.ac:109: -1- m4_pattern_allow([^subdirs$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^build$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^build_cpu$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^build_vendor$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^build_os$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^host$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^host_cpu$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^host_vendor$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^host_os$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^target$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^target_cpu$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^target_vendor$])
-m4trace:configure.ac:122: -1- m4_pattern_allow([^target_os$])
-m4trace:configure.ac:292: -1- m4_pattern_allow([^OS$])
-m4trace:configure.ac:293: -1- m4_pattern_allow([^HOST_OS$])
-m4trace:configure.ac:294: -1- m4_pattern_allow([^TARGET_OS$])
-m4trace:configure.ac:297: -1- m4_pattern_allow([^LINKALL$])
-m4trace:configure.ac:298: -1- m4_pattern_allow([^NOLINKALL$])
-m4trace:configure.ac:305: -1- m4_pattern_allow([^LLVM_ON_UNIX$])
-m4trace:configure.ac:306: -1- m4_pattern_allow([^LLVM_ON_UNIX$])
-m4trace:configure.ac:307: -1- m4_pattern_allow([^LLVM_ON_WIN32$])
-m4trace:configure.ac:310: -1- m4_pattern_allow([^LLVM_ON_WIN32$])
-m4trace:configure.ac:311: -1- m4_pattern_allow([^LLVM_ON_UNIX$])
-m4trace:configure.ac:312: -1- m4_pattern_allow([^LLVM_ON_WIN32$])
-m4trace:configure.ac:348: -1- m4_pattern_allow([^ARCH$])
-m4trace:configure.ac:351: -2- m4_pattern_allow([^ENDIAN$])
-m4trace:configure.ac:351: -2- m4_pattern_allow([^ENDIAN$])
-m4trace:configure.ac:351: -1- AC_PROG_EGREP
-m4trace:configure.ac:351: -1- m4_pattern_allow([^GREP$])
-m4trace:configure.ac:351: -1- m4_pattern_allow([^EGREP$])
-m4trace:configure.ac:351: -1- m4_pattern_allow([^STDC_HEADERS$])
-m4trace:configure.ac:351: -1- m4_pattern_allow([^AC_APPLE_UNIVERSAL_BUILD$])
-m4trace:configure.ac:355: -1- m4_pattern_allow([^LLVM_CROSS_COMPILING$])
-m4trace:configure.ac:356: -1- AC_BUILD_EXEEXT
-m4trace:configure.ac:356: -1- m4_pattern_allow([^BUILD_CC$])
-m4trace:configure.ac:356: -1- m4_pattern_allow([^BUILD_CC$])
-m4trace:configure.ac:356: -1- m4_pattern_allow([^BUILD_CC$])
-m4trace:configure.ac:356: -1- m4_pattern_allow([^BUILD_EXEEXT$])
-m4trace:configure.ac:358: -1- m4_pattern_allow([^BUILD_CXX$])
-m4trace:configure.ac:360: -1- m4_pattern_allow([^BUILD_CXX$])
-m4trace:configure.ac:362: -1- m4_pattern_allow([^BUILD_CXX$])
-m4trace:configure.ac:366: -1- m4_pattern_allow([^LLVM_CROSS_COMPILING$])
-m4trace:configure.ac:378: -1- m4_pattern_allow([^CVSBUILD$])
-m4trace:configure.ac:396: -1- m4_pattern_allow([^ENABLE_LIBCPP$])
-m4trace:configure.ac:397: -1- m4_pattern_allow([^ENABLE_LIBCPP$])
-m4trace:configure.ac:398: -1- m4_pattern_allow([^ENABLE_LIBCPP$])
-m4trace:configure.ac:406: -1- m4_pattern_allow([^ENABLE_OPTIMIZED$])
-m4trace:configure.ac:408: -1- m4_pattern_allow([^ENABLE_OPTIMIZED$])
-m4trace:configure.ac:415: -1- m4_pattern_allow([^ENABLE_PROFILING$])
-m4trace:configure.ac:417: -1- m4_pattern_allow([^ENABLE_PROFILING$])
-m4trace:configure.ac:424: -1- m4_pattern_allow([^DISABLE_ASSERTIONS$])
-m4trace:configure.ac:426: -1- m4_pattern_allow([^DISABLE_ASSERTIONS$])
-m4trace:configure.ac:433: -1- m4_pattern_allow([^ENABLE_EXPENSIVE_CHECKS$])
-m4trace:configure.ac:434: -1- m4_pattern_allow([^EXPENSIVE_CHECKS$])
-m4trace:configure.ac:436: -1- m4_pattern_allow([^ENABLE_EXPENSIVE_CHECKS$])
-m4trace:configure.ac:437: -1- m4_pattern_allow([^EXPENSIVE_CHECKS$])
-m4trace:configure.ac:444: -1- m4_pattern_allow([^DEBUG_RUNTIME$])
-m4trace:configure.ac:446: -1- m4_pattern_allow([^DEBUG_RUNTIME$])
-m4trace:configure.ac:454: -1- m4_pattern_allow([^DEBUG_SYMBOLS$])
-m4trace:configure.ac:456: -1- m4_pattern_allow([^DEBUG_SYMBOLS$])
-m4trace:configure.ac:466: -1- m4_pattern_allow([^JIT$])
-m4trace:configure.ac:469: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:470: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:471: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:472: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:473: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:474: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:475: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:476: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:477: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:478: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:479: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:480: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
-m4trace:configure.ac:490: -1- m4_pattern_allow([^ENABLE_DOCS$])
-m4trace:configure.ac:491: -1- m4_pattern_allow([^ENABLE_DOCS$])
-m4trace:configure.ac:492: -1- m4_pattern_allow([^ENABLE_DOCS$])
-m4trace:configure.ac:502: -1- m4_pattern_allow([^ENABLE_DOXYGEN$])
-m4trace:configure.ac:503: -1- m4_pattern_allow([^ENABLE_DOXYGEN$])
-m4trace:configure.ac:504: -1- m4_pattern_allow([^ENABLE_DOXYGEN$])
-m4trace:configure.ac:514: -1- m4_pattern_allow([^ENABLE_THREADS$])
-m4trace:configure.ac:515: -1- m4_pattern_allow([^ENABLE_THREADS$])
-m4trace:configure.ac:516: -1- m4_pattern_allow([^ENABLE_THREADS$])
-m4trace:configure.ac:519: -1- m4_pattern_allow([^ENABLE_THREADS$])
-m4trace:configure.ac:527: -1- m4_pattern_allow([^ENABLE_PTHREADS$])
-m4trace:configure.ac:528: -1- m4_pattern_allow([^ENABLE_PTHREADS$])
-m4trace:configure.ac:529: -1- m4_pattern_allow([^ENABLE_PTHREADS$])
-m4trace:configure.ac:539: -1- m4_pattern_allow([^ENABLE_PIC$])
-m4trace:configure.ac:540: -1- m4_pattern_allow([^ENABLE_PIC$])
-m4trace:configure.ac:541: -1- m4_pattern_allow([^ENABLE_PIC$])
-m4trace:configure.ac:544: -1- m4_pattern_allow([^ENABLE_PIC$])
-m4trace:configure.ac:553: -1- m4_pattern_allow([^ENABLE_SHARED$])
-m4trace:configure.ac:554: -1- m4_pattern_allow([^ENABLE_SHARED$])
-m4trace:configure.ac:555: -1- m4_pattern_allow([^ENABLE_SHARED$])
-m4trace:configure.ac:565: -1- m4_pattern_allow([^ENABLE_EMBED_STDCXX$])
-m4trace:configure.ac:566: -1- m4_pattern_allow([^ENABLE_EMBED_STDCXX$])
-m4trace:configure.ac:567: -1- m4_pattern_allow([^ENABLE_EMBED_STDCXX$])
-m4trace:configure.ac:577: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
-m4trace:configure.ac:578: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
-m4trace:configure.ac:579: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
-m4trace:configure.ac:582: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
-m4trace:configure.ac:632: -1- m4_pattern_allow([^TARGETS_TO_BUILD$])
-m4trace:configure.ac:638: -1- m4_pattern_allow([^LLVM_NATIVE_ARCH$])
-m4trace:configure.ac:650: -1- m4_pattern_allow([^LLVM_NATIVE_TARGET$])
-m4trace:configure.ac:652: -1- m4_pattern_allow([^LLVM_NATIVE_TARGETINFO$])
-m4trace:configure.ac:654: -1- m4_pattern_allow([^LLVM_NATIVE_TARGETMC$])
-m4trace:configure.ac:656: -1- m4_pattern_allow([^LLVM_NATIVE_ASMPRINTER$])
-m4trace:configure.ac:659: -1- m4_pattern_allow([^LLVM_NATIVE_ASMPARSER$])
-m4trace:configure.ac:663: -1- m4_pattern_allow([^LLVM_NATIVE_DISASSEMBLER$])
-m4trace:configure.ac:687: -1- m4_pattern_allow([^LLVM_ENUM_TARGETS$])
-m4trace:configure.ac:688: -1- m4_pattern_allow([^LLVM_ENUM_ASM_PRINTERS$])
-m4trace:configure.ac:689: -1- m4_pattern_allow([^LLVM_ENUM_ASM_PARSERS$])
-m4trace:configure.ac:690: -1- m4_pattern_allow([^LLVM_ENUM_DISASSEMBLERS$])
-m4trace:configure.ac:707: -1- m4_pattern_allow([^OPTIMIZE_OPTION$])
-m4trace:configure.ac:719: -1- m4_pattern_allow([^EXTRA_OPTIONS$])
-m4trace:configure.ac:730: -1- m4_pattern_allow([^EXTRA_LD_OPTIONS$])
-m4trace:configure.ac:768: -1- m4_pattern_allow([^CLANG_RESOURCE_DIR$])
-m4trace:configure.ac:775: -1- m4_pattern_allow([^C_INCLUDE_DIRS$])
-m4trace:configure.ac:785: -1- m4_pattern_allow([^GCC_INSTALL_PREFIX$])
-m4trace:configure.ac:799: -1- m4_pattern_allow([^BINUTILS_INCDIR$])
-m4trace:configure.ac:811: -1- m4_pattern_allow([^BUG_REPORT_URL$])
-m4trace:configure.ac:830: -1- AC_PROG_NM
-m4trace:configure.ac:831: -1- m4_pattern_allow([^NM$])
-m4trace:configure.ac:834: -1- AC_CHECK_GNU_MAKE
-m4trace:configure.ac:834: -1- m4_pattern_allow([^ifGNUmake$])
-m4trace:configure.ac:835: -1- m4_pattern_allow([^LN_S$])
-m4trace:configure.ac:836: -1- m4_pattern_allow([^CMP$])
-m4trace:configure.ac:837: -1- m4_pattern_allow([^CP$])
-m4trace:configure.ac:838: -1- m4_pattern_allow([^DATE$])
-m4trace:configure.ac:839: -1- m4_pattern_allow([^FIND$])
-m4trace:configure.ac:840: -1- m4_pattern_allow([^GREP$])
-m4trace:configure.ac:841: -1- m4_pattern_allow([^MKDIR$])
-m4trace:configure.ac:842: -1- m4_pattern_allow([^MV$])
-m4trace:configure.ac:843: -1- m4_pattern_allow([^RANLIB$])
-m4trace:configure.ac:844: -1- m4_pattern_allow([^AR$])
-m4trace:configure.ac:845: -1- m4_pattern_allow([^RM$])
-m4trace:configure.ac:846: -1- m4_pattern_allow([^SED$])
-m4trace:configure.ac:847: -1- m4_pattern_allow([^TAR$])
-m4trace:configure.ac:848: -1- m4_pattern_allow([^BINPWD$])
-m4trace:configure.ac:851: -1- m4_pattern_allow([^GRAPHVIZ$])
-m4trace:configure.ac:853: -1- m4_pattern_allow([^HAVE_GRAPHVIZ$])
-m4trace:configure.ac:858: -1- m4_pattern_allow([^LLVM_PATH_GRAPHVIZ$])
-m4trace:configure.ac:861: -1- m4_pattern_allow([^DOT$])
-m4trace:configure.ac:863: -1- m4_pattern_allow([^HAVE_DOT$])
-m4trace:configure.ac:868: -1- m4_pattern_allow([^LLVM_PATH_DOT$])
-m4trace:configure.ac:871: -1- m4_pattern_allow([^FDP$])
-m4trace:configure.ac:873: -1- m4_pattern_allow([^HAVE_FDP$])
-m4trace:configure.ac:878: -1- m4_pattern_allow([^LLVM_PATH_FDP$])
-m4trace:configure.ac:881: -1- m4_pattern_allow([^NEATO$])
-m4trace:configure.ac:883: -1- m4_pattern_allow([^HAVE_NEATO$])
-m4trace:configure.ac:888: -1- m4_pattern_allow([^LLVM_PATH_NEATO$])
-m4trace:configure.ac:891: -1- m4_pattern_allow([^TWOPI$])
-m4trace:configure.ac:893: -1- m4_pattern_allow([^HAVE_TWOPI$])
-m4trace:configure.ac:898: -1- m4_pattern_allow([^LLVM_PATH_TWOPI$])
-m4trace:configure.ac:901: -1- m4_pattern_allow([^CIRCO$])
-m4trace:configure.ac:903: -1- m4_pattern_allow([^HAVE_CIRCO$])
-m4trace:configure.ac:908: -1- m4_pattern_allow([^LLVM_PATH_CIRCO$])
-m4trace:configure.ac:911: -1- m4_pattern_allow([^GV$])
-m4trace:configure.ac:913: -1- m4_pattern_allow([^HAVE_GV$])
-m4trace:configure.ac:918: -1- m4_pattern_allow([^LLVM_PATH_GV$])
-m4trace:configure.ac:921: -1- m4_pattern_allow([^DOTTY$])
-m4trace:configure.ac:923: -1- m4_pattern_allow([^HAVE_DOTTY$])
-m4trace:configure.ac:928: -1- m4_pattern_allow([^LLVM_PATH_DOTTY$])
-m4trace:configure.ac:931: -1- m4_pattern_allow([^XDOT_PY$])
-m4trace:configure.ac:933: -1- m4_pattern_allow([^HAVE_XDOT_PY$])
-m4trace:configure.ac:938: -1- m4_pattern_allow([^LLVM_PATH_XDOT_PY$])
-m4trace:configure.ac:943: -1- m4_pattern_allow([^INSTALL_PROGRAM$])
-m4trace:configure.ac:943: -1- m4_pattern_allow([^INSTALL_SCRIPT$])
-m4trace:configure.ac:943: -1- m4_pattern_allow([^INSTALL_DATA$])
-m4trace:configure.ac:956: -1- m4_pattern_allow([^BZIP2$])
-m4trace:configure.ac:957: -1- m4_pattern_allow([^CAT$])
-m4trace:configure.ac:958: -1- m4_pattern_allow([^DOXYGEN$])
-m4trace:configure.ac:959: -1- m4_pattern_allow([^GROFF$])
-m4trace:configure.ac:960: -1- m4_pattern_allow([^GZIPBIN$])
-m4trace:configure.ac:961: -1- m4_pattern_allow([^POD2HTML$])
-m4trace:configure.ac:962: -1- m4_pattern_allow([^POD2MAN$])
-m4trace:configure.ac:963: -1- m4_pattern_allow([^PDFROFF$])
-m4trace:configure.ac:964: -1- m4_pattern_allow([^RUNTEST$])
-m4trace:configure.ac:965: -1- DJ_AC_PATH_TCLSH
-m4trace:configure.ac:965: -1- m4_pattern_allow([^TCLSH$])
-m4trace:configure.ac:965: -1- m4_pattern_allow([^TCLSH$])
-m4trace:configure.ac:966: -1- m4_pattern_allow([^ZIP$])
-m4trace:configure.ac:967: -1- m4_pattern_allow([^OCAMLC$])
-m4trace:configure.ac:968: -1- m4_pattern_allow([^OCAMLOPT$])
-m4trace:configure.ac:969: -1- m4_pattern_allow([^OCAMLDEP$])
-m4trace:configure.ac:970: -1- m4_pattern_allow([^OCAMLDOC$])
-m4trace:configure.ac:971: -1- m4_pattern_allow([^GAS$])
-m4trace:configure.ac:974: -1- AC_LINK_GET_VERSION
-m4trace:configure.ac:974: -1- m4_pattern_allow([^HOST_LINK_VERSION$])
-m4trace:configure.ac:977: -1- AC_LINK_USE_R
-m4trace:configure.ac:977: -1- m4_pattern_allow([^HAVE_LINK_R$])
-m4trace:configure.ac:980: -1- AC_LINK_EXPORT_DYNAMIC
-m4trace:configure.ac:980: -1- m4_pattern_allow([^HAVE_LINK_EXPORT_DYNAMIC$])
-m4trace:configure.ac:983: -1- AC_LINK_VERSION_SCRIPT
-m4trace:configure.ac:983: -1- m4_pattern_allow([^HAVE_LINK_VERSION_SCRIPT$])
-m4trace:configure.ac:988: -1- AC_LIBTOOL_DLOPEN
-m4trace:configure.ac:989: -1- AC_LIB_LTDL
-m4trace:configure.ac:989: -1- m4_pattern_allow([^const$])
-m4trace:configure.ac:989: -1- _LT_AC_CHECK_DLFCN
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_DLFCN_H$])
-m4trace:configure.ac:989: -1- AC_LTDL_ENABLE_INSTALL
-m4trace:configure.ac:989: -1- AM_CONDITIONAL([INSTALL_LTDL], [test x"${enable_ltdl_install-no}" != xno])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^INSTALL_LTDL_TRUE$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^INSTALL_LTDL_FALSE$])
-m4trace:configure.ac:989: -1- _AM_SUBST_NOTMAKE([INSTALL_LTDL_TRUE])
-m4trace:configure.ac:989: -1- _AM_SUBST_NOTMAKE([INSTALL_LTDL_FALSE])
-m4trace:configure.ac:989: -1- AM_CONDITIONAL([CONVENIENCE_LTDL], [test x"${enable_ltdl_convenience-no}" != xno])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^CONVENIENCE_LTDL_TRUE$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^CONVENIENCE_LTDL_FALSE$])
-m4trace:configure.ac:989: -1- _AM_SUBST_NOTMAKE([CONVENIENCE_LTDL_TRUE])
-m4trace:configure.ac:989: -1- _AM_SUBST_NOTMAKE([CONVENIENCE_LTDL_FALSE])
-m4trace:configure.ac:989: -1- AC_LTDL_SHLIBEXT
-m4trace:configure.ac:989: -1- AC_LIBTOOL_SYS_DYNAMIC_LINKER
-m4trace:configure.ac:989: -1- m4_pattern_allow([^LTDL_SHLIB_EXT$])
-m4trace:configure.ac:989: -1- AC_LTDL_SHLIBPATH
-m4trace:configure.ac:989: -1- m4_pattern_allow([^LTDL_SHLIBPATH_VAR$])
-m4trace:configure.ac:989: -1- AC_LTDL_SYSSEARCHPATH
-m4trace:configure.ac:989: -1- m4_pattern_allow([^LTDL_SYSSEARCHPATH$])
-m4trace:configure.ac:989: -1- AC_LTDL_OBJDIR
-m4trace:configure.ac:989: -1- m4_pattern_allow([^LTDL_OBJDIR$])
-m4trace:configure.ac:989: -1- AC_LTDL_DLPREOPEN
-m4trace:configure.ac:989: -1- AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE
-m4trace:configure.ac:989: -1- _LT_AC_TAGVAR([lt_prog_compiler_no_builtin_flag], [])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_PRELOADED_SYMBOLS$])
-m4trace:configure.ac:989: -1- AC_LTDL_DLLIB
-m4trace:configure.ac:989: -1- m4_pattern_allow([^LIBADD_DL$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_SHL_LOAD$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_SHL_LOAD$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_LIBDL$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_LIBDL$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_LIBDL$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_DLD$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_DYLD$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_DLERROR$])
-m4trace:configure.ac:989: -1- AC_LTDL_SYMBOL_USCORE
-m4trace:configure.ac:989: -1- AC_LTDL_DLSYM_USCORE
-m4trace:configure.ac:989: -1- _LT_AC_TRY_DLOPEN_SELF([libltdl_cv_need_uscore=no], [libltdl_cv_need_uscore=yes], [], [libltdl_cv_need_uscore=cross])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^NEED_USCORE$])
-m4trace:configure.ac:989: -1- AC_LTDL_SYS_DLOPEN_DEPLIBS
-m4trace:configure.ac:989: -1- m4_pattern_allow([^LTDL_DLOPEN_DEPLIBS$])
-m4trace:configure.ac:989: -1- AC_LTDL_FUNC_ARGZ
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_ARGZ_H$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^HAVE_ERROR_T$])
-m4trace:configure.ac:989: -1- m4_pattern_allow([^error_t$])
-m4trace:configure.ac:1023: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+m4trace:configure.ac:38: -1- m4_pattern_allow([^LLVM_VERSION$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^CC$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^CFLAGS$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^LDFLAGS$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^LIBS$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^CPPFLAGS$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^CC$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^ac_ct_CC$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^EXEEXT$])
+m4trace:configure.ac:102: -1- m4_pattern_allow([^OBJEXT$])
+m4trace:configure.ac:103: -1- m4_pattern_allow([^CXX$])
+m4trace:configure.ac:103: -1- m4_pattern_allow([^CXXFLAGS$])
+m4trace:configure.ac:103: -1- m4_pattern_allow([^LDFLAGS$])
+m4trace:configure.ac:103: -1- m4_pattern_allow([^LIBS$])
+m4trace:configure.ac:103: -1- m4_pattern_allow([^CPPFLAGS$])
+m4trace:configure.ac:103: -1- m4_pattern_allow([^CXX$])
+m4trace:configure.ac:103: -1- m4_pattern_allow([^ac_ct_CXX$])
+m4trace:configure.ac:104: -1- m4_pattern_allow([^CPP$])
+m4trace:configure.ac:104: -1- m4_pattern_allow([^CPPFLAGS$])
+m4trace:configure.ac:104: -1- m4_pattern_allow([^CPP$])
+m4trace:configure.ac:125: -1- m4_pattern_allow([^ENABLE_POLLY$])
+m4trace:configure.ac:126: -1- m4_pattern_allow([^ENABLE_POLLY$])
+m4trace:configure.ac:127: -1- m4_pattern_allow([^ENABLE_POLLY$])
+m4trace:configure.ac:135: -1- m4_pattern_allow([^LLVM_HAS_POLLY$])
+m4trace:configure.ac:136: -1- m4_pattern_allow([^subdirs$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^build$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^build_cpu$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^build_vendor$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^build_os$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^host$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^host_cpu$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^host_vendor$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^host_os$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^target$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^target_cpu$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^target_vendor$])
+m4trace:configure.ac:149: -1- m4_pattern_allow([^target_os$])
+m4trace:configure.ac:319: -1- m4_pattern_allow([^OS$])
+m4trace:configure.ac:320: -1- m4_pattern_allow([^HOST_OS$])
+m4trace:configure.ac:321: -1- m4_pattern_allow([^TARGET_OS$])
+m4trace:configure.ac:324: -1- m4_pattern_allow([^LINKALL$])
+m4trace:configure.ac:325: -1- m4_pattern_allow([^NOLINKALL$])
+m4trace:configure.ac:332: -1- m4_pattern_allow([^LLVM_ON_UNIX$])
+m4trace:configure.ac:333: -1- m4_pattern_allow([^LLVM_ON_UNIX$])
+m4trace:configure.ac:334: -1- m4_pattern_allow([^LLVM_ON_WIN32$])
+m4trace:configure.ac:337: -1- m4_pattern_allow([^LLVM_ON_WIN32$])
+m4trace:configure.ac:338: -1- m4_pattern_allow([^LLVM_ON_UNIX$])
+m4trace:configure.ac:339: -1- m4_pattern_allow([^LLVM_ON_WIN32$])
+m4trace:configure.ac:375: -1- m4_pattern_allow([^ARCH$])
+m4trace:configure.ac:378: -2- m4_pattern_allow([^ENDIAN$])
+m4trace:configure.ac:378: -2- m4_pattern_allow([^ENDIAN$])
+m4trace:configure.ac:378: -1- AC_PROG_EGREP
+m4trace:configure.ac:378: -1- m4_pattern_allow([^GREP$])
+m4trace:configure.ac:378: -1- m4_pattern_allow([^EGREP$])
+m4trace:configure.ac:378: -1- m4_pattern_allow([^STDC_HEADERS$])
+m4trace:configure.ac:378: -1- m4_pattern_allow([^AC_APPLE_UNIVERSAL_BUILD$])
+m4trace:configure.ac:382: -1- m4_pattern_allow([^LLVM_CROSS_COMPILING$])
+m4trace:configure.ac:383: -1- AC_BUILD_EXEEXT
+m4trace:configure.ac:383: -1- m4_pattern_allow([^BUILD_CC$])
+m4trace:configure.ac:383: -1- m4_pattern_allow([^BUILD_CC$])
+m4trace:configure.ac:383: -1- m4_pattern_allow([^BUILD_CC$])
+m4trace:configure.ac:383: -1- m4_pattern_allow([^BUILD_EXEEXT$])
+m4trace:configure.ac:385: -1- m4_pattern_allow([^BUILD_CXX$])
+m4trace:configure.ac:387: -1- m4_pattern_allow([^BUILD_CXX$])
+m4trace:configure.ac:389: -1- m4_pattern_allow([^BUILD_CXX$])
+m4trace:configure.ac:393: -1- m4_pattern_allow([^LLVM_CROSS_COMPILING$])
+m4trace:configure.ac:423: -1- m4_pattern_allow([^ENABLE_LIBCPP$])
+m4trace:configure.ac:424: -1- m4_pattern_allow([^ENABLE_LIBCPP$])
+m4trace:configure.ac:425: -1- m4_pattern_allow([^ENABLE_LIBCPP$])
+m4trace:configure.ac:433: -1- m4_pattern_allow([^ENABLE_OPTIMIZED$])
+m4trace:configure.ac:435: -1- m4_pattern_allow([^ENABLE_OPTIMIZED$])
+m4trace:configure.ac:442: -1- m4_pattern_allow([^ENABLE_PROFILING$])
+m4trace:configure.ac:444: -1- m4_pattern_allow([^ENABLE_PROFILING$])
+m4trace:configure.ac:451: -1- m4_pattern_allow([^DISABLE_ASSERTIONS$])
+m4trace:configure.ac:453: -1- m4_pattern_allow([^DISABLE_ASSERTIONS$])
+m4trace:configure.ac:460: -1- m4_pattern_allow([^ENABLE_EXPENSIVE_CHECKS$])
+m4trace:configure.ac:461: -1- m4_pattern_allow([^EXPENSIVE_CHECKS$])
+m4trace:configure.ac:463: -1- m4_pattern_allow([^ENABLE_EXPENSIVE_CHECKS$])
+m4trace:configure.ac:464: -1- m4_pattern_allow([^EXPENSIVE_CHECKS$])
+m4trace:configure.ac:471: -1- m4_pattern_allow([^DEBUG_RUNTIME$])
+m4trace:configure.ac:473: -1- m4_pattern_allow([^DEBUG_RUNTIME$])
+m4trace:configure.ac:481: -1- m4_pattern_allow([^DEBUG_SYMBOLS$])
+m4trace:configure.ac:483: -1- m4_pattern_allow([^DEBUG_SYMBOLS$])
+m4trace:configure.ac:493: -1- m4_pattern_allow([^JIT$])
+m4trace:configure.ac:496: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:497: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:498: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:499: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:500: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:501: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:502: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:503: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:504: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:505: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:506: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:507: -1- m4_pattern_allow([^TARGET_HAS_JIT$])
+m4trace:configure.ac:517: -1- m4_pattern_allow([^ENABLE_DOCS$])
+m4trace:configure.ac:518: -1- m4_pattern_allow([^ENABLE_DOCS$])
+m4trace:configure.ac:519: -1- m4_pattern_allow([^ENABLE_DOCS$])
+m4trace:configure.ac:529: -1- m4_pattern_allow([^ENABLE_DOXYGEN$])
+m4trace:configure.ac:530: -1- m4_pattern_allow([^ENABLE_DOXYGEN$])
+m4trace:configure.ac:531: -1- m4_pattern_allow([^ENABLE_DOXYGEN$])
+m4trace:configure.ac:541: -1- m4_pattern_allow([^ENABLE_THREADS$])
+m4trace:configure.ac:542: -1- m4_pattern_allow([^ENABLE_THREADS$])
+m4trace:configure.ac:543: -1- m4_pattern_allow([^ENABLE_THREADS$])
+m4trace:configure.ac:546: -1- m4_pattern_allow([^ENABLE_THREADS$])
+m4trace:configure.ac:554: -1- m4_pattern_allow([^ENABLE_PTHREADS$])
+m4trace:configure.ac:555: -1- m4_pattern_allow([^ENABLE_PTHREADS$])
+m4trace:configure.ac:556: -1- m4_pattern_allow([^ENABLE_PTHREADS$])
+m4trace:configure.ac:566: -1- m4_pattern_allow([^ENABLE_PIC$])
+m4trace:configure.ac:567: -1- m4_pattern_allow([^ENABLE_PIC$])
+m4trace:configure.ac:568: -1- m4_pattern_allow([^ENABLE_PIC$])
+m4trace:configure.ac:571: -1- m4_pattern_allow([^ENABLE_PIC$])
+m4trace:configure.ac:580: -1- m4_pattern_allow([^ENABLE_SHARED$])
+m4trace:configure.ac:581: -1- m4_pattern_allow([^ENABLE_SHARED$])
+m4trace:configure.ac:582: -1- m4_pattern_allow([^ENABLE_SHARED$])
+m4trace:configure.ac:592: -1- m4_pattern_allow([^ENABLE_EMBED_STDCXX$])
+m4trace:configure.ac:593: -1- m4_pattern_allow([^ENABLE_EMBED_STDCXX$])
+m4trace:configure.ac:594: -1- m4_pattern_allow([^ENABLE_EMBED_STDCXX$])
+m4trace:configure.ac:604: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
+m4trace:configure.ac:605: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
+m4trace:configure.ac:606: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
+m4trace:configure.ac:609: -1- m4_pattern_allow([^ENABLE_TIMESTAMPS$])
+m4trace:configure.ac:659: -1- m4_pattern_allow([^TARGETS_TO_BUILD$])
+m4trace:configure.ac:665: -1- m4_pattern_allow([^LLVM_NATIVE_ARCH$])
+m4trace:configure.ac:677: -1- m4_pattern_allow([^LLVM_NATIVE_TARGET$])
+m4trace:configure.ac:679: -1- m4_pattern_allow([^LLVM_NATIVE_TARGETINFO$])
+m4trace:configure.ac:681: -1- m4_pattern_allow([^LLVM_NATIVE_TARGETMC$])
+m4trace:configure.ac:683: -1- m4_pattern_allow([^LLVM_NATIVE_ASMPRINTER$])
+m4trace:configure.ac:686: -1- m4_pattern_allow([^LLVM_NATIVE_ASMPARSER$])
+m4trace:configure.ac:690: -1- m4_pattern_allow([^LLVM_NATIVE_DISASSEMBLER$])
+m4trace:configure.ac:714: -1- m4_pattern_allow([^LLVM_ENUM_TARGETS$])
+m4trace:configure.ac:715: -1- m4_pattern_allow([^LLVM_ENUM_ASM_PRINTERS$])
+m4trace:configure.ac:716: -1- m4_pattern_allow([^LLVM_ENUM_ASM_PARSERS$])
+m4trace:configure.ac:717: -1- m4_pattern_allow([^LLVM_ENUM_DISASSEMBLERS$])
+m4trace:configure.ac:734: -1- m4_pattern_allow([^OPTIMIZE_OPTION$])
+m4trace:configure.ac:746: -1- m4_pattern_allow([^EXTRA_OPTIONS$])
+m4trace:configure.ac:757: -1- m4_pattern_allow([^EXTRA_LD_OPTIONS$])
+m4trace:configure.ac:795: -1- m4_pattern_allow([^CLANG_RESOURCE_DIR$])
+m4trace:configure.ac:802: -1- m4_pattern_allow([^C_INCLUDE_DIRS$])
+m4trace:configure.ac:812: -1- m4_pattern_allow([^GCC_INSTALL_PREFIX$])
+m4trace:configure.ac:826: -1- m4_pattern_allow([^BINUTILS_INCDIR$])
+m4trace:configure.ac:838: -1- m4_pattern_allow([^BUG_REPORT_URL$])
+m4trace:configure.ac:857: -1- AC_PROG_NM
+m4trace:configure.ac:858: -1- m4_pattern_allow([^NM$])
+m4trace:configure.ac:861: -1- AC_CHECK_GNU_MAKE
+m4trace:configure.ac:861: -1- m4_pattern_allow([^ifGNUmake$])
+m4trace:configure.ac:862: -1- m4_pattern_allow([^LN_S$])
+m4trace:configure.ac:863: -1- m4_pattern_allow([^CMP$])
+m4trace:configure.ac:864: -1- m4_pattern_allow([^CP$])
+m4trace:configure.ac:865: -1- m4_pattern_allow([^DATE$])
+m4trace:configure.ac:866: -1- m4_pattern_allow([^FIND$])
+m4trace:configure.ac:867: -1- m4_pattern_allow([^GREP$])
+m4trace:configure.ac:868: -1- m4_pattern_allow([^MKDIR$])
+m4trace:configure.ac:869: -1- m4_pattern_allow([^MV$])
+m4trace:configure.ac:870: -1- m4_pattern_allow([^RANLIB$])
+m4trace:configure.ac:871: -1- m4_pattern_allow([^AR$])
+m4trace:configure.ac:872: -1- m4_pattern_allow([^RM$])
+m4trace:configure.ac:873: -1- m4_pattern_allow([^SED$])
+m4trace:configure.ac:874: -1- m4_pattern_allow([^TAR$])
+m4trace:configure.ac:875: -1- m4_pattern_allow([^BINPWD$])
+m4trace:configure.ac:878: -1- m4_pattern_allow([^GRAPHVIZ$])
+m4trace:configure.ac:880: -1- m4_pattern_allow([^HAVE_GRAPHVIZ$])
+m4trace:configure.ac:885: -1- m4_pattern_allow([^LLVM_PATH_GRAPHVIZ$])
+m4trace:configure.ac:888: -1- m4_pattern_allow([^DOT$])
+m4trace:configure.ac:890: -1- m4_pattern_allow([^HAVE_DOT$])
+m4trace:configure.ac:895: -1- m4_pattern_allow([^LLVM_PATH_DOT$])
+m4trace:configure.ac:898: -1- m4_pattern_allow([^FDP$])
+m4trace:configure.ac:900: -1- m4_pattern_allow([^HAVE_FDP$])
+m4trace:configure.ac:905: -1- m4_pattern_allow([^LLVM_PATH_FDP$])
+m4trace:configure.ac:908: -1- m4_pattern_allow([^NEATO$])
+m4trace:configure.ac:910: -1- m4_pattern_allow([^HAVE_NEATO$])
+m4trace:configure.ac:915: -1- m4_pattern_allow([^LLVM_PATH_NEATO$])
+m4trace:configure.ac:918: -1- m4_pattern_allow([^TWOPI$])
+m4trace:configure.ac:920: -1- m4_pattern_allow([^HAVE_TWOPI$])
+m4trace:configure.ac:925: -1- m4_pattern_allow([^LLVM_PATH_TWOPI$])
+m4trace:configure.ac:928: -1- m4_pattern_allow([^CIRCO$])
+m4trace:configure.ac:930: -1- m4_pattern_allow([^HAVE_CIRCO$])
+m4trace:configure.ac:935: -1- m4_pattern_allow([^LLVM_PATH_CIRCO$])
+m4trace:configure.ac:938: -1- m4_pattern_allow([^GV$])
+m4trace:configure.ac:940: -1- m4_pattern_allow([^HAVE_GV$])
+m4trace:configure.ac:945: -1- m4_pattern_allow([^LLVM_PATH_GV$])
+m4trace:configure.ac:948: -1- m4_pattern_allow([^DOTTY$])
+m4trace:configure.ac:950: -1- m4_pattern_allow([^HAVE_DOTTY$])
+m4trace:configure.ac:955: -1- m4_pattern_allow([^LLVM_PATH_DOTTY$])
+m4trace:configure.ac:958: -1- m4_pattern_allow([^XDOT_PY$])
+m4trace:configure.ac:960: -1- m4_pattern_allow([^HAVE_XDOT_PY$])
+m4trace:configure.ac:965: -1- m4_pattern_allow([^LLVM_PATH_XDOT_PY$])
+m4trace:configure.ac:970: -1- m4_pattern_allow([^INSTALL_PROGRAM$])
+m4trace:configure.ac:970: -1- m4_pattern_allow([^INSTALL_SCRIPT$])
+m4trace:configure.ac:970: -1- m4_pattern_allow([^INSTALL_DATA$])
+m4trace:configure.ac:983: -1- m4_pattern_allow([^BZIP2$])
+m4trace:configure.ac:984: -1- m4_pattern_allow([^CAT$])
+m4trace:configure.ac:985: -1- m4_pattern_allow([^DOXYGEN$])
+m4trace:configure.ac:986: -1- m4_pattern_allow([^GROFF$])
+m4trace:configure.ac:987: -1- m4_pattern_allow([^GZIPBIN$])
+m4trace:configure.ac:988: -1- m4_pattern_allow([^POD2HTML$])
+m4trace:configure.ac:989: -1- m4_pattern_allow([^POD2MAN$])
+m4trace:configure.ac:990: -1- m4_pattern_allow([^PDFROFF$])
+m4trace:configure.ac:991: -1- m4_pattern_allow([^RUNTEST$])
+m4trace:configure.ac:992: -1- DJ_AC_PATH_TCLSH
+m4trace:configure.ac:992: -1- m4_pattern_allow([^TCLSH$])
+m4trace:configure.ac:992: -1- m4_pattern_allow([^TCLSH$])
+m4trace:configure.ac:993: -1- m4_pattern_allow([^ZIP$])
+m4trace:configure.ac:994: -1- m4_pattern_allow([^OCAMLC$])
+m4trace:configure.ac:995: -1- m4_pattern_allow([^OCAMLOPT$])
+m4trace:configure.ac:996: -1- m4_pattern_allow([^OCAMLDEP$])
+m4trace:configure.ac:997: -1- m4_pattern_allow([^OCAMLDOC$])
+m4trace:configure.ac:998: -1- m4_pattern_allow([^GAS$])
+m4trace:configure.ac:1001: -1- AC_LINK_GET_VERSION
+m4trace:configure.ac:1001: -1- m4_pattern_allow([^HOST_LINK_VERSION$])
+m4trace:configure.ac:1004: -1- AC_LINK_USE_R
+m4trace:configure.ac:1004: -1- m4_pattern_allow([^HAVE_LINK_R$])
+m4trace:configure.ac:1007: -1- AC_LINK_EXPORT_DYNAMIC
+m4trace:configure.ac:1007: -1- m4_pattern_allow([^HAVE_LINK_EXPORT_DYNAMIC$])
+m4trace:configure.ac:1010: -1- AC_LINK_VERSION_SCRIPT
+m4trace:configure.ac:1010: -1- m4_pattern_allow([^HAVE_LINK_VERSION_SCRIPT$])
+m4trace:configure.ac:1015: -1- AC_LIBTOOL_DLOPEN
+m4trace:configure.ac:1016: -1- AC_LIB_LTDL
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^const$])
+m4trace:configure.ac:1016: -1- _LT_AC_CHECK_DLFCN
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_DLFCN_H$])
+m4trace:configure.ac:1016: -1- AC_LTDL_ENABLE_INSTALL
+m4trace:configure.ac:1016: -1- AM_CONDITIONAL([INSTALL_LTDL], [test x"${enable_ltdl_install-no}" != xno])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^INSTALL_LTDL_TRUE$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^INSTALL_LTDL_FALSE$])
+m4trace:configure.ac:1016: -1- _AM_SUBST_NOTMAKE([INSTALL_LTDL_TRUE])
+m4trace:configure.ac:1016: -1- _AM_SUBST_NOTMAKE([INSTALL_LTDL_FALSE])
+m4trace:configure.ac:1016: -1- AM_CONDITIONAL([CONVENIENCE_LTDL], [test x"${enable_ltdl_convenience-no}" != xno])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^CONVENIENCE_LTDL_TRUE$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^CONVENIENCE_LTDL_FALSE$])
+m4trace:configure.ac:1016: -1- _AM_SUBST_NOTMAKE([CONVENIENCE_LTDL_TRUE])
+m4trace:configure.ac:1016: -1- _AM_SUBST_NOTMAKE([CONVENIENCE_LTDL_FALSE])
+m4trace:configure.ac:1016: -1- AC_LTDL_SHLIBEXT
+m4trace:configure.ac:1016: -1- AC_LIBTOOL_SYS_DYNAMIC_LINKER
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^LTDL_SHLIB_EXT$])
+m4trace:configure.ac:1016: -1- AC_LTDL_SHLIBPATH
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^LTDL_SHLIBPATH_VAR$])
+m4trace:configure.ac:1016: -1- AC_LTDL_SYSSEARCHPATH
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^LTDL_SYSSEARCHPATH$])
+m4trace:configure.ac:1016: -1- AC_LTDL_OBJDIR
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^LTDL_OBJDIR$])
+m4trace:configure.ac:1016: -1- AC_LTDL_DLPREOPEN
+m4trace:configure.ac:1016: -1- AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE
+m4trace:configure.ac:1016: -1- _LT_AC_TAGVAR([lt_prog_compiler_no_builtin_flag], [])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_PRELOADED_SYMBOLS$])
+m4trace:configure.ac:1016: -1- AC_LTDL_DLLIB
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^LIBADD_DL$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_SHL_LOAD$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_SHL_LOAD$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_LIBDL$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_LIBDL$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_LIBDL$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_DLD$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_DYLD$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_DLERROR$])
+m4trace:configure.ac:1016: -1- AC_LTDL_SYMBOL_USCORE
+m4trace:configure.ac:1016: -1- AC_LTDL_DLSYM_USCORE
+m4trace:configure.ac:1016: -1- _LT_AC_TRY_DLOPEN_SELF([libltdl_cv_need_uscore=no], [libltdl_cv_need_uscore=yes], [], [libltdl_cv_need_uscore=cross])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^NEED_USCORE$])
+m4trace:configure.ac:1016: -1- AC_LTDL_SYS_DLOPEN_DEPLIBS
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^LTDL_DLOPEN_DEPLIBS$])
+m4trace:configure.ac:1016: -1- AC_LTDL_FUNC_ARGZ
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_ARGZ_H$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^HAVE_ERROR_T$])
+m4trace:configure.ac:1016: -1- m4_pattern_allow([^error_t$])
+m4trace:configure.ac:1050: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
-configure.ac:1023: the top level])
-m4trace:configure.ac:1040: -1- CXX_FLAG_CHECK([NO_VARIADIC_MACROS], [-Wno-variadic-macros])
-m4trace:configure.ac:1040: -1- m4_pattern_allow([^NO_VARIADIC_MACROS$])
-m4trace:configure.ac:1041: -1- CXX_FLAG_CHECK([NO_MISSING_FIELD_INITIALIZERS], [-Wno-missing-field-initializers])
-m4trace:configure.ac:1041: -1- m4_pattern_allow([^NO_MISSING_FIELD_INITIALIZERS$])
-m4trace:configure.ac:1042: -1- CXX_FLAG_CHECK([COVERED_SWITCH_DEFAULT], [-Wcovered-switch-default])
-m4trace:configure.ac:1042: -1- m4_pattern_allow([^COVERED_SWITCH_DEFAULT$])
-m4trace:configure.ac:1051: -1- m4_pattern_allow([^HAVE_LIBM$])
-m4trace:configure.ac:1053: -1- m4_pattern_allow([^HAVE_LIBIMAGEHLP$])
-m4trace:configure.ac:1054: -1- m4_pattern_allow([^HAVE_LIBPSAPI$])
-m4trace:configure.ac:1058: -2- m4_pattern_allow([^HAVE_DLOPEN$])
-m4trace:configure.ac:1064: -2- m4_pattern_allow([^HAVE_FFI_CALL$])
-m4trace:configure.ac:1070: -2- m4_pattern_allow([^HAVE_MALLINFO$])
-m4trace:configure.ac:1076: -1- m4_pattern_allow([^HAVE_LIBPTHREAD$])
-m4trace:configure.ac:1078: -2- m4_pattern_allow([^HAVE_PTHREAD_MUTEX_LOCK$])
-m4trace:configure.ac:1081: -2- m4_pattern_allow([^HAVE_PTHREAD_RWLOCK_INIT$])
-m4trace:configure.ac:1084: -2- m4_pattern_allow([^HAVE_PTHREAD_GETSPECIFIC$])
-m4trace:configure.ac:1103: -2- m4_pattern_allow([^USE_UDIS86$])
-m4trace:configure.ac:1089: -1- m4_pattern_allow([^USE_UDIS86$])
-m4trace:configure.ac:1089: -1- m4_pattern_allow([^HAVE_LIBUDIS86$])
-m4trace:configure.ac:1104: -1- m4_pattern_allow([^USE_UDIS86$])
-m4trace:configure.ac:1108: -1- m4_pattern_allow([^USE_OPROFILE$])
-m4trace:configure.ac:1108: -1- m4_pattern_allow([^USE_OPROFILE$])
-m4trace:configure.ac:1108: -1- m4_pattern_allow([^USE_OPROFILE$])
-m4trace:configure.ac:1140: -1- m4_pattern_allow([^USE_OPROFILE$])
-m4trace:configure.ac:1154: -1- AC_HEADER_MMAP_ANONYMOUS
-m4trace:configure.ac:1154: -1- m4_pattern_allow([^HAVE_MMAP_ANONYMOUS$])
-m4trace:configure.ac:1155: -1- m4_pattern_allow([^STAT_MACROS_BROKEN$])
-m4trace:configure.ac:1156: -1- m4_pattern_allow([^HAVE_SYS_WAIT_H$])
-m4trace:configure.ac:1157: -1- m4_pattern_allow([^TIME_WITH_SYS_TIME$])
-m4trace:configure.ac:1160: -1- m4_pattern_allow([^CXXCPP$])
-m4trace:configure.ac:1160: -1- m4_pattern_allow([^CPPFLAGS$])
-m4trace:configure.ac:1160: -1- m4_pattern_allow([^CXXCPP$])
-m4trace:configure.ac:1160: -1- m4_pattern_allow([^HAVE_BOOST_FOREACH_HPP$])
-m4trace:configure.ac:1168: -1- m4_pattern_allow([^HAVE_VALGRIND_VALGRIND_H$])
-m4trace:configure.ac:1169: -1- m4_pattern_allow([^HAVE_FENV_H$])
-m4trace:configure.ac:1172: -2- m4_pattern_allow([^HAVE_PTHREAD$])
-m4trace:configure.ac:1173: -2- m4_pattern_allow([^HAVE_PTHREAD$])
-m4trace:configure.ac:1171: -1- m4_pattern_allow([^HAVE_PTHREAD_H$])
-m4trace:configure.ac:1175: -1- m4_pattern_allow([^HAVE_PTHREAD$])
-m4trace:configure.ac:1184: -1- m4_pattern_allow([^HAVE_CRASHREPORTERCLIENT_H$])
-m4trace:configure.ac:1197: -2- m4_pattern_allow([^HAVE_CRASHREPORTER_INFO$])
-m4trace:configure.ac:1199: -2- m4_pattern_allow([^HAVE_CRASHREPORTER_INFO$])
-m4trace:configure.ac:1188: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+configure.ac:1050: the top level])
+m4trace:configure.ac:1067: -1- CXX_FLAG_CHECK([NO_VARIADIC_MACROS], [-Wno-variadic-macros])
+m4trace:configure.ac:1067: -1- m4_pattern_allow([^NO_VARIADIC_MACROS$])
+m4trace:configure.ac:1068: -1- CXX_FLAG_CHECK([NO_MISSING_FIELD_INITIALIZERS], [-Wno-missing-field-initializers])
+m4trace:configure.ac:1068: -1- m4_pattern_allow([^NO_MISSING_FIELD_INITIALIZERS$])
+m4trace:configure.ac:1069: -1- CXX_FLAG_CHECK([COVERED_SWITCH_DEFAULT], [-Wcovered-switch-default])
+m4trace:configure.ac:1069: -1- m4_pattern_allow([^COVERED_SWITCH_DEFAULT$])
+m4trace:configure.ac:1078: -1- m4_pattern_allow([^HAVE_LIBM$])
+m4trace:configure.ac:1080: -1- m4_pattern_allow([^HAVE_LIBIMAGEHLP$])
+m4trace:configure.ac:1081: -1- m4_pattern_allow([^HAVE_LIBPSAPI$])
+m4trace:configure.ac:1085: -2- m4_pattern_allow([^HAVE_DLOPEN$])
+m4trace:configure.ac:1091: -2- m4_pattern_allow([^HAVE_FFI_CALL$])
+m4trace:configure.ac:1097: -2- m4_pattern_allow([^HAVE_MALLINFO$])
+m4trace:configure.ac:1103: -1- m4_pattern_allow([^HAVE_LIBPTHREAD$])
+m4trace:configure.ac:1105: -2- m4_pattern_allow([^HAVE_PTHREAD_MUTEX_LOCK$])
+m4trace:configure.ac:1108: -2- m4_pattern_allow([^HAVE_PTHREAD_RWLOCK_INIT$])
+m4trace:configure.ac:1111: -2- m4_pattern_allow([^HAVE_PTHREAD_GETSPECIFIC$])
+m4trace:configure.ac:1130: -2- m4_pattern_allow([^USE_UDIS86$])
+m4trace:configure.ac:1116: -1- m4_pattern_allow([^USE_UDIS86$])
+m4trace:configure.ac:1116: -1- m4_pattern_allow([^HAVE_LIBUDIS86$])
+m4trace:configure.ac:1131: -1- m4_pattern_allow([^USE_UDIS86$])
+m4trace:configure.ac:1135: -1- m4_pattern_allow([^USE_OPROFILE$])
+m4trace:configure.ac:1135: -1- m4_pattern_allow([^USE_OPROFILE$])
+m4trace:configure.ac:1135: -1- m4_pattern_allow([^USE_OPROFILE$])
+m4trace:configure.ac:1167: -1- m4_pattern_allow([^USE_OPROFILE$])
+m4trace:configure.ac:1181: -1- AC_HEADER_MMAP_ANONYMOUS
+m4trace:configure.ac:1181: -1- m4_pattern_allow([^HAVE_MMAP_ANONYMOUS$])
+m4trace:configure.ac:1182: -1- m4_pattern_allow([^STAT_MACROS_BROKEN$])
+m4trace:configure.ac:1183: -1- m4_pattern_allow([^HAVE_SYS_WAIT_H$])
+m4trace:configure.ac:1184: -1- m4_pattern_allow([^TIME_WITH_SYS_TIME$])
+m4trace:configure.ac:1191: -1- m4_pattern_allow([^HAVE_VALGRIND_VALGRIND_H$])
+m4trace:configure.ac:1192: -1- m4_pattern_allow([^HAVE_FENV_H$])
+m4trace:configure.ac:1195: -2- m4_pattern_allow([^HAVE_PTHREAD$])
+m4trace:configure.ac:1196: -2- m4_pattern_allow([^HAVE_PTHREAD$])
+m4trace:configure.ac:1194: -1- m4_pattern_allow([^HAVE_PTHREAD_H$])
+m4trace:configure.ac:1198: -1- m4_pattern_allow([^HAVE_PTHREAD$])
+m4trace:configure.ac:1207: -1- m4_pattern_allow([^HAVE_CRASHREPORTERCLIENT_H$])
+m4trace:configure.ac:1220: -2- m4_pattern_allow([^HAVE_CRASHREPORTER_INFO$])
+m4trace:configure.ac:1222: -2- m4_pattern_allow([^HAVE_CRASHREPORTER_INFO$])
+m4trace:configure.ac:1211: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2661: _AC_LINK_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2678: AC_LINK_IFELSE is expanded from...
-configure.ac:1188: the top level])
-m4trace:configure.ac:1208: -1- AC_HUGE_VAL_CHECK
-m4trace:configure.ac:1208: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+configure.ac:1211: the top level])
+m4trace:configure.ac:1231: -1- AC_HUGE_VAL_CHECK
+m4trace:configure.ac:1231: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2729: _AC_RUN_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2748: AC_RUN_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/huge_val.m4:5: AC_HUGE_VAL_CHECK is expanded from...
-configure.ac:1208: the top level])
-m4trace:configure.ac:1208: -1- m4_pattern_allow([^HUGE_VAL_SANITY$])
-m4trace:configure.ac:1209: -1- m4_pattern_allow([^pid_t$])
-m4trace:configure.ac:1210: -1- m4_pattern_allow([^size_t$])
-m4trace:configure.ac:1211: -1- m4_pattern_allow([^RETSIGTYPE$])
-m4trace:configure.ac:1212: -1- m4_pattern_allow([^TM_IN_SYS_TIME$])
-m4trace:configure.ac:1213: -1- m4_pattern_allow([^HAVE_INT64_T$])
-m4trace:configure.ac:1215: -2- m4_pattern_allow([^HAVE_U_INT64_T$])
-m4trace:configure.ac:1214: -1- m4_pattern_allow([^HAVE_UINT64_T$])
-m4trace:configure.ac:1232: -1- AC_C_PRINTF_A
-m4trace:configure.ac:1232: -1- m4_pattern_allow([^HAVE_PRINTF_A$])
-m4trace:configure.ac:1233: -1- AC_FUNC_RAND48
-m4trace:configure.ac:1233: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_rand48], [srand48/lrand48/drand48], [<stdlib.h>], [srand48(0);lrand48();drand48();])
-m4trace:configure.ac:1233: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/huge_val.m4:5: AC_HUGE_VAL_CHECK is expanded from...
+configure.ac:1231: the top level])
+m4trace:configure.ac:1231: -1- m4_pattern_allow([^HUGE_VAL_SANITY$])
+m4trace:configure.ac:1232: -1- m4_pattern_allow([^pid_t$])
+m4trace:configure.ac:1233: -1- m4_pattern_allow([^size_t$])
+m4trace:configure.ac:1234: -1- m4_pattern_allow([^RETSIGTYPE$])
+m4trace:configure.ac:1235: -1- m4_pattern_allow([^TM_IN_SYS_TIME$])
+m4trace:configure.ac:1236: -1- m4_pattern_allow([^HAVE_INT64_T$])
+m4trace:configure.ac:1238: -2- m4_pattern_allow([^HAVE_U_INT64_T$])
+m4trace:configure.ac:1237: -1- m4_pattern_allow([^HAVE_UINT64_T$])
+m4trace:configure.ac:1255: -1- AC_C_PRINTF_A
+m4trace:configure.ac:1255: -1- m4_pattern_allow([^HAVE_PRINTF_A$])
+m4trace:configure.ac:1256: -1- AC_FUNC_RAND48
+m4trace:configure.ac:1256: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_rand48], [srand48/lrand48/drand48], [<stdlib.h>], [srand48(0);lrand48();drand48();])
+m4trace:configure.ac:1256: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/rand48.m4:5: AC_FUNC_RAND48 is expanded from...
-configure.ac:1233: the top level])
-m4trace:configure.ac:1233: -1- m4_pattern_allow([^HAVE_RAND48$])
-m4trace:configure.ac:1236: -1- m4_pattern_allow([^HAVE_DECL_STRERROR_S$])
-m4trace:configure.ac:1240: -2- m4_pattern_allow([^HAVE__ALLOCA$])
-m4trace:configure.ac:1241: -2- m4_pattern_allow([^HAVE___ALLOCA$])
-m4trace:configure.ac:1242: -2- m4_pattern_allow([^HAVE___CHKSTK$])
-m4trace:configure.ac:1243: -2- m4_pattern_allow([^HAVE____CHKSTK$])
-m4trace:configure.ac:1245: -2- m4_pattern_allow([^HAVE___ASHLDI3$])
-m4trace:configure.ac:1246: -2- m4_pattern_allow([^HAVE___ASHRDI3$])
-m4trace:configure.ac:1247: -2- m4_pattern_allow([^HAVE___DIVDI3$])
-m4trace:configure.ac:1248: -2- m4_pattern_allow([^HAVE___FIXDFDI$])
-m4trace:configure.ac:1249: -2- m4_pattern_allow([^HAVE___FIXSFDI$])
-m4trace:configure.ac:1250: -2- m4_pattern_allow([^HAVE___FLOATDIDF$])
-m4trace:configure.ac:1251: -2- m4_pattern_allow([^HAVE___LSHRDI3$])
-m4trace:configure.ac:1252: -2- m4_pattern_allow([^HAVE___MODDI3$])
-m4trace:configure.ac:1253: -2- m4_pattern_allow([^HAVE___UDIVDI3$])
-m4trace:configure.ac:1254: -2- m4_pattern_allow([^HAVE___UMODDI3$])
-m4trace:configure.ac:1256: -2- m4_pattern_allow([^HAVE___MAIN$])
-m4trace:configure.ac:1257: -2- m4_pattern_allow([^HAVE___CMPDI2$])
-m4trace:configure.ac:1263: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/rand48.m4:5: AC_FUNC_RAND48 is expanded from...
+configure.ac:1256: the top level])
+m4trace:configure.ac:1256: -1- m4_pattern_allow([^HAVE_RAND48$])
+m4trace:configure.ac:1259: -1- m4_pattern_allow([^HAVE_DECL_STRERROR_S$])
+m4trace:configure.ac:1263: -2- m4_pattern_allow([^HAVE__ALLOCA$])
+m4trace:configure.ac:1264: -2- m4_pattern_allow([^HAVE___ALLOCA$])
+m4trace:configure.ac:1265: -2- m4_pattern_allow([^HAVE___CHKSTK$])
+m4trace:configure.ac:1266: -2- m4_pattern_allow([^HAVE____CHKSTK$])
+m4trace:configure.ac:1268: -2- m4_pattern_allow([^HAVE___ASHLDI3$])
+m4trace:configure.ac:1269: -2- m4_pattern_allow([^HAVE___ASHRDI3$])
+m4trace:configure.ac:1270: -2- m4_pattern_allow([^HAVE___DIVDI3$])
+m4trace:configure.ac:1271: -2- m4_pattern_allow([^HAVE___FIXDFDI$])
+m4trace:configure.ac:1272: -2- m4_pattern_allow([^HAVE___FIXSFDI$])
+m4trace:configure.ac:1273: -2- m4_pattern_allow([^HAVE___FLOATDIDF$])
+m4trace:configure.ac:1274: -2- m4_pattern_allow([^HAVE___LSHRDI3$])
+m4trace:configure.ac:1275: -2- m4_pattern_allow([^HAVE___MODDI3$])
+m4trace:configure.ac:1276: -2- m4_pattern_allow([^HAVE___UDIVDI3$])
+m4trace:configure.ac:1277: -2- m4_pattern_allow([^HAVE___UMODDI3$])
+m4trace:configure.ac:1279: -2- m4_pattern_allow([^HAVE___MAIN$])
+m4trace:configure.ac:1280: -2- m4_pattern_allow([^HAVE___CMPDI2$])
+m4trace:configure.ac:1286: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
-configure.ac:1263: the top level])
-m4trace:configure.ac:1275: -1- m4_pattern_allow([^WIN32_ELMCB_PCSTR$])
-m4trace:configure.ac:1280: -1- AC_FUNC_ISNAN
-m4trace:configure.ac:1280: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isnan_in_math_h], [isnan], [<math.h>], [float f; isnan(f);])
-m4trace:configure.ac:1280: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
-../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
-../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
-../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
-../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
-../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isnan.m4:5: AC_FUNC_ISNAN is expanded from...
-configure.ac:1280: the top level])
-m4trace:configure.ac:1280: -1- m4_pattern_allow([^HAVE_ISNAN_IN_MATH_H$])
-m4trace:configure.ac:1280: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isnan_in_cmath], [isnan], [<cmath>], [float f; isnan(f);])
-m4trace:configure.ac:1280: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+configure.ac:1286: the top level])
+m4trace:configure.ac:1298: -1- m4_pattern_allow([^WIN32_ELMCB_PCSTR$])
+m4trace:configure.ac:1303: -1- AC_FUNC_ISNAN
+m4trace:configure.ac:1303: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isnan_in_math_h], [isnan], [<math.h>], [float f; isnan(f);])
+m4trace:configure.ac:1303: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isnan.m4:5: AC_FUNC_ISNAN is expanded from...
-configure.ac:1280: the top level])
-m4trace:configure.ac:1280: -1- m4_pattern_allow([^HAVE_ISNAN_IN_CMATH$])
-m4trace:configure.ac:1280: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_std_isnan_in_cmath], [std::isnan], [<cmath>], [float f; std::isnan(f);])
-m4trace:configure.ac:1280: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isnan.m4:5: AC_FUNC_ISNAN is expanded from...
+configure.ac:1303: the top level])
+m4trace:configure.ac:1303: -1- m4_pattern_allow([^HAVE_ISNAN_IN_MATH_H$])
+m4trace:configure.ac:1303: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isnan_in_cmath], [isnan], [<cmath>], [float f; isnan(f);])
+m4trace:configure.ac:1303: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isnan.m4:5: AC_FUNC_ISNAN is expanded from...
-configure.ac:1280: the top level])
-m4trace:configure.ac:1280: -1- m4_pattern_allow([^HAVE_STD_ISNAN_IN_CMATH$])
-m4trace:configure.ac:1281: -1- AC_FUNC_ISINF
-m4trace:configure.ac:1281: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isinf_in_math_h], [isinf], [<math.h>], [float f; isinf(f);])
-m4trace:configure.ac:1281: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isnan.m4:5: AC_FUNC_ISNAN is expanded from...
+configure.ac:1303: the top level])
+m4trace:configure.ac:1303: -1- m4_pattern_allow([^HAVE_ISNAN_IN_CMATH$])
+m4trace:configure.ac:1303: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_std_isnan_in_cmath], [std::isnan], [<cmath>], [float f; std::isnan(f);])
+m4trace:configure.ac:1303: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
-configure.ac:1281: the top level])
-m4trace:configure.ac:1281: -1- m4_pattern_allow([^HAVE_ISINF_IN_MATH_H$])
-m4trace:configure.ac:1281: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isinf_in_cmath], [isinf], [<cmath>], [float f; isinf(f);])
-m4trace:configure.ac:1281: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isnan.m4:5: AC_FUNC_ISNAN is expanded from...
+configure.ac:1303: the top level])
+m4trace:configure.ac:1303: -1- m4_pattern_allow([^HAVE_STD_ISNAN_IN_CMATH$])
+m4trace:configure.ac:1304: -1- AC_FUNC_ISINF
+m4trace:configure.ac:1304: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isinf_in_math_h], [isinf], [<math.h>], [float f; isinf(f);])
+m4trace:configure.ac:1304: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
-configure.ac:1281: the top level])
-m4trace:configure.ac:1281: -1- m4_pattern_allow([^HAVE_ISINF_IN_CMATH$])
-m4trace:configure.ac:1281: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_std_isinf_in_cmath], [std::isinf], [<cmath>], [float f; std::isinf(f);])
-m4trace:configure.ac:1281: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
+configure.ac:1304: the top level])
+m4trace:configure.ac:1304: -1- m4_pattern_allow([^HAVE_ISINF_IN_MATH_H$])
+m4trace:configure.ac:1304: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_isinf_in_cmath], [isinf], [<cmath>], [float f; isinf(f);])
+m4trace:configure.ac:1304: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
-configure.ac:1281: the top level])
-m4trace:configure.ac:1281: -1- m4_pattern_allow([^HAVE_STD_ISINF_IN_CMATH$])
-m4trace:configure.ac:1281: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_finite_in_ieeefp_h], [finite], [<ieeefp.h>], [float f; finite(f);])
-m4trace:configure.ac:1281: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
+configure.ac:1304: the top level])
+m4trace:configure.ac:1304: -1- m4_pattern_allow([^HAVE_ISINF_IN_CMATH$])
+m4trace:configure.ac:1304: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_std_isinf_in_cmath], [std::isinf], [<cmath>], [float f; std::isinf(f);])
+m4trace:configure.ac:1304: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
 ../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
 ../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
 ../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
-/home/jack/llvm-3.2.src/projects/alias/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
-configure.ac:1281: the top level])
-m4trace:configure.ac:1281: -1- m4_pattern_allow([^HAVE_FINITE_IN_IEEEFP_H$])
-m4trace:configure.ac:1287: -1- AC_DEFUN([_AC_Header_stdlib_h], [m4_divert_text([INIT_PREPARE], [AS_VAR_APPEND([ac_header_list], [" stdlib.h"])])
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
+configure.ac:1304: the top level])
+m4trace:configure.ac:1304: -1- m4_pattern_allow([^HAVE_STD_ISINF_IN_CMATH$])
+m4trace:configure.ac:1304: -1- AC_SINGLE_CXX_CHECK([ac_cv_func_finite_in_ieeefp_h], [finite], [<ieeefp.h>], [float f; finite(f);])
+m4trace:configure.ac:1304: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+../../lib/autoconf/general.m4:2590: _AC_COMPILE_IFELSE is expanded from...
+../../lib/autoconf/general.m4:2606: AC_COMPILE_IFELSE is expanded from...
+../../lib/m4sugar/m4sh.m4:639: AS_IF is expanded from...
+../../lib/autoconf/general.m4:2031: AC_CACHE_VAL is expanded from...
+../../lib/autoconf/general.m4:2052: AC_CACHE_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/single_cxx_check.m4:4: AC_SINGLE_CXX_CHECK is expanded from...
+/home/qingkaishi/llvm-3.4/projects.git/canary/autoconf/m4/func_isinf.m4:5: AC_FUNC_ISINF is expanded from...
+configure.ac:1304: the top level])
+m4trace:configure.ac:1304: -1- m4_pattern_allow([^HAVE_FINITE_IN_IEEEFP_H$])
+m4trace:configure.ac:1310: -1- AC_DEFUN([_AC_Header_stdlib_h], [m4_divert_text([INIT_PREPARE], [AS_VAR_APPEND([ac_header_list], [" stdlib.h"])])
 _AC_HEADERS_EXPANSION])
-m4trace:configure.ac:1287: -1- AC_DEFUN([_AC_Header_unistd_h], [m4_divert_text([INIT_PREPARE], [AS_VAR_APPEND([ac_header_list], [" unistd.h"])])
+m4trace:configure.ac:1310: -1- AC_DEFUN([_AC_Header_unistd_h], [m4_divert_text([INIT_PREPARE], [AS_VAR_APPEND([ac_header_list], [" unistd.h"])])
 _AC_HEADERS_EXPANSION])
-m4trace:configure.ac:1287: -1- AC_DEFUN([_AC_Header_sys_param_h], [m4_divert_text([INIT_PREPARE], [AS_VAR_APPEND([ac_header_list], [" sys/param.h"])])
+m4trace:configure.ac:1310: -1- AC_DEFUN([_AC_Header_sys_param_h], [m4_divert_text([INIT_PREPARE], [AS_VAR_APPEND([ac_header_list], [" sys/param.h"])])
 _AC_HEADERS_EXPANSION])
-m4trace:configure.ac:1287: -1- m4_pattern_allow([^HAVE_GETPAGESIZE$])
-m4trace:configure.ac:1287: -1- m4_pattern_allow([^HAVE_MMAP$])
-m4trace:configure.ac:1288: -1- AC_FUNC_MMAP_FILE
-m4trace:configure.ac:1288: -1- m4_pattern_allow([^HAVE_MMAP_FILE$])
-m4trace:configure.ac:1288: -1- m4_pattern_allow([^MMAP_FILE$])
-m4trace:configure.ac:1289: -1- AC_NEED_DEV_ZERO_FOR_MMAP
-m4trace:configure.ac:1289: -1- m4_pattern_allow([^NEED_DEV_ZERO_FOR_MMAP$])
-m4trace:configure.ac:1319: -2- m4_pattern_allow([^LLVM_HAS_ATOMICS$])
-m4trace:configure.ac:1321: -2- m4_pattern_allow([^LLVM_HAS_ATOMICS$])
-m4trace:configure.ac:1306: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
+m4trace:configure.ac:1310: -1- m4_pattern_allow([^HAVE_GETPAGESIZE$])
+m4trace:configure.ac:1310: -1- m4_pattern_allow([^HAVE_MMAP$])
+m4trace:configure.ac:1311: -1- AC_FUNC_MMAP_FILE
+m4trace:configure.ac:1311: -1- m4_pattern_allow([^HAVE_MMAP_FILE$])
+m4trace:configure.ac:1311: -1- m4_pattern_allow([^MMAP_FILE$])
+m4trace:configure.ac:1312: -1- AC_NEED_DEV_ZERO_FOR_MMAP
+m4trace:configure.ac:1312: -1- m4_pattern_allow([^NEED_DEV_ZERO_FOR_MMAP$])
+m4trace:configure.ac:1342: -2- m4_pattern_allow([^LLVM_HAS_ATOMICS$])
+m4trace:configure.ac:1344: -2- m4_pattern_allow([^LLVM_HAS_ATOMICS$])
+m4trace:configure.ac:1329: -1- _m4_warn([syntax], [AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body], [../../lib/autoconf/lang.m4:193: AC_LANG_CONFTEST is expanded from...
 ../../lib/autoconf/general.m4:2661: _AC_LINK_IFELSE is expanded from...
 ../../lib/autoconf/general.m4:2678: AC_LINK_IFELSE is expanded from...
-configure.ac:1306: the top level])
-m4trace:configure.ac:1333: -1- AC_IS_LINUX_MIXED
-m4trace:configure.ac:1341: -1- m4_pattern_allow([^HAVE___DSO_HANDLE$])
-m4trace:configure.ac:1345: -1- m4_pattern_allow([^SHLIBEXT$])
-m4trace:configure.ac:1349: -1- m4_pattern_allow([^SHLIBPATH_VAR$])
-m4trace:configure.ac:1367: -1- m4_pattern_allow([^LLVM_PREFIX$])
-m4trace:configure.ac:1368: -1- m4_pattern_allow([^LLVM_BINDIR$])
-m4trace:configure.ac:1369: -1- m4_pattern_allow([^LLVM_LIBDIR$])
-m4trace:configure.ac:1370: -1- m4_pattern_allow([^LLVM_DATADIR$])
-m4trace:configure.ac:1371: -1- m4_pattern_allow([^LLVM_DOCSDIR$])
-m4trace:configure.ac:1372: -1- m4_pattern_allow([^LLVM_ETCDIR$])
-m4trace:configure.ac:1373: -1- m4_pattern_allow([^LLVM_INCLUDEDIR$])
-m4trace:configure.ac:1374: -1- m4_pattern_allow([^LLVM_INFODIR$])
-m4trace:configure.ac:1375: -1- m4_pattern_allow([^LLVM_MANDIR$])
-m4trace:configure.ac:1376: -1- m4_pattern_allow([^LLVM_CONFIGTIME$])
-m4trace:configure.ac:1380: -1- m4_pattern_allow([^LLVM_PREFIX$])
-m4trace:configure.ac:1382: -1- m4_pattern_allow([^LLVM_BINDIR$])
-m4trace:configure.ac:1384: -1- m4_pattern_allow([^LLVM_LIBDIR$])
-m4trace:configure.ac:1386: -1- m4_pattern_allow([^LLVM_DATADIR$])
-m4trace:configure.ac:1388: -1- m4_pattern_allow([^LLVM_DOCSDIR$])
-m4trace:configure.ac:1390: -1- m4_pattern_allow([^LLVM_ETCDIR$])
-m4trace:configure.ac:1392: -1- m4_pattern_allow([^LLVM_INCLUDEDIR$])
-m4trace:configure.ac:1394: -1- m4_pattern_allow([^LLVM_INFODIR$])
-m4trace:configure.ac:1396: -1- m4_pattern_allow([^LLVM_MANDIR$])
-m4trace:configure.ac:1398: -1- m4_pattern_allow([^LLVM_CONFIGTIME$])
-m4trace:configure.ac:1400: -1- m4_pattern_allow([^LLVM_DEFAULT_TARGET_TRIPLE$])
-m4trace:configure.ac:1410: -1- m4_pattern_allow([^BINDINGS_TO_BUILD$])
-m4trace:configure.ac:1414: -1- m4_pattern_allow([^ALL_BINDINGS$])
-m4trace:configure.ac:1434: -1- m4_pattern_allow([^OCAML_LIBDIR$])
-m4trace:configure.ac:1440: -1- m4_pattern_allow([^OCAML_LIBDIR$])
-m4trace:configure.ac:1443: -1- m4_pattern_allow([^OCAML_LIBDIR$])
-m4trace:configure.ac:1454: -1- AC_CXX_USE_VISIBILITY_INLINES_HIDDEN
-m4trace:configure.ac:1454: -1- m4_pattern_allow([^ENABLE_VISIBILITY_INLINES_HIDDEN$])
-m4trace:configure.ac:1454: -1- m4_pattern_allow([^ENABLE_VISIBILITY_INLINES_HIDDEN$])
-m4trace:configure.ac:1462: -1- m4_pattern_allow([^RPATH$])
-m4trace:configure.ac:1470: -1- m4_pattern_allow([^RDYNAMIC$])
-m4trace:configure.ac:1488: -1- AC_CONFIG_MAKEFILE([Makefile])
-m4trace:configure.ac:1489: -1- AC_CONFIG_MAKEFILE([lib/Makefile])
-m4trace:configure.ac:1490: -1- AC_CONFIG_MAKEFILE([lib/dyckgraph/Makefile])
-m4trace:configure.ac:1491: -1- AC_CONFIG_MAKEFILE([lib/dyckaa/Makefile])
-m4trace:configure.ac:1492: -1- AC_CONFIG_MAKEFILE([lib/transformer/Makefile])
-m4trace:configure.ac:1493: -1- AC_CONFIG_MAKEFILE([lib/replay-support/Makefile])
-m4trace:configure.ac:1494: -1- AC_CONFIG_MAKEFILE([lib/replay-support/leap-support/Makefile])
-m4trace:configure.ac:1495: -1- AC_CONFIG_MAKEFILE([lib/replay-support/canary-support/Makefile])
-m4trace:configure.ac:1496: -1- AC_CONFIG_MAKEFILE([lib/replay-support/replay-support/Makefile])
-m4trace:configure.ac:1497: -1- AC_CONFIG_MAKEFILE([lib/trace-support/Makefile])
-m4trace:configure.ac:1498: -1- AC_CONFIG_MAKEFILE([tools/Makefile])
-m4trace:configure.ac:1499: -1- AC_CONFIG_MAKEFILE([tools/leap/Makefile])
-m4trace:configure.ac:1500: -1- AC_CONFIG_MAKEFILE([tools/pecan/Makefile])
-m4trace:configure.ac:1501: -1- AC_CONFIG_MAKEFILE([tools/canary/Makefile])
-m4trace:configure.ac:1504: -1- m4_pattern_allow([^LIB@&t@OBJS$])
-m4trace:configure.ac:1504: -1- m4_pattern_allow([^LTLIBOBJS$])
-m4trace:configure.ac:1504: -1- _m4_warn([obsolete], [AC_C_BIGENDIAN should be used with AC_CONFIG_HEADERS], [])
+configure.ac:1329: the top level])
+m4trace:configure.ac:1356: -1- AC_IS_LINUX_MIXED
+m4trace:configure.ac:1364: -1- m4_pattern_allow([^HAVE___DSO_HANDLE$])
+m4trace:configure.ac:1368: -1- m4_pattern_allow([^SHLIBEXT$])
+m4trace:configure.ac:1372: -1- m4_pattern_allow([^SHLIBPATH_VAR$])
+m4trace:configure.ac:1390: -1- m4_pattern_allow([^LLVM_PREFIX$])
+m4trace:configure.ac:1391: -1- m4_pattern_allow([^LLVM_BINDIR$])
+m4trace:configure.ac:1392: -1- m4_pattern_allow([^LLVM_LIBDIR$])
+m4trace:configure.ac:1393: -1- m4_pattern_allow([^LLVM_DATADIR$])
+m4trace:configure.ac:1394: -1- m4_pattern_allow([^LLVM_DOCSDIR$])
+m4trace:configure.ac:1395: -1- m4_pattern_allow([^LLVM_ETCDIR$])
+m4trace:configure.ac:1396: -1- m4_pattern_allow([^LLVM_INCLUDEDIR$])
+m4trace:configure.ac:1397: -1- m4_pattern_allow([^LLVM_INFODIR$])
+m4trace:configure.ac:1398: -1- m4_pattern_allow([^LLVM_MANDIR$])
+m4trace:configure.ac:1399: -1- m4_pattern_allow([^LLVM_CONFIGTIME$])
+m4trace:configure.ac:1403: -1- m4_pattern_allow([^LLVM_PREFIX$])
+m4trace:configure.ac:1405: -1- m4_pattern_allow([^LLVM_BINDIR$])
+m4trace:configure.ac:1407: -1- m4_pattern_allow([^LLVM_LIBDIR$])
+m4trace:configure.ac:1409: -1- m4_pattern_allow([^LLVM_DATADIR$])
+m4trace:configure.ac:1411: -1- m4_pattern_allow([^LLVM_DOCSDIR$])
+m4trace:configure.ac:1413: -1- m4_pattern_allow([^LLVM_ETCDIR$])
+m4trace:configure.ac:1415: -1- m4_pattern_allow([^LLVM_INCLUDEDIR$])
+m4trace:configure.ac:1417: -1- m4_pattern_allow([^LLVM_INFODIR$])
+m4trace:configure.ac:1419: -1- m4_pattern_allow([^LLVM_MANDIR$])
+m4trace:configure.ac:1421: -1- m4_pattern_allow([^LLVM_CONFIGTIME$])
+m4trace:configure.ac:1423: -1- m4_pattern_allow([^LLVM_DEFAULT_TARGET_TRIPLE$])
+m4trace:configure.ac:1433: -1- m4_pattern_allow([^BINDINGS_TO_BUILD$])
+m4trace:configure.ac:1437: -1- m4_pattern_allow([^ALL_BINDINGS$])
+m4trace:configure.ac:1457: -1- m4_pattern_allow([^OCAML_LIBDIR$])
+m4trace:configure.ac:1463: -1- m4_pattern_allow([^OCAML_LIBDIR$])
+m4trace:configure.ac:1466: -1- m4_pattern_allow([^OCAML_LIBDIR$])
+m4trace:configure.ac:1477: -1- AC_CXX_USE_VISIBILITY_INLINES_HIDDEN
+m4trace:configure.ac:1477: -1- m4_pattern_allow([^ENABLE_VISIBILITY_INLINES_HIDDEN$])
+m4trace:configure.ac:1477: -1- m4_pattern_allow([^ENABLE_VISIBILITY_INLINES_HIDDEN$])
+m4trace:configure.ac:1485: -1- m4_pattern_allow([^RPATH$])
+m4trace:configure.ac:1493: -1- m4_pattern_allow([^RDYNAMIC$])
+m4trace:configure.ac:1511: -1- AC_CONFIG_MAKEFILE([Makefile])
+m4trace:configure.ac:1512: -1- AC_CONFIG_MAKEFILE([lib/Makefile])
+m4trace:configure.ac:1513: -1- AC_CONFIG_MAKEFILE([lib/dyckgraph/Makefile])
+m4trace:configure.ac:1514: -1- AC_CONFIG_MAKEFILE([lib/dyckaa/Makefile])
+m4trace:configure.ac:1515: -1- AC_CONFIG_MAKEFILE([lib/wrapper/Makefile])
+m4trace:configure.ac:1516: -1- AC_CONFIG_MAKEFILE([lib/transformer/Makefile])
+m4trace:configure.ac:1517: -1- AC_CONFIG_MAKEFILE([lib/canary-support/Makefile])
+m4trace:configure.ac:1518: -1- AC_CONFIG_MAKEFILE([lib/canary-support/record-support/Makefile])
+m4trace:configure.ac:1519: -1- AC_CONFIG_MAKEFILE([lib/canary-support/dummy-support/Makefile])
+m4trace:configure.ac:1520: -1- AC_CONFIG_MAKEFILE([lib/canary-support/replay-support/Makefile])
+m4trace:configure.ac:1521: -1- AC_CONFIG_MAKEFILE([lib/leap-support/Makefile])
+m4trace:configure.ac:1522: -1- AC_CONFIG_MAKEFILE([lib/leap-support/leap-support/Makefile])
+m4trace:configure.ac:1523: -1- AC_CONFIG_MAKEFILE([lib/leap-support/tsxleap-support/Makefile])
+m4trace:configure.ac:1524: -1- AC_CONFIG_MAKEFILE([lib/leap-support/replay-support/Makefile])
+m4trace:configure.ac:1525: -1- AC_CONFIG_MAKEFILE([lib/trace-support/Makefile])
+m4trace:configure.ac:1526: -1- AC_CONFIG_MAKEFILE([tools/Makefile])
+m4trace:configure.ac:1527: -1- AC_CONFIG_MAKEFILE([tools/pecan/Makefile])
+m4trace:configure.ac:1528: -1- AC_CONFIG_MAKEFILE([tools/canary/Makefile])
+m4trace:configure.ac:1531: -1- m4_pattern_allow([^LIB@&t@OBJS$])
+m4trace:configure.ac:1531: -1- m4_pattern_allow([^LTLIBOBJS$])
+m4trace:configure.ac:1531: -1- _m4_warn([obsolete], [AC_C_BIGENDIAN should be used with AC_CONFIG_HEADERS], [])

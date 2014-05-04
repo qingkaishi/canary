@@ -51,14 +51,25 @@ else
 fi
 
 dnl Try to check gawk
-AC_MSG_CHECKING([gawk])
-which gawk
+AC_MSG_CHECKING([for gawk])
+which gawk >/dev/null
 if test $? = 0
 then
 	AC_MSG_RESULT([yes])
 else
 	AC_MSG_RESULT([no])
 	AC_MSG_ERROR([We need gawk.])
+fi
+
+dnl Try to check zip
+AC_MSG_CHECKING([for zip])
+which zip >/dev/null
+if test $? = 0
+then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+	AC_MSG_ERROR([We need zip.])
 fi
 
 dnl check gcc version
@@ -1501,7 +1512,12 @@ AC_CONFIG_MAKEFILE(Makefile)
 AC_CONFIG_MAKEFILE(lib/Makefile)
 AC_CONFIG_MAKEFILE(lib/dyckgraph/Makefile)
 AC_CONFIG_MAKEFILE(lib/dyckaa/Makefile)
+AC_CONFIG_MAKEFILE(lib/wrapper/Makefile)
 AC_CONFIG_MAKEFILE(lib/transformer/Makefile)
+AC_CONFIG_MAKEFILE(lib/canary-support/Makefile)
+AC_CONFIG_MAKEFILE(lib/canary-support/record-support/Makefile)
+AC_CONFIG_MAKEFILE(lib/canary-support/dummy-support/Makefile)
+AC_CONFIG_MAKEFILE(lib/canary-support/replay-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/leap-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/leap-support/leap-support/Makefile)
 AC_CONFIG_MAKEFILE(lib/leap-support/tsxleap-support/Makefile)
