@@ -277,8 +277,9 @@ extern "C" {
         
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
-        system("zip canary.zip ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat");
+        system("zip -9 canary.zip ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat");
         system("rm -f ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat");
+        system("echo -n \"Log size (Byte): \"; echo -n `du -sb canary.zip` | cut -d\" \" -f 1;");
     }
 
     void OnAddressInit(void* value, size_t size, size_t n) {

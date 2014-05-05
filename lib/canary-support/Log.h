@@ -263,7 +263,7 @@ public:
     virtual void logValue(size_t val) {
         vLastOnePredictorStore(val);
     }
-    
+    /*
     virtual void dump(FILE * fout) {
         default_dump(fout);
     }
@@ -281,7 +281,7 @@ public:
         fwrite(&u, sizeof (unsigned), 1, fout);
         
         default_dump(fout);
-    }
+    }*/
 };
 
 #endif	/* LOG_H */
