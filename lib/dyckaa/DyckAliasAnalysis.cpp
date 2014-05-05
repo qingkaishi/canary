@@ -458,7 +458,7 @@ namespace {
             } else if (TraceTransformer) {
                 outs() << "Please add -ltrace for trace analysis when you compile the transformed bitcode file to an executable file. Please use pecan_log_analyzer to predict crugs.\n";
             } else if (CanaryRecordTransformer) {
-                outs() << "Maker sure your bitcode files are compiled using \"-c -emit-llvm -O2 -g\" options\n";
+                outs() << "Maker sure your bitcode files are compiled using \"-c -emit-llvm -O2 -g -fno-vectorize\" options\n";
                 outs() << "Please add -lcanaryrecord for record at link time\n";
             }
             

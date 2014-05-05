@@ -46,7 +46,7 @@ static bool IS_MUTEX_INIT_TY(Type* t, Module* m) {
         }
     }
 
-    return true;
+    return false;
 }
 
 static bool IS_LIB_FILE(std::string & filename) {
@@ -129,10 +129,10 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
                     CONDN_PTR_TY(m), MUTEX_PTR_TY(m),
                     NULL));
         } else {
-            errs() << "********************no pthread_cond_t type\n";
+            errs() << "No pthread_cond_t type is detected, which means no wait/signal.\n";
         }
     } else {
-        errs() << "********************no pthread_mutex_t type\n";
+        errs() << "No pthread_mutex_t type is detected, which means no synchronization.\n";
     }
 }
 
@@ -175,9 +175,9 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
         iplist<GlobalVariable>::iterator git = module->global_begin();
         while (git != module->global_end()) {
             GlobalVariable& gv = *git;
-            if (!gv.isThreadLocal() && gv.getType()->getPointerElementType() == MUTEX_TY(module)) {
-                outs() << "Find a global mutex...\n";
-                if (has_mutex_anon && IS_MUTEX_INIT_TY(gv.getType()->getPointerElementType(), module)) {
+            if (!gv.isThreadLocal() && IS_MUTEX_INIT_TY(gv.getType()->getPointerElementType(), module)) {
+                outs() << "Find a global mutex..." << gv << "\n";
+                if (has_mutex_anon) {
                     Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
                     ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
                     this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
