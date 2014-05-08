@@ -101,7 +101,7 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
             VOID_TY(m),
             THREAD_PTR_TY(m), BOOL_TY(m),
             NULL));
-    
+
     F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
             VOID_TY(m),
             VOID_PTR_TY(m), LONG_TY(m), LONG_TY(m), // ptr, size, n
@@ -183,16 +183,16 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
                     this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
                 }
             }
-            
-            if(!gv.hasPrivateLinkage() && !gv.getName().startswith("llvm.")){
+
+            if (!gv.hasPrivateLinkage() && !gv.getName().startswith("llvm.")) {
                 size_t size = (size_t) AA.getTypeStoreSize(gv.getType()->getPointerElementType());
                 ConstantInt* sizeValue = ConstantInt::get(LONG_TY(module), size);
                 ConstantInt* nValue = ConstantInt::get(LONG_TY(module), 1);
-                
+
                 Constant* globalstar = ConstantExpr::getBitCast(&gv, VOID_PTR_TY(module));
                 this->insertCallInstAtHead(mainFunction, F_address_init, globalstar, sizeValue, nValue, NULL);
             }
-            
+
             git++;
         }
 
@@ -223,23 +223,24 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
 /// in llvm, it firstly initialize a memory space
 /// and then store the address to a variable
 /// so, we need care about store inst
-void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA){
+
+void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA) {
     Value * val = inst;
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
-    
+
     Instruction * tmp = inst;
-    
+
     Value * sizeValue = inst->getArgOperand(0);
     Value * nValue = ConstantInt::get(LONG_TY(module), 1);
-    if(inst->getCalledFunction()->getName().str() == "realloc"){
+    if (inst->getCalledFunction()->getName().str() == "realloc") {
         sizeValue = inst->getArgOperand(1);
-    } else if(inst->getCalledFunction()->getName().str() == "calloc"){
+    } else if (inst->getCalledFunction()->getName().str() == "calloc") {
         nValue = inst->getArgOperand(0);
         sizeValue = inst->getArgOperand(1);
     }
-    
-    if(sizeValue->getType()->isIntegerTy(32)){
+
+    if (sizeValue->getType()->isIntegerTy(32)) {
         CastInst* ci = CastInst::CreateIntegerCast(sizeValue, LONG_TY(module), false);
         ci->insertAfter(inst);
         sizeValue = ci;
@@ -256,11 +257,13 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
     CastInst* ci = NULL;
     if (inst->getType()->isPointerTy()) {
         ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
+    } else if (!inst->getType()->isIntegerTy()) {
+        ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
     } else {
         ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
     }
     ci->insertAfter(inst);
-    
+
     CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
     addci->insertAfter(inst);
 
@@ -274,15 +277,17 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     Value * val = inst->getOperand(1);
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
-    
+
     CastInst* ci = NULL;
     if (inst->getOperand(0)->getType()->isPointerTy()) {
         ci = CastInst::CreatePointerCast(inst->getOperand(0), LONG_TY(module));
+    } else if (!inst->getOperand(0)->getType()->isIntegerTy()) {
+        ci = CastInst::Create(Instruction::FPToUI, inst->getOperand(0), LONG_TY(module));
     } else {
         ci = CastInst::CreateIntegerCast(inst->getOperand(0), LONG_TY(module), false);
     }
     ci->insertAfter(inst);
-    
+
     CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
     addci->insertAfter(inst);
 

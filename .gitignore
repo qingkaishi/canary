@@ -1,5 +1,7 @@
 *.a
 *.o
+*.bc
+*.ll
 *.log
 *+Asserts
 pecan_log_analyzer
@@ -8,3 +10,10 @@ alias-Makefile.mk
 config.status
 Makefile.common
 Makefile.llvm.config
+./bench/aget/aget
+./bench/bbuf/bbuf
+./bench/pbzip2/pbzip2
+./bench/pfscan/pfscan
+./bench/racey/racey
+./bench/simplerace/simplerace
+./bench/swarm/swarm

@@ -1,0 +1,48 @@
+#!/bin/bash
+
+APP=bbuf
+LIBPATH=.
+
+while getopts "c:dl:L:" arg #":" means the previous option needs arguments
+do
+        case $arg in
+             c)
+		COMPILE=$OPTARG
+                ;;
+	     d)
+		DEBUG="-d"
+                ;;
+	     l)
+		LIB=$OPTARG
+		;;
+	     L)
+		LIBPATH=$OPTARG
+		;;
+             ?)  #unknown args
+		exit -1
+                ;;
+        esac
+done
+
+if [ -n "$COMPILE" ];then
+        canary -$COMPILE boundedBuffer.bc -o $APP.t.bc
+fi
+
+if [ -n "$LIB" ];then
+	# how to link
+	if [ -f $APP.t.bc ]; then
+		echo "clang++ $APP.t.bc -o $APP -lpthread -lbz2 -l$LIB -L$LIBPATH"
+		clang++ $APP.t.bc -o $APP -lpthread -lbz2 -l$LIB -L$LIBPATH
+	else
+		echo "clang++ $APP.bc -o $APP -lpthread -lbz2 -l$LIB -L$LIBPATH"
+		clang++ boundedBuffer.bc -o $APP -lpthread -lbz2 -l$LIB -L$LIBPATH
+	fi
+fi
+
+if [ -n "$DEBUG" ];then
+	./bbuf
+
+        if [ -f "canary.zip" ]; then
+		rm -f canary.zip
+	fi
+fi

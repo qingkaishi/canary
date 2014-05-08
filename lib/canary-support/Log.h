@@ -21,7 +21,7 @@ public:
 template<typename T> class Log {
 public:
     std::vector<Item<T>* > __log;
-    bool __recording;
+    size_t __size;
 
     enum DUMP_TYPE {
         PLAIN, // do not output idx
@@ -35,7 +35,7 @@ private:
 #ifdef DEBUG
         printf("using __plain_dump\n");
 #endif
-        
+
         unsigned size = 0;
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
@@ -57,7 +57,7 @@ private:
 #ifdef DEBUG
         printf("using __lop_dump\n");
 #endif
-        
+
         DUMP_TYPE type = LOP;
         fwrite(&type, sizeof (DUMP_TYPE), 1, fout); // type
         unsigned size = __log.size(); // size
@@ -72,7 +72,7 @@ private:
 #ifdef DEBUG
         printf("using __dlop_dump\n");
 #endif
-        
+
         size_t s3 = 0;
         unsigned lastOne = -1;
         for (unsigned i = 0; i < __log.size(); i++) {
@@ -111,13 +111,11 @@ private:
 
 public:
 
-    Log() {
-        __recording = true;
+    Log() : __size(0) {
     }
 
-    Log(size_t size) {
+    Log(size_t size) : __size(0) {
         __log.resize(size);
-        __recording = true;
     }
 
     virtual ~Log() {
@@ -152,24 +150,22 @@ public:
     virtual unsigned size() {
         return __log.size();
     }
-    
+
     virtual void default_dump(FILE * fout) {
         __lop_dump(fout);
     }
 
     virtual void dump(FILE * fout) {
         DUMP_TYPE t = evaluate();
-        switch(t){
-            case PLAIN: 
+        switch (t) {
+            case PLAIN:
                 __plain_dump(fout);
                 break;
-            case LOP: 
+            case LOP:
                 __lop_dump(fout);
                 break;
-            case DLOP: 
+            case DLOP:
                 __dlop_dump(fout);
-                break;
-            default:
                 break;
         }
     }
@@ -179,13 +175,13 @@ public:
             Item<T> * item = __log[i];
             item->t = map[item->t];
         }
-        
+
         dump(fout);
     }
 
     virtual void dumpWithUnsigned(FILE* fout, unsigned u) {
         fwrite(&u, sizeof (unsigned), 1, fout);
-        
+
         dump(fout);
     }
 
@@ -196,22 +192,27 @@ template<typename T> class LastOnePredictorLog : public Log<T> {
 private:
 
     void lastOnePredictorStore(T val) {
-        size_t currentIdx = Log<T>::__log.size();
-        if (currentIdx >= MAX_LOG_LEN) {
-            if (Log<T>::__recording)
-                printf("Log is too long to record! Stop recording!\n");
-            Log<T>::__recording = false;
-            return;
+        size_t currentIdx = -1;
+        int previousIdx = Log<T>::__size - 1;
+        if (Log<T>::__size == MAX_LOG_LEN) {
+            currentIdx = 0;
+            Log<T>::__size = 0;
+        } else {
+            currentIdx = Log<T>::__size;
         }
-
         Item<T>* x = 0;
-        if (currentIdx > 0 && (x = Log<T>::__log[currentIdx - 1]) && memcmp(&(x->t), &val, sizeof (T)) == 0) {
+        if (previousIdx >= 0 && (x = Log<T>::__log[previousIdx]) && memcmp(&(x->t), &val, sizeof (T)) == 0) {
             x->counter = x->counter + 1;
+        } else if (Log<T>::__log.size() == MAX_LOG_LEN) {
+            Item<T> * vI = Log<T>::__log[currentIdx];
+            vI->counter = 1;
+            memcpy(&(vI->t), &val, sizeof (T));
         } else {
             Item<T> * vI = new Item<T>;
             memcpy(&(vI->t), &val, sizeof (T));
-            vI->t = 1;
+            vI->counter = 1;
             Log<T>::__log.push_back(vI);
+            Log<T>::__size++;
         }
     }
 
@@ -233,22 +234,29 @@ class VLastOnePredictorLog : public Log<size_t> {
 private:
 
     void vLastOnePredictorStore(size_t val) {
-        size_t log_len = __log.size();
-        if (log_len >= MAX_LOG_LEN) {
-            if (__recording)
-                printf("Log is too long to record! Stop recording!\n");
-            __recording = false;
-            return;
+        size_t currentIdx = -1;
+        int previousIdx = __size - 1;
+        if (__size == MAX_LOG_LEN) {
+            currentIdx = 0;
+            __size = 0;
+        } else {
+            currentIdx = __size;
         }
 
         Item<size_t> * x = 0;
-        if (log_len > 0 && (x = __log[log_len - 1]) && x->counter + x->t == val) {
+        if (previousIdx >= 0 && (x = __log[previousIdx]) && x->counter + x->t == val) {
             x->counter = x->counter + 1;
+        } else if (__log.size() == MAX_LOG_LEN) {
+            Item<size_t> * vI = __log[currentIdx];
+            vI->counter = 1;
+            vI->t = val;
         } else {
             Item<size_t> * vI = new Item<size_t>;
             vI->t = val;
             vI->t = 1;
             __log.push_back(vI);
+            
+            __size++;
         }
     }
 
@@ -263,25 +271,7 @@ public:
     virtual void logValue(size_t val) {
         vLastOnePredictorStore(val);
     }
-    /*
-    virtual void dump(FILE * fout) {
-        default_dump(fout);
-    }
-
-    virtual void dumpWithValueUnsignedMap(FILE* fout, boost::unordered_map<size_t, unsigned>& map) {
-        for (unsigned i = 0; i < __log.size(); i++) {
-            Item<size_t> * item = __log[i];
-            item->t = map[item->t];
-        }
-        
-        default_dump(fout);
-    }
-
-    virtual void dumpWithUnsigned(FILE* fout, unsigned u) {
-        fwrite(&u, sizeof (unsigned), 1, fout);
-        
-        default_dump(fout);
-    }*/
+   
 };
 
 #endif	/* LOG_H */
