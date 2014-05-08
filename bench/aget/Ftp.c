@@ -95,7 +95,7 @@ void *ftp_get(void *arg) {
 		}
 
 		if(rbuf[0] != '1' && rbuf[0] != '2' && rbuf[0] != '3') {
-			fprintf(stderr, rbuf);
+			fprintf(stderr, "%s", rbuf);
 			handleFTPRetcode(rbuf);
 			close(sd_c);
 			pthread_exit((void *)1);

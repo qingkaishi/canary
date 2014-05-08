@@ -150,7 +150,7 @@ int ftp_head_req(struct request *req, int *head_sd)
 	bzero(&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr =inet_addr(req->ip);
-	printf(req->ip);
+	printf("%s", req->ip);
 	sin.sin_port = htons(req->port);
 	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		Log("Socket creation failed for Head Request: %s", strerror(errno));
