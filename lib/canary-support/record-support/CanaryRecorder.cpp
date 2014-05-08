@@ -330,10 +330,10 @@ extern "C" {
 
         Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache != NULL && cache->query(address, value)) {
-            rlog[svId].VER_LOG.logValue(write_versions[svId]);
+            rlog[svId].VER_LOG.logValue(-1);
         } else {
             rlog[svId].VAL_LOG.logValue(value);
-            rlog[svId].VER_LOG.logValue(-1);
+            rlog[svId].VER_LOG.logValue(write_versions[svId]);
         }
 #ifdef DEBUG
         printf("OnLoad === 3\n");
