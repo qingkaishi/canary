@@ -460,12 +460,10 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
     int idxidx = 0;
     while (idxidx < num_indices) {
         Value * idx = gep->getOperand(++idxidx);
-        if (/*!isa<ConstantInt>(idx) ||*/ !GTI->isSized()) {
+        if (/*!isa<ConstantInt>(idx) ||*/ !preGTI->isSized()) {
             // current->addProperty("unknown-offset", (void*) 1);
-            break;
-        }
-
-        if ((*preGTI)->isStructTy()) {
+            //break;
+        } else if ((*preGTI)->isStructTy()) {
             // example: gep y 0 constIdx
             // s1: y--deref-->?1--(-2-constIdx)-->?2
             DyckVertex* theStruct = this->addPtrTo(current, NULL);

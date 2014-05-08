@@ -298,7 +298,7 @@ set<DyckVertex*>& DyckGraph::getVertices() {
 set<DyckVertex*>& DyckGraph::getRepresentatives() {
     return reps;
 }
-
+/*
 bool DyckGraph::havePathsWithoutLabel(DyckVertex* v1, DyckVertex* v2, void* label) {
     if (!v1->hasLabelsBesides(label)) {
         return false;
@@ -356,4 +356,4 @@ bool DyckGraph::havePathsWithoutLabel(DyckVertex* v1, DyckVertex* v2, void* labe
     }
 
     return false;
-}
+}*/

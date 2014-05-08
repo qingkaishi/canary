@@ -23,8 +23,20 @@ CanaryReplayTransformer("canary-replay-transformer", cl::init(false), cl::Hidden
         cl::desc("Transform programs using canary replay transformer."));
 
 static cl::opt<std::string> LockSmithDumpFile("locksmith-dump-file",
-       cl::desc("The Locksmith dump file using \"cilly --merge --list-shared --list-guardedby\""), 
-       cl::Hidden);
+        cl::desc("The Locksmith dump file using \"cilly --merge --list-shared --list-guardedby\""),
+        cl::Hidden);
+
+static cl::opt<bool>
+OutputEscapedAliasSet("escaped-alias-sets", cl::init(false), cl::Hidden,
+        cl::desc("Output all escaped alias sets."));
+
+static cl::opt<bool>
+OutputAliasSet("alias-sets", cl::init(false), cl::Hidden,
+        cl::desc("Output all alias sets."));
+
+static cl::opt<bool>
+DotAliasSet("alias-sets-rel", cl::init(false), cl::Hidden,
+        cl::desc("Output all alias sets relations."));
 
 static cl::opt<bool>
 LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
@@ -171,6 +183,7 @@ namespace {
 
     private:
         bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
+    public:
         void getEscapingPointers(set<DyckVertex*>* ret, Function * func);
     };
 
@@ -212,7 +225,7 @@ namespace {
                 set<void*>::iterator olIt = outlabels.begin();
                 while (olIt != outlabels.end()) {
                     long labelValue = (long) (*olIt);
-                    if (labelValue > 0) { /// address offset; @FIXME
+                    if (labelValue >= 0) { /// address offset; @FIXME
                         set<DyckVertex*>* tars = top->getOutVertices(*olIt);
 
                         set<DyckVertex*>::iterator tit = tars->begin();
@@ -235,7 +248,7 @@ namespace {
                 set<void*>::iterator ilIt = inlabels.begin();
                 while (ilIt != inlabels.end()) {
                     long labelValue = (long) (*ilIt);
-                    if (labelValue > 0) { /// address offset; @FIXME
+                    if (labelValue >= 0) { /// address offset; @FIXME
                         set<DyckVertex*>* srcs = top->getInVertices(*ilIt);
 
                         set<DyckVertex*>::iterator sit = srcs->begin();
@@ -313,7 +326,7 @@ namespace {
             visited.insert(top);
 
             set<DyckVertex*> tars;
-            top->getOutVerticesWithout(NULL, &tars);
+            top->getOutVertices(&tars);
             set<DyckVertex*>::iterator tit = tars.begin();
             while (tit != tars.end()) {
                 // if it has not been visited
@@ -324,23 +337,10 @@ namespace {
             }
         }
 
-        // If A is a partial alias of B, A will not be put in ret, because
-        // we will consider them as a pair of may alias during instrumentation.
         set<DyckVertex*>::iterator vit = visited.begin();
         while (vit != visited.end()) {
             DyckVertex* dv = *vit;
-
-            bool needToAdded = true;
-            set<DyckVertex*>::iterator retIt = ret->begin();
-            while (retIt != ret->end()) {
-                if (this->isPartialAlias(dv, *retIt)) {
-                    needToAdded = false;
-                    break;
-                }
-                retIt++;
-            }
-            if (needToAdded)
-                ret->insert(dv);
+            ret->insert(dv);
             vit++;
         }
     }
@@ -394,35 +394,140 @@ namespace {
 
         delete aaa;
 
+        if (DotAliasSet) {
+            FILE * aliasRel = fopen("alias_rel.dot", "w");
+            fprintf(aliasRel, "digraph rel{\n");
+
+            map<DyckVertex*, int> theMap;
+            int idx = 0;
+            set<DyckVertex*>& reps = dyck_graph->getRepresentatives();
+            set<DyckVertex*>::iterator svsIt = reps.begin();
+            while (svsIt != reps.end()) {
+                idx++;
+                fprintf(aliasRel, "a%d[label=%d];\n", idx, idx);
+                theMap.insert(pair<DyckVertex*, int>(*svsIt, idx));
+                svsIt++;
+            }
+
+            svsIt = reps.begin();
+            while (svsIt != reps.end()) {
+                DyckVertex* dv = *svsIt;
+                map<void*, set<DyckVertex*>*>& outVs = dv->getOutVertices();
+                map<void*, set<DyckVertex*>*>::iterator ovIt = outVs.begin();
+
+                while (ovIt != outVs.end()) {
+                    int label = (int) ovIt->first;
+                    set<DyckVertex*>* oVs = ovIt->second;
+
+                    set<DyckVertex*>::iterator olIt = oVs->begin();
+                    while (olIt != oVs->end()) {
+                        if (!theMap.count(dv) || !theMap.count(*olIt)) {
+                            errs() << "ERROR in DotAliasSet\n";
+                            exit(1);
+                        }
+                        int idx1 = theMap[dv->getRepresentative()];
+                        int idx2 = theMap[(*olIt)->getRepresentative()];
+
+                        fprintf(aliasRel, "a%d->a%d[label=%d];\n", idx1, idx2, label);
+
+                        olIt++;
+                    }
+
+                    ovIt++;
+                }
+
+                theMap.insert(pair<DyckVertex*, int>(*svsIt, idx));
+                svsIt++;
+            }
+
+            fprintf(aliasRel, "}\n");
+            fclose(aliasRel);
+        }
+
+        if (OutputAliasSet) {
+            int idx = 0;
+            set<DyckVertex*>& reps = dyck_graph->getRepresentatives();
+            set<DyckVertex*>::iterator svsIt = reps.begin();
+            while (svsIt != reps.end()) {
+                idx++;
+                Value * val = (Value*) ((*svsIt)->getValue());
+                set<DyckVertex*>* eset = (*svsIt)->getEquivalentSet();
+                set<DyckVertex*>::iterator eit = eset->begin();
+                while (eit != eset->end()) {
+                    val = (Value*) ((*eit)->getValue());
+                    if (val != NULL) {
+                        outs() << "[" << idx << "] " << *val << "\n";
+                    }
+                    eit++;
+                }
+                svsIt++;
+                outs() << "=============================\n";
+            }
+        }
+
+        if (OutputEscapedAliasSet) {
+            set<DyckVertex*> svs;
+            this->getEscapingPointers(&svs, M.getFunction("pthread_create"));
+            int idx = 0;
+            set<DyckVertex*>::iterator svsIt = svs.begin();
+            while (svsIt != svs.end()) {
+                idx++;
+                Value * val = (Value*) ((*svsIt)->getValue());
+                set<DyckVertex*>* eset = (*svsIt)->getEquivalentSet();
+                set<DyckVertex*>::iterator eit = eset->begin();
+                while (eit != eset->end()) {
+                    val = (Value*) ((*eit)->getValue());
+                    if (val != NULL) {
+                        outs() << "[" << idx << "] " << *val << "\n";
+                    }
+                    eit++;
+                }
+                svsIt++;
+                outs() << "=============================\n";
+            }
+        }
+
         /* instrumentation */
         if (TraceTransformer || LeapTransformer
                 || CanaryRecordTransformer || CanaryReplayTransformer) {
             set<Value*> llvm_svs;
             set<DyckVertex*> svs;
             this->getEscapingPointers(&svs, M.getFunction("pthread_create"));
-            //int idx = 0;
+
             set<DyckVertex*>::iterator svsIt = svs.begin();
             while (svsIt != svs.end()) {
                 Value * val = (Value*) ((*svsIt)->getValue());
-                if (val != NULL) {
-                    llvm_svs.insert(val);
-                    //outs() << "[" << idx++ << "] " << *val << "\n";
-                    //outs() << (*svsIt)->getEquivalentSet()->size()<<"\n";
-                } else {
+                if (val == NULL) {
                     set<DyckVertex*>* eset = (*svsIt)->getEquivalentSet();
                     set<DyckVertex*>::iterator eit = eset->begin();
                     while (eit != eset->end()) {
                         val = (Value*) ((*eit)->getValue());
                         if (val != NULL) {
-                            //outs() << "[" << idx++ << "] " << *val << "\n";
-                            //outs() << (*svsIt)->getEquivalentSet()->size()<<"\n"; 
-                            llvm_svs.insert(val);
                             break;
                         }
                         eit++;
                     }
-
                 }
+
+                if (val != NULL) {
+                    // If A is a partial alias of B, A will not be put in ret, because
+                    // we will consider them as a pair of may alias during instrumentation.
+                    bool add = true;
+                    set<Value*>::iterator tempIt = llvm_svs.begin();
+                    while (tempIt != llvm_svs.end()) {
+                        Value * existed = *tempIt;
+                        if (!this->isNoAlias(existed, val)) {
+                            add = false;
+                            break;
+                        }
+
+                        tempIt++;
+                    }
+                    if (add) {
+                        llvm_svs.insert(val);
+                    }
+                }
+
                 svsIt++;
             }
             outs() << "Shared variable groups number: " << llvm_svs.size() << "\n";
@@ -461,7 +566,7 @@ namespace {
                 outs() << "Maker sure your bitcode files are compiled using \"-c -emit-llvm -O2 -g -fno-vectorize -fno-slp-vectorize\" options\n";
                 outs() << "Please add -lcanaryrecord for record at link time\n";
             }
-            
+
             delete robot;
 
             return true;

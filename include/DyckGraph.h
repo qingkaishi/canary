@@ -49,9 +49,9 @@ public:
     /// Combine x's rep and y's rep.
     void combine(DyckVertex* x, DyckVertex* y);
     
-    /// The graph contains a path between v1 and v2, 
-    /// and the path does not contain the "label"
-    bool havePathsWithoutLabel(DyckVertex* v1, DyckVertex* v2, void* label);
+    // The graph contains a path between v1 and v2, 
+    // and the path does not contain the "label"
+    //bool havePathsWithoutLabel(DyckVertex* v1, DyckVertex* v2, void* label);
     
     /// if value is NULL, a new vertex will be always returned with false.
     /// if value's vertex has been initialized, it will be returned with true;

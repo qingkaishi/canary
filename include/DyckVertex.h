@@ -77,13 +77,13 @@ public:
     /// Get the target vertices corresponding the label
     set<DyckVertex*>* getOutVertices(void * label);
     
-    /// Get the source vertices whose labels are not "label".
-    /// The vertices are stored in ret.
-    void getInVerticesWithout(void * label, set<DyckVertex*>* ret);
+    // Get the source vertices whose labels are not "label".
+    // The vertices are stored in ret.
+    //void getInVerticesWithout(void * label, set<DyckVertex*>* ret);
     
-    /// Get the target vertices whose labels are not "label".
+    /// Get the target vertices.
     /// The vertices are stored in ret.
-    void getOutVerticesWithout(void * label, set<DyckVertex*>* ret);
+    void getOutVertices(set<DyckVertex*>* ret);
 
     /// Get the number of vertices that are the targets of this vertex, and have the edge label: label.
     unsigned int outNumVertices(void* label);
