@@ -1,4 +1,4 @@
-A small benchmarks
+Benchmarks
 ============================
 All benchmarks belong to their respective owners.  If you are the creator
 and/or rights holder of one of the benchmarks and would like it taken down,
