@@ -32,14 +32,14 @@ if [ -n "$LIB" ];then
 	# how to link
 	if [ -f $APP.t.bc ]; then
 		echo "clang++ $APP.t.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH"
-		clang++ $APP.t.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH
+		clang++ $APP.t.bc -o $APP.exe -lpthread -lnsl -l$LIB -L$LIBPATH
 	else
 		echo "clang++ $APP.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH"
-		clang++ $APP.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH
+		clang++ $APP.bc -o $APP.exe -lpthread -lnsl -l$LIB -L$LIBPATH
 	fi
 fi
 
 if [ -n "$DEBUG" ];then
-        ./racey 3 4 5 6
+        ./racey.exe 3 4 5 6
         if [ -f canary.zip ]; then rm canary.zip; fi
 fi

@@ -32,10 +32,10 @@ if [ -n "$LIB" ];then
 	# how to link
 	if [ -f $APP.t.bc ]; then
 		echo "clang++ $APP.t.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH"
-		clang++ $APP.t.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH
+		clang++ $APP.t.bc -o $APP.exe -lpthread -lnsl -l$LIB -L$LIBPATH
 	else
 		echo "clang++ $APP.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH"
-		clang++ $APP.bc -o $APP -lpthread -lnsl -l$LIB -L$LIBPATH
+		clang++ $APP.bc -o $APP.exe -lpthread -lnsl -l$LIB -L$LIBPATH
 	fi
 fi
 
@@ -43,6 +43,6 @@ if [ -n "$DEBUG" ];then
         path=`locate bits/c++config.h`
         path=${path%/*}
         path=${path%/*}
-	./pfscan -n3 "#include" $path
+	./pfscan.exe -n3 "#include" $path
         if [ -f canary.zip ]; then rm canary.zip; fi
 fi
