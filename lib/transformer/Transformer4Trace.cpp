@@ -76,10 +76,10 @@ void Transformer4Trace::beforeTransform(AliasAnalysis& AA) {
 //                errs() << " : " << ln << "\n";
 //                errs() <<"************************"<< "\n";
 //                errs().flush();
-                if (filename == "pbzip2.cpp") {
+                //if (filename == "pbzip2.cpp") {
                     ignored = false;
                     break;
-                }
+                //}
             }
             if (!ignored) {
                 break;
