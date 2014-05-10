@@ -445,6 +445,7 @@ namespace {
         }
 
         if (OutputAliasSet) {
+            outs() << "===== Alias Sets =====\n";
             int idx = 0;
             set<DyckVertex*>& reps = dyck_graph->getRepresentatives();
             set<DyckVertex*>::iterator svsIt = reps.begin();
@@ -461,11 +462,12 @@ namespace {
                     eit++;
                 }
                 svsIt++;
-                outs() << "=============================\n";
+                outs() << "------------------------------\n";
             }
         }
 
         if (OutputEscapedAliasSet) {
+            outs() << "===== Escaped Alias Sets =====\n";
             set<DyckVertex*> svs;
             this->getEscapingPointers(&svs, M.getFunction("pthread_create"));
             int idx = 0;
@@ -483,7 +485,7 @@ namespace {
                     eit++;
                 }
                 svsIt++;
-                outs() << "=============================\n";
+                outs() << "------------------------------\n";
             }
         }
 
@@ -618,9 +620,9 @@ namespace {
             double percentOfNoAlias = noAliasNum / (double) pairNum * 100;
 
             fclose(log);
-            errs() << "===== Alias Analysis Evaluator Report =====\n";
-            errs() << "   " << pairNum << " Total Alias Queries Performed\n";
-            errs() << "   " << noAliasNum << " no alias responses (" << (unsigned long) percentOfNoAlias << "%)\n\n";
+            outs() << "===== Alias Analysis Evaluator Report =====\n";
+            outs() << "   " << pairNum << " Total Alias Queries Performed\n";
+            outs() << "   " << noAliasNum << " no alias responses (" << (unsigned long) percentOfNoAlias << "%)\n\n";
         }
 
         return false;
