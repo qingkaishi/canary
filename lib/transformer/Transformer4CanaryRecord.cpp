@@ -137,6 +137,7 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
 }
 
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
+    bool always_ignored = true;
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function& f = *iterF;
         bool ignored = true;
@@ -148,6 +149,7 @@ void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
                 DILocation LOC(mdn);
                 std::string filename = LOC.getFilename().str();
                 if (filename != "" && !IS_LIB_FILE(filename)) {
+                    always_ignored = false;
                     ignored = false;
                     break;
                 }
@@ -161,6 +163,11 @@ void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
             outs() << "Ignore library function: " << f.getName() << "\n";
             ignored_funcs.insert(&f);
         }
+    }
+
+    if (always_ignored) {
+        errs() << "ERROR: nothing to be instrumented.\nPROMPT: it seems -g should be used at compile time.\n";
+        exit(1);
     }
 }
 

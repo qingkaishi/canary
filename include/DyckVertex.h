@@ -77,9 +77,9 @@ public:
     /// Get the target vertices corresponding the label
     set<DyckVertex*>* getOutVertices(void * label);
     
-    // Get the source vertices whose labels are not "label".
+    // Get the source vertices.
     // The vertices are stored in ret.
-    //void getInVerticesWithout(void * label, set<DyckVertex*>* ret);
+    void getInVertices(set<DyckVertex*>* ret);
     
     /// Get the target vertices.
     /// The vertices are stored in ret.

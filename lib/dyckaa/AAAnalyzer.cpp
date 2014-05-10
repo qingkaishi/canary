@@ -603,11 +603,13 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
     } else if (isa<ConstantDataVector>(v)) {
         errs() << "ERROR when handle the following ConstantDataSequential, ConstantDataVector\n";
         errs() << *v << "\n";
+        errs() << "PROMPT: Please use -fno-vectorize and -fno-slp-vectorize at compile time.\n";
         errs().flush();
         exit(-1);
     } else if (isa<ConstantVector>(v)) {
         errs() << "ERROR when handle the following ConstantVector\n";
         errs() << *v << "\n";
+        errs() << "PROMPT: Please use -fno-vectorize and -fno-slp-vectorize at compile time.\n";
         errs().flush();
         exit(-1);
     } else if (isa<Constant>(v)) {

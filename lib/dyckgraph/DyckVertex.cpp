@@ -221,17 +221,14 @@ DyckVertex* DyckVertex::clone() {
     return copy;
 }
 
-/* unsafe methods, do not use it
- * void DyckVertex::getInVerticesWithout(void * label, set<DyckVertex*>* ret) {
+void DyckVertex::getInVertices(set<DyckVertex*>* ret) {
     set<void *>::iterator it = in_lables.begin();
     while (it != in_lables.end()) {
-        if (*it != label) {
-            set<DyckVertex*>* vertices = this->getInVertices(*it);
-            ret->insert(vertices->begin(), vertices->end());
-        }
+        set<DyckVertex*>* vertices = this->getInVertices(*it);
+        ret->insert(vertices->begin(), vertices->end());
         it++;
     }
-}*/
+}
 
 void DyckVertex::getOutVertices(set<DyckVertex*>* ret) {
     set<void *>::iterator it = out_lables.begin();
