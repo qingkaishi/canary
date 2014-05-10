@@ -397,6 +397,9 @@ namespace {
         if (DotAliasSet) {
             FILE * aliasRel = fopen("alias_rel.dot", "w");
             fprintf(aliasRel, "digraph rel{\n");
+            
+            set<DyckVertex*> svs;
+            this->getEscapingPointers(&svs, M.getFunction("pthread_create"));
 
             map<DyckVertex*, int> theMap;
             int idx = 0;
@@ -404,7 +407,11 @@ namespace {
             set<DyckVertex*>::iterator svsIt = reps.begin();
             while (svsIt != reps.end()) {
                 idx++;
-                fprintf(aliasRel, "a%d[label=%d];\n", idx, idx);
+                if(svs.count(*svsIt)){
+                    fprintf(aliasRel, "a%d[label=%d color=red];\n", idx, idx);
+                }else{
+                    fprintf(aliasRel, "a%d[label=%d];\n", idx, idx);
+                }
                 theMap.insert(pair<DyckVertex*, int>(*svsIt, idx));
                 svsIt++;
             }

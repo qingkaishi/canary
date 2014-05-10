@@ -44,6 +44,15 @@ Count how many functions that a function pointer may point to.
 * -dot-may-callgraph
 This option is used to print a call graph based on the alias analysis.
 
+* -alias-sets
+Outputs all alias sets.
+
+* -alias-sets-rel
+Print the relatoins between alias sets (dot style).
+
+* -escaped-alias-sets
+Output all thread escaped alias sets.
+
 * -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 
 multi-processor replay of concurrent java programs". Here is an example.
