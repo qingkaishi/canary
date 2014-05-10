@@ -10,6 +10,8 @@ access anomalies", etc. You can read them for details.
 
 Please use canary with llvm-3.4.
 
+We have builted and tested it on *32-bit* x86 linux architectures using
+gcc 4.8.2.
 
 Building Canary
 ------
