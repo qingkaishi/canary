@@ -17,6 +17,48 @@ cd $APP # e.g. aget
 ./bench -d # run it
 ```
 
+Description
+--------------------
+* aget
+
+AGET is a multithreaded HTTP -for now- download accelerator.
+
+* bbuf
+
+BBUF is a shared bounded buff implementation.
+
+* canneal
+
+CANNEAL uses cache-aware simulated annealing (SA) to minimize the routing 
+cost of a chip design. Canneal uses fine-grained parallelism with a 
+lock-free algorithm and a very aggressive synchronization strategy that is 
+based on data race recovery instead of avoidance.
+
+* pbzip2
+
+PBZIP2 is a parallel implementation of the bzip2 block-sorting file compressor 
+that uses pthreads.
+
+* pfscan
+
+PFSCAN is a parallel file scanner.
+
+* racey
+
+RACEY is a benchmark for deterministic replay systems firstly used in "A 'Flight 
+Data Recorder' for Enabling Full-system Multiprocessor Deterministic Replay; 
+in ISCA 2003"
+
+* simplerace
+
+SIMPLERACE is a simple racy program firstly used in "A trace simplification 
+technique for effective debugging of concurrent programs; in FSE 2010".
+
+* swarm
+
+SWARM is a parallel sort implementation.
+
+
 TODO
 -------------------------------
 * More benchmarks
