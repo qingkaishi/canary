@@ -21,7 +21,7 @@ Description
 --------------------
 * aget
 
-AGET is a multithreaded HTTP -for now- download accelerator.
+AGET is a multithreaded HTTP download accelerator.
 
 * bbuf
 
