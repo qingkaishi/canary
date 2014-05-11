@@ -217,7 +217,7 @@ long    SWARM_Scan_l(long   myval, reduce_t op, THREADED);
 double  SWARM_Scan_d(double myval, reduce_t op, THREADED);
 
 void  SWARM_Init(int*, char***);
-void  SWARM_Run(void *);
+void  SWARM_Run();
 void  SWARM_Finalize(void);
 void  SWARM_Cleanup(THREADED);
 
@@ -1527,85 +1527,6 @@ void SWARM_Init(int *argc, char* **argv)
     _swarm_init=1;
 }
 
-void SWARM_Run(void *start_routine) 
-{
-     int i, rc;
-     int *parg;
-     uthread_info_t *ti;
-     void *(*f)(void *);
-     
-     f = (void *(*)(void *))start_routine;
-     
-     if (!_swarm_init) 
-     {
-	  fprintf(stderr,"ERROR: SWARM_Init() not called\n");
-	  perror("SWARM_Run cannot call SWARM_Init()");
-     }
-     
-     ti = uthread_info;
-     
-     for (i=0 ; i<THREADS ; i++) 
-     {
-	  
-	  rc = pthread_create(spawn_thread + NOSHARE(i),
-#ifdef HAVE_PTHREAD_SCHED_SUPPORTED
-			      &pattr,
-#else
-			      NULL,
-#endif
-			      f,
-			      ti);
-
-	  if (rc != 0)
-	  {
-	       switch (rc)
-	       {
-	       case EAGAIN: 
-		    SWARM_error (__LINE__, "Run:pthread_create", 
-				 "not enough resources to create another thread");
-		    break;
-
-	       case EINVAL:
-		    SWARM_error (__LINE__, "Run:pthread_create", 
-				 "invalid thread attributes");
-		    break;
-
-	       case EPERM:
-		    SWARM_error (__LINE__, "Run:pthread_create", 
-				 "insufficient permissions for setting scheduling parameters or policy ");
-		    break;
-
-	       default:
-		    SWARM_error (__LINE__, "Run:pthread_create", "error code %d", rc);
-	       }
-	  }
-			 
-	  ti += NOSHARE(1);
-     }
-     
-     for (i=0 ; i<THREADS ; i++)
-     {
-	  rc = pthread_join(spawn_thread[NOSHARE(i)], (void *)&parg);
-	  if (rc != 0)
-	  {
-	       switch (rc)
-	       {
-	       case EINVAL:
-		    SWARM_error (__LINE__, "Run:pthread_join", "specified thread is not joinable");
-		    break;
-
-	       case ESRCH:
-		    SWARM_error (__LINE__, "Run:pthread_join", "cannot find thread");
-		    break;
-
-	       default:
-		    SWARM_error (__LINE__, "Run:pthread_join", "error code %d", rc);
-
-	       }
-	  }
-     }
-}
-
 void SWARM_Finalize(void) 
 {
      
@@ -2206,10 +2127,84 @@ static void *swarmtest(THREADED)
 int main(int argc, char **argv) 
 {
   SWARM_Init(&argc,&argv);
-  SWARM_Run((void *)swarmtest);
+  SWARM_Run();
   SWARM_Finalize();
   return 0;
 }
 
+void SWARM_Run() 
+{
+     int i, rc;
+     int *parg;
+     uthread_info_t *ti;
+   
+     if (!_swarm_init) 
+     {
+	  fprintf(stderr,"ERROR: SWARM_Init() not called\n");
+	  perror("SWARM_Run cannot call SWARM_Init()");
+     }
+     
+     ti = uthread_info;
+     
+     for (i=0 ; i<THREADS ; i++) 
+     {
+	  
+	  rc = pthread_create(spawn_thread + NOSHARE(i),
+#ifdef HAVE_PTHREAD_SCHED_SUPPORTED
+			      &pattr,
+#else
+			      NULL,
+#endif
+			      (void *(*)(void *))swarmtest,
+			      ti);
 
+	  if (rc != 0)
+	  {
+	       switch (rc)
+	       {
+	       case EAGAIN: 
+		    SWARM_error (__LINE__, "Run:pthread_create", 
+				 "not enough resources to create another thread");
+		    break;
+
+	       case EINVAL:
+		    SWARM_error (__LINE__, "Run:pthread_create", 
+				 "invalid thread attributes");
+		    break;
+
+	       case EPERM:
+		    SWARM_error (__LINE__, "Run:pthread_create", 
+				 "insufficient permissions for setting scheduling parameters or policy ");
+		    break;
+
+	       default:
+		    SWARM_error (__LINE__, "Run:pthread_create", "error code %d", rc);
+	       }
+	  }
+			 
+	  ti += NOSHARE(1);
+     }
+     
+     for (i=0 ; i<THREADS ; i++)
+     {
+	  rc = pthread_join(spawn_thread[NOSHARE(i)], (void *)&parg);
+	  if (rc != 0)
+	  {
+	       switch (rc)
+	       {
+	       case EINVAL:
+		    SWARM_error (__LINE__, "Run:pthread_join", "specified thread is not joinable");
+		    break;
+
+	       case ESRCH:
+		    SWARM_error (__LINE__, "Run:pthread_join", "cannot find thread");
+		    break;
+
+	       default:
+		    SWARM_error (__LINE__, "Run:pthread_join", "error code %d", rc);
+
+	       }
+	  }
+     }
+}
 
