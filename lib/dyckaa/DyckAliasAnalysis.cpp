@@ -283,19 +283,11 @@ namespace {
 
         iplist<GlobalVariable>::iterator git = module->global_begin();
         while (git != module->global_end()) {
-            if (!git->hasUnnamedAddr() && !git->isConstant()) {
+            if (!git->isConstant()) {
                 DyckVertex * rt = dyck_graph->retrieveDyckVertex(git).first->getRepresentative();
                 workStack.push(rt);
             }
             git++;
-        }
-        iplist<GlobalAlias>::iterator ait = module->alias_begin();
-        while (ait != module->alias_end()) {
-            if (!ait->hasUnnamedAddr()) {
-                DyckVertex * rt = dyck_graph->retrieveDyckVertex(ait).first->getRepresentative();
-                workStack.push(rt);
-            }
-            ait++;
         }
 
         iplist<Argument>& alt = func->getArgumentList();

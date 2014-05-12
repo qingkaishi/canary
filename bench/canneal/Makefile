@@ -14,7 +14,7 @@ all: annealer_thread.cpp rng.cpp netlist.cpp main.cpp netlist_elem.cpp
 	@$(CXX) $(CXXFLAGS)  netlist.cpp -c -o netlist.bc 
 	@$(CXX) $(CXXFLAGS)  main.cpp -c -o main.bc
 	@$(CXX) $(CXXFLAGS)  netlist_elem.cpp -c -o netlist_elem.bc  
-	@llvm-link *.bc -o canneal.bc
+	@llvm-link annealer_thread.bc rng.bc netlist.bc main.bc netlist_elem.bc -o canneal.bc
 
 clean:
 	@$(RM) *.bc *.o *.ll 
