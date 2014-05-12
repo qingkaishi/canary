@@ -150,6 +150,10 @@ void close_cache(void* log) {
     delete (Cache*) log;
 }
 
+void close_birthday_key(void* key) {
+    delete (size_t*) key;
+}
+
 extern "C" {
 
     void OnInit(unsigned svsNum) {
@@ -160,7 +164,7 @@ extern "C" {
         pthread_key_create(&rlog_key, close_read_log);
         pthread_key_create(&wlog_key, close_write_log);
         pthread_key_create(&address_birthday_map_key, close_map_log);
-        pthread_key_create(&birthday_key, NULL);
+        pthread_key_create(&birthday_key, close_birthday_key);
         pthread_key_create(&cache_key, close_cache);
 
         write_versions = new unsigned[svsNum];
