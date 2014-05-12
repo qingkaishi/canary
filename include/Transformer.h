@@ -45,7 +45,7 @@ public:
     Transformer(Module * m, set<Value*> * svs, unsigned psize);
 
     void transform(AliasAnalysis& AA);
-    
+
     /// the var agrs are the arguments of the call inst.
     /// the last one must be NULL, otherwise the behavior is not defined.
     CallInst* insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...);
@@ -87,7 +87,7 @@ public:
 
     virtual void transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
     }
-    
+
     virtual void transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) {
     }
 
@@ -102,8 +102,8 @@ public:
 
     virtual void transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
     }
-    
-    virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA){
+
+    virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
     }
 
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
@@ -120,11 +120,14 @@ public:
 
     virtual void transformSpecialFunctionInvoke(InvokeInst* ins, AliasAnalysis& AA) {
     }
-    
-    virtual void transformAddressInit(CallInst* ins, AliasAnalysis& AA){
+
+    virtual void transformAddressInit(CallInst* ins, AliasAnalysis& AA) {
     }
-    
-    virtual bool isInstrumentationFunction(Function *f){
+
+    virtual void transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
+    }
+
+    virtual bool isInstrumentationFunction(Function *f) {
         return false;
     }
 

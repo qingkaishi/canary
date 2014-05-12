@@ -226,6 +226,29 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
     return true;
 }
 
+void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA){
+    Value * val = alloca;
+    int svIdx = this->getValueIndex(val, AA);
+    if (svIdx == -1) return;
+    
+    Constant * nValue = (Constant*) alloca->getArraySize();
+    if(!nValue->getType()->isIntegerTy(POINTER_BIT_SIZE)){
+        nValue = ConstantExpr::getIntegerCast(nValue, LONG_TY(module), false);
+    }
+    
+    uint64_t size = AA.getTypeStoreSize(alloca->getAllocatedType());
+    ConstantInt* sizeValue = ConstantInt::get(LONG_TY(module), size);
+    
+    if(alloca->getType()->getPointerElementType()->isIntegerTy(8)){
+        this->insertCallInstBefore(firstNotAlloca, F_address_init, alloca, sizeValue, nValue, NULL);
+    }else{
+        CastInst * ci = CastInst::CreatePointerCast(alloca, VOID_PTR_TY(module), "", firstNotAlloca);
+        this->insertCallInstBefore(firstNotAlloca, F_address_init, ci, sizeValue, nValue, NULL);
+    }
+    
+    
+}
+
 /// such instructions need not synchronize
 /// in llvm, it firstly initialize a memory space
 /// and then store the address to a variable
@@ -247,7 +270,7 @@ void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysi
         sizeValue = inst->getArgOperand(1);
     }
 
-    if (sizeValue->getType()->isIntegerTy(32)) {
+    if (!sizeValue->getType()->isIntegerTy(POINTER_BIT_SIZE)) {
         CastInst* ci = CastInst::CreateIntegerCast(sizeValue, LONG_TY(module), false);
         ci->insertAfter(inst);
         sizeValue = ci;

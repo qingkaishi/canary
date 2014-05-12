@@ -117,6 +117,9 @@ void Transformer::transform(AliasAnalysis& AA) {
         if (!this->functionToTransform(&f)) {
             continue;
         }
+        
+        bool allocHasHandled = false;
+        vector<AllocaInst*> allocas;
         for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
             BasicBlock &b = *iterB;
             if (!this->blockToTransform(&b)) {
@@ -132,6 +135,20 @@ void Transformer::transform(AliasAnalysis& AA) {
 #ifdef TRANSFORMER_DEBUG
                 errs() << "Transforming: " << inst << "\n";
 #endif
+                
+                if(isa<AllocaInst>(inst)) {
+                    // record a vector
+                    allocas.push_back((AllocaInst*)&inst);
+                }
+                
+                if(!isa<AllocaInst>(inst) && !allocHasHandled) {
+                    allocHasHandled = true;
+                    
+                    for(unsigned i = 0; i<allocas.size(); i++){
+                        AllocaInst * a = allocas[i];
+                        this->transformAllocaInst(a, & inst, AA);
+                    }
+                }
 
                 if (isa<LoadInst>(inst)) {
                     this->transformLoadInst((LoadInst*) & inst, AA);

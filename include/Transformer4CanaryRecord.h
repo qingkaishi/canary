@@ -48,6 +48,7 @@ public:
     virtual bool isInstrumentationFunction(Function *f);
     
     virtual void transformAddressInit(CallInst* ins, AliasAnalysis& AA);
+    virtual void transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA);
     
 private:
 
