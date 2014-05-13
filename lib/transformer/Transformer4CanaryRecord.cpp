@@ -101,6 +101,11 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
             VOID_TY(m),
             THREAD_PTR_TY(m), BOOL_TY(m),
             NULL));
+    
+    F_join = cast<Function>(m->getOrInsertFunction("OnJoin",
+            VOID_TY(m),
+            LONG_TY(m), BOOL_TY(m),
+            NULL));
 
     F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
             VOID_TY(m),
@@ -332,6 +337,11 @@ void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalys
     ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
     this->insertCallInstBefore(ins, F_prefork, tmp, NULL);
     this->insertCallInstAfter(ins, F_fork, ins->getArgOperand(0), tmp, NULL);
+}
+
+void Transformer4CanaryRecord::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
+    ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
+    this->insertCallInstAfter(ins, F_join, ins->getArgOperand(0), tmp, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) {

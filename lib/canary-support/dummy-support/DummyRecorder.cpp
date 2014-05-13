@@ -63,5 +63,7 @@ extern "C" {
     void OnFork(pthread_t* forked_tid_ptr, bool race) {
     }
 
+    void OnJoin(pthread_t tid, bool race) {
+    }
 
 }

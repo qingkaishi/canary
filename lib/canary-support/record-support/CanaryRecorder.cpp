@@ -6,6 +6,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <set>
 
 #include <boost/unordered_map.hpp>
 
@@ -89,9 +90,9 @@ static boost::unordered_map<pthread_t, l_wlog_t*> wlogs;
 static boost::unordered_map<pthread_t, l_addmap_t*> addlogs;
 
 /*
- * start to record?
+ * set of active threads, not the original tid
  */
-static bool start = false;
+static std::set<unsigned> active_threads;
 
 /*
  * number of shared variables
@@ -177,22 +178,23 @@ extern "C" {
 
         // main thread.
         pthread_t tid = pthread_self();
+        active_threads.insert(thread_ht.size());
         thread_ht[tid] = thread_ht.size();
-
+        
 #ifdef NO_TIME_CMD
         gettimeofday(&tpstart, NULL);
 #endif
     }
 
     void OnExit() {
-        start = false;
-
 #ifdef NO_TIME_CMD
         gettimeofday(&tpend, NULL);
         double timeuse = 1000000 * (tpend.tv_sec - tpstart.tv_sec) + tpend.tv_usec - tpstart.tv_usec;
         timeuse /= 1000;
         printf("processor time is %lf ms\n", timeuse);
 #endif
+        active_threads.clear();
+        
         printf("OnExit-Record\n");
 
         // dump, delete/free is not needed, because program will exit.
@@ -287,10 +289,6 @@ extern "C" {
     }
 
     void OnAddressInit(void* value, size_t size, size_t n) {
-        if (!start) {
-            return;
-        }
-
         l_addmap_t * mlog = (l_addmap_t*) pthread_getspecific(address_birthday_map_key);
         if (mlog == NULL) {
             mlog = new l_addmap_t;
@@ -313,7 +311,7 @@ extern "C" {
     }
 
     void OnLoad(int svId, long address, long value, int debug) {
-        if (!start) {
+        if (active_threads.size() <= 1) {
             return;
         }
 
@@ -345,7 +343,7 @@ extern "C" {
     }
 
     unsigned OnPreStore(int svId, int debug) {
-        if (!start) {
+        if (active_threads.size() <= 1) {
             return 0;
         }
 
@@ -360,7 +358,7 @@ extern "C" {
     }
 
     void OnStore(int svId, unsigned version, long address, long value, int debug) {
-        if (!start) {
+        if (active_threads.size() <= 1) {
             return;
         }
 #ifdef DEBUG
@@ -385,7 +383,7 @@ extern "C" {
     }
 
     void OnLock(pthread_mutex_t* mutex_ptr) {
-        if (!start) {
+        if (active_threads.size() <= 1) {
             return;
         }
 
@@ -409,7 +407,7 @@ extern "C" {
     }
 
     void OnWait(pthread_cond_t* cond_ptr, pthread_mutex_t* mutex_ptr) {
-        if (!start) {
+        if (active_threads.size() <= 1) {
             return;
         }
 #ifdef DEBUG
@@ -426,7 +424,7 @@ extern "C" {
     }
 
     void OnPreMutexInit(bool race) {
-        if (start && race) {
+        if (active_threads.size() > 1 && race) {
             mutexInitLock();
         }
     }
@@ -439,7 +437,7 @@ extern "C" {
         llogs.push_back(llog);
 
 
-        if (start && race) {
+        if (active_threads.size() > 1 && race) {
             pthread_t tid = pthread_self();
             mlog.logValue(tid);
 
@@ -448,20 +446,14 @@ extern "C" {
     }
 
     void OnPreFork(bool race) {
-        if (!start) {
-            start = true;
-        }
 #ifdef DEBUG
         printf("OnPreFork\n");
 #endif
         if (race) forkLock();
+        active_threads.insert(thread_ht.size());
     }
 
     void OnFork(pthread_t* forked_tid_ptr, bool race) {
-        if (!start) {
-            return;
-        }
-
 #ifdef DEBUG
         printf("OnFork\n");
 #endif
@@ -478,8 +470,14 @@ extern "C" {
             forkUnlock();
         }
     }
-
-
+    
+    void OnJoin(pthread_t tid, bool race){
+        if(race){
+            forkLock();
+            active_threads.erase(thread_ht[tid]);
+            forkUnlock();
+        }
+    }
 }
 
 /* ************************************************************************

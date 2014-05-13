@@ -16,7 +16,7 @@ private:
 
     Function *F_load, *F_prestore, *F_store;
     Function *F_lock;
-    Function *F_prefork, *F_fork;
+    Function *F_prefork, *F_fork, *F_join;
     Function *F_premutexinit, *F_mutexinit;
     Function *F_wait;
     Function *F_init, *F_exit, *F_address_init;
@@ -40,6 +40,7 @@ public:
     virtual void transformLoadInst(LoadInst* ins, AliasAnalysis& AA) ;
     virtual void transformStoreInst(StoreInst* ins, AliasAnalysis& AA) ;
     virtual void transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) ;
+    virtual void transformPthreadJoin(CallInst* ins, AliasAnalysis& AA);
     virtual void transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) ;

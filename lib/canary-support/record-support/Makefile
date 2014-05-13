@@ -16,11 +16,8 @@ LIBRARYNAME=canaryrecord
 #
 include $(LEVEL)/Makefile.common
 
-ifeq (${TIME}, 1)
-    CFLAGS += -DNO_TIME_CMD
-    CXXFLAGS += -DNO_TIME_CMD
-endif
-
+CFLAGS += -DNO_TIME_CMD
+CXXFLAGS += -DNO_TIME_CMD
 
 ifeq (${DEBUG}, 1)
     CFLAGS += -DDEBUG
