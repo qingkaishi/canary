@@ -650,7 +650,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 
             DyckVertex* src_ver = addPtrTo(src_ptr_ver, NULL);
             DyckVertex* dst_ver = addPtrTo(dst_ptr_ver, NULL);
-
+            
             makeAlias(src_ver, dst_ver);
         }
             break;
@@ -1165,7 +1165,14 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
         {
             if (functionName == "strcat" || functionName == "strcpy") {
                 if (ret != NULL){
-                    this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
+                    DyckVertex * dst_ptr = wrapValue(args->at(0));
+                    DyckVertex * src_ptr = wrapValue(args->at(1));
+                    
+                    DyckVertex* dst_val = addPtrTo(dst_ptr, NULL);
+                    DyckVertex* src_val = addPtrTo(src_ptr, NULL);
+                    
+                    this->makeAlias(dst_val, src_val);
+                    this->makeAlias(wrapValue(ret), dst_ptr);
                 } else{
                     errs()<< "ERROR strcat/cpy does not return.\n";
                     exit(1);
@@ -1177,7 +1184,14 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
         {
             if (functionName == "strncat" || functionName == "strncpy") {
                 if (ret != NULL){
-                    this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
+                    DyckVertex * dst_ptr = wrapValue(args->at(0));
+                    DyckVertex * src_ptr = wrapValue(args->at(1));
+                    
+                    DyckVertex* dst_val = addPtrTo(dst_ptr, NULL);
+                    DyckVertex* src_val = addPtrTo(src_ptr, NULL);
+                    
+                    this->makeAlias(dst_val, src_val);
+                    this->makeAlias(wrapValue(ret), dst_ptr);
                 } else{
                     errs()<< "ERROR strncat/cpy does not return.\n";
                     exit(1);
