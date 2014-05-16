@@ -283,10 +283,10 @@ namespace {
 
         iplist<GlobalVariable>::iterator git = module->global_begin();
         while (git != module->global_end()) {
-            if (!git->isConstant()) {
-                DyckVertex * rt = dyck_graph->retrieveDyckVertex(git).first->getRepresentative();
-                workStack.push(rt);
-            }
+            //if (!git->isConstant()) {
+            DyckVertex * rt = dyck_graph->retrieveDyckVertex(git).first->getRepresentative();
+            workStack.push(rt);
+            //}
             git++;
         }
 
@@ -531,7 +531,7 @@ namespace {
 
                 svsIt++;
             }
-            outs() << "Shared variable groups number: " << llvm_svs.size() << "\n";
+            
 
             unsigned ptrsize = this->getDataLayout()->getPointerSize();
 

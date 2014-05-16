@@ -60,13 +60,6 @@ static bool IS_LIB_FILE(std::string & filename) {
 int Transformer4CanaryRecord::stmt_idx = 0;
 
 Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
-    int idx = 0;
-    set<Value*>::iterator it = sharedVariables->begin();
-    while (it != sharedVariables->end()) {
-        sv_idx_map.insert(pair<Value *, int>(*it, idx++));
-        it++;
-    }
-
     ///initialize functions
     F_init = cast<Function>(m->getOrInsertFunction("OnInit",
             VOID_TY(m),
@@ -179,9 +172,11 @@ void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
 void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
-        ConstantInt* tmp = ConstantInt::get(INT_TY(module), sharedVariables->size());
+        ConstantInt* tmp = ConstantInt::get(INT_TY(module), sv_idx_map.size());
         this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, NULL);
+        
+        outs() << "Shared variable groups number: " << sv_idx_map.size() << "\n";
 
         bool has_mutex_anon = (MUTEX_ANON_TY(module) != NULL);
         iplist<GlobalVariable>::iterator git = module->global_begin();
@@ -393,11 +388,27 @@ bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
 // private functions
 
 int Transformer4CanaryRecord::getValueIndex(Value* v, AliasAnalysis & AA) {
+    v = v->stripPointerCastsNoFollowAliases();
+    while(isa<GlobalAlias>(v)){
+        // aliase can be either global or bitcast of global
+        v = ((GlobalAlias*)v)->getAliasee()->stripPointerCastsNoFollowAliases();
+    }
+    
+    if(isa<GlobalVariable>(v) && ((GlobalVariable*)v)->isConstant()){
+        return -1;
+    }
+    
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
         Value * rep = *it;
         if (AA.alias(v, rep) != AliasAnalysis::NoAlias) {
-            return sv_idx_map[rep];
+            if(sv_idx_map.count(rep)){
+                return sv_idx_map[rep];
+            } else {
+                int idx = sv_idx_map.size();
+                sv_idx_map.insert(pair<Value*, int>(rep, idx));
+                return idx;
+            }
         }
         it++;
     }
