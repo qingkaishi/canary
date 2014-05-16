@@ -8,13 +8,6 @@
 #define FUNCTION_2MEM_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
 
 Transformer4Trace::Transformer4Trace(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
-    int idx = 0;
-    set<Value*>::iterator it = sharedVariables->begin();
-    while (it != sharedVariables->end()) {
-        sv_idx_map.insert(pair<Value *, int>(*it, idx++));
-        it++;
-    }
-
     ///initialize functions
     // do not remove context, it is used in the macro FUNCTION_ARG_TYPE
     LLVMContext& context = m->getContext();
@@ -422,11 +415,27 @@ bool Transformer4Trace::isInstrumentationFunction(Function* called) {
 // private functions
 
 int Transformer4Trace::getValueIndex(Value* v, AliasAnalysis & AA) {
+    v = v->stripPointerCastsNoFollowAliases();
+    while(isa<GlobalAlias>(v)){
+        // aliase can be either global or bitcast of global
+        v = ((GlobalAlias*)v)->getAliasee()->stripPointerCastsNoFollowAliases();
+    }
+    
+    if(isa<GlobalVariable>(v) && ((GlobalVariable*)v)->isConstant()){
+        return -1;
+    }
+    
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
         Value * rep = *it;
         if (AA.alias(v, rep) != AliasAnalysis::NoAlias) {
-            return sv_idx_map[rep];
+            if(sv_idx_map.count(rep)){
+                return sv_idx_map[rep];
+            } else {
+                int idx = sv_idx_map.size();
+                sv_idx_map.insert(pair<Value*, int>(rep, idx));
+                return idx;
+            }
         }
         it++;
     }

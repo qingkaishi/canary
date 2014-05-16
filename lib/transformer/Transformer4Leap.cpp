@@ -11,13 +11,6 @@
 int Transformer4Leap::stmt_idx = 0;
 
 Transformer4Leap::Transformer4Leap(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
-    int idx = 0;
-    set<Value*>::iterator it = sharedVariables->begin();
-    while (it != sharedVariables->end()) {
-        sv_idx_map.insert(pair<Value *, int>(*it, idx++));
-        it++;
-    }
-
     ///initialize functions
     // do not remove context, it is used in the macro FUNCTION_ARG_TYPE
     LLVMContext& context = m->getContext();
@@ -63,7 +56,7 @@ void Transformer4Leap::beforeTransform(AliasAnalysis& AA) {
 void Transformer4Leap::afterTransform(AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
-        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
+        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sv_idx_map->size());
         this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, tmp, NULL);
     }
@@ -350,11 +343,27 @@ bool Transformer4Leap::isInstrumentationFunction(Function * called){
 // private functions
 
 int Transformer4Leap::getValueIndex(Value* v, AliasAnalysis & AA) {
+    v = v->stripPointerCastsNoFollowAliases();
+    while(isa<GlobalAlias>(v)){
+        // aliase can be either global or bitcast of global
+        v = ((GlobalAlias*)v)->getAliasee()->stripPointerCastsNoFollowAliases();
+    }
+    
+    if(isa<GlobalVariable>(v) && ((GlobalVariable*)v)->isConstant()){
+        return -1;
+    }
+    
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
         Value * rep = *it;
         if (AA.alias(v, rep) != AliasAnalysis::NoAlias) {
-            return sv_idx_map[rep];
+            if(sv_idx_map.count(rep)){
+                return sv_idx_map[rep];
+            } else {
+                int idx = sv_idx_map.size();
+                sv_idx_map.insert(pair<Value*, int>(rep, idx));
+                return idx;
+            }
         }
         it++;
     }
