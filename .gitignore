@@ -11,3 +11,4 @@ config.status
 Makefile.common
 Makefile.llvm.config
 *.exe
+*.swp
