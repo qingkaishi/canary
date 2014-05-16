@@ -56,7 +56,7 @@ void Transformer4Leap::beforeTransform(AliasAnalysis& AA) {
 void Transformer4Leap::afterTransform(AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
-        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sv_idx_map->size());
+        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sv_idx_map.size());
         this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, tmp, NULL);
     }
