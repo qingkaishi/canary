@@ -94,7 +94,7 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
             VOID_TY(m),
             THREAD_PTR_TY(m), BOOL_TY(m),
             NULL));
-    
+
     F_join = cast<Function>(m->getOrInsertFunction("OnJoin",
             VOID_TY(m),
             LONG_TY(m), BOOL_TY(m),
@@ -132,6 +132,11 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
     } else {
         errs() << "No pthread_mutex_t type is detected, which means no synchronization.\n";
     }
+}
+
+Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, map<Value*, set<Value*>*> * addmap, unsigned psize) : Transformer4CanaryRecord(m, svs, psize) {
+    this->local_variables = lvs;
+    this->address_map = addmap;
 }
 
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
@@ -175,7 +180,7 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
         ConstantInt* tmp = ConstantInt::get(INT_TY(module), sv_idx_map.size());
         this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, NULL);
-        
+
         outs() << "Shared variable groups number: " << sv_idx_map.size() << "\n";
 
         bool has_mutex_anon = (MUTEX_ANON_TY(module) != NULL);
@@ -226,27 +231,27 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
     return true;
 }
 
-void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA){
-    Value * val = alloca;
-    int svIdx = this->getValueIndex(val, AA);
-    if (svIdx == -1) return;
-    
+void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
+    if (!this->spaceAllocShouldBeTransformed(alloca, AA)) {
+        return;
+    }
+
     Constant * nValue = (Constant*) alloca->getArraySize();
-    if(!nValue->getType()->isIntegerTy(POINTER_BIT_SIZE)){
+    if (!nValue->getType()->isIntegerTy(POINTER_BIT_SIZE)) {
         nValue = ConstantExpr::getIntegerCast(nValue, LONG_TY(module), false);
     }
-    
+
     uint64_t size = AA.getTypeStoreSize(alloca->getAllocatedType());
     ConstantInt* sizeValue = ConstantInt::get(LONG_TY(module), size);
-    
-    if(alloca->getType()->getPointerElementType()->isIntegerTy(8)){
+
+    if (alloca->getType()->getPointerElementType()->isIntegerTy(8)) {
         this->insertCallInstBefore(firstNotAlloca, F_address_init, alloca, sizeValue, nValue, NULL);
-    }else{
+    } else {
         CastInst * ci = CastInst::CreatePointerCast(alloca, VOID_PTR_TY(module), "", firstNotAlloca);
         this->insertCallInstBefore(firstNotAlloca, F_address_init, ci, sizeValue, nValue, NULL);
     }
-    
-    
+
+
 }
 
 /// such instructions need not synchronize
@@ -255,9 +260,9 @@ void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instructi
 /// so, we need care about store inst
 
 void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA) {
-    Value * val = inst;
-    int svIdx = this->getValueIndex(val, AA);
-    if (svIdx == -1) return;
+    if (!this->spaceAllocShouldBeTransformed(inst, AA)) {
+        return;
+    }
 
     Instruction * tmp = inst;
 
@@ -281,7 +286,7 @@ void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysi
 
 void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
     CastInst* ci = NULL;
@@ -305,7 +310,7 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
 
 void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(1);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
     CastInst* ci = NULL;
@@ -347,7 +352,7 @@ void Transformer4CanaryRecord::transformPthreadMutexInit(CallInst* ins, AliasAna
 
 void Transformer4CanaryRecord::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
     this->insertCallInstAfter(ins, F_lock, ins->getArgOperand(0), NULL);
@@ -355,7 +360,7 @@ void Transformer4CanaryRecord::transformPthreadMutexLock(CallInst* ins, AliasAna
 
 void Transformer4CanaryRecord::transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
     // F_wait need two more arguments, cond*, mutex*
@@ -364,7 +369,7 @@ void Transformer4CanaryRecord::transformPthreadCondWait(CallInst* ins, AliasAnal
 
 void Transformer4CanaryRecord::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
     // F_wait need two more arguments, cond*, mutex*
@@ -373,6 +378,10 @@ void Transformer4CanaryRecord::transformPthreadCondTimeWait(CallInst* ins, Alias
 
 void Transformer4CanaryRecord::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
     this->insertCallInstBefore(ins, F_exit, NULL);
+}
+
+void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, AliasAnalysis& AA) {
+    /// @TODO extern call, record the returned value
 }
 
 bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
@@ -387,22 +396,22 @@ bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
 
 // private functions
 
-int Transformer4CanaryRecord::getValueIndex(Value* v, AliasAnalysis & AA) {
+int Transformer4CanaryRecord::getSharedValueIndex(Value* v, AliasAnalysis & AA) {
     v = v->stripPointerCastsNoFollowAliases();
-    while(isa<GlobalAlias>(v)){
-        // aliase can be either global or bitcast of global
-        v = ((GlobalAlias*)v)->getAliasee()->stripPointerCastsNoFollowAliases();
+    while (isa<GlobalAlias>(v)) {
+        // aliasee can be either global or bitcast of global
+        v = ((GlobalAlias*) v)->getAliasee()->stripPointerCastsNoFollowAliases();
     }
-    
-    if(isa<GlobalVariable>(v) && ((GlobalVariable*)v)->isConstant()){
+
+    if (isa<GlobalVariable>(v) && ((GlobalVariable*) v)->isConstant()) {
         return -1;
     }
-    
+
     set<Value*>::iterator it = sharedVariables->begin();
     while (it != sharedVariables->end()) {
         Value * rep = *it;
         if (AA.alias(v, rep) != AliasAnalysis::NoAlias) {
-            if(sv_idx_map.count(rep)){
+            if (sv_idx_map.count(rep)) {
                 return sv_idx_map[rep];
             } else {
                 int idx = sv_idx_map.size();
@@ -414,4 +423,57 @@ int Transformer4CanaryRecord::getValueIndex(Value* v, AliasAnalysis & AA) {
     }
 
     return -1;
+}
+
+int Transformer4CanaryRecord::getLocalValueIndex(Value* v, AliasAnalysis& AA) {
+    v = v->stripPointerCastsNoFollowAliases();
+    while (isa<GlobalAlias>(v)) {
+        // aliasee can be either global or bitcast of global
+        v = ((GlobalAlias*) v)->getAliasee()->stripPointerCastsNoFollowAliases();
+    }
+
+    if (isa<GlobalVariable>(v) && ((GlobalVariable*) v)->isConstant()) {
+        return -1;
+    }
+
+    if (getSharedValueIndex(v, AA) != -1) {
+        return -1;
+    }
+
+    set<Value*>::iterator it = local_variables->begin();
+    while (it != local_variables->end()) {
+        Value * rep = *it;
+        if (AA.alias(v, rep) != AliasAnalysis::NoAlias) {
+            if (lv_idx_map.count(rep)) {
+                return lv_idx_map[rep];
+            } else {
+                int idx = lv_idx_map.size();
+                lv_idx_map.insert(pair<Value*, int>(rep, idx));
+                return idx;
+            }
+        }
+        it++;
+    }
+
+    return -1;
+}
+
+bool Transformer4CanaryRecord::spaceAllocShouldBeTransformed(Instruction* inst, AliasAnalysis & AA) {
+    if (!address_map->count(inst)) {
+        errs() << "Error during transform space alloc instructions\n";
+        exit(1);
+    }
+    set<Value*>* ess = address_map[inst];
+    set<Value*>::iterator eit = ess ->begin();
+    while (eit != ess->end()) {
+        Value *e = *eit;
+
+        if (getSharedValueIndex(e, AA) != -1 || getLocalValueIndex(e, AA) != -1) {
+            return true;
+        }
+
+        eit++;
+    }
+
+    return false;
 }
