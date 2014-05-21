@@ -21,9 +21,12 @@ private:
     Function *F_premutexinit, *F_mutexinit;
     Function *F_wait;
     Function *F_init, *F_exit, *F_address_init;
+    Function *F_local;
 private:
     static int stmt_idx;
     set<Function*> ignored_funcs;
+    
+    set<Function*> extern_lib_funcs;
     
     set<Value*>* local_variables;
     map<Value*, set<Value*>*> * address_map;
@@ -62,6 +65,8 @@ private:
     int getSharedValueIndex(Value * v, AliasAnalysis& AA);
     int getLocalValueIndex(Value * v, AliasAnalysis& AA);
     bool spaceAllocShouldBeTransformed(Instruction* inst, AliasAnalysis & AA);
+    
+    void initializeFunctions(Module * m);
 };
 
 

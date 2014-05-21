@@ -666,6 +666,9 @@ namespace {
             set<DyckVertex*> svs;
             this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
             fromDyckVertexToValue(svs, llvm_svs);
+            
+            map<Value *, set<Value*>* > address_map;
+            set<Value *> llvm_lvs;
 
             Transformer * robot = NULL;
             if (LeapTransformer) {
@@ -675,8 +678,6 @@ namespace {
                 robot = new Transformer4Trace(&M, &llvm_svs, this->getDataLayout()->getPointerSize());
                 outs() << ("Start transforming using trace-transformer ...\n");
             } else if (CanaryRecordTransformer || CanaryReplayTransformer) {
-                set<Value *> llvm_lvs;
-                map<Value *, set<Value*>* > address_map;
                 for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
                     Function* f = iterF;
 
@@ -761,8 +762,8 @@ namespace {
 
                 outs() << llvm_lvs.size() << "\n";
 
+                set<Value *> tmp_lvs;
                 unsigned total = 0;
-                unsigned pp = 0;
                 set<Value *>::iterator Lit = llvm_lvs.begin();
                 while (Lit != llvm_lvs.end()) {
                     set<DyckVertex*>* eset = dyck_graph->retrieveDyckVertex(*Lit).first->getEquivalentSet();
@@ -771,8 +772,8 @@ namespace {
                         DyckVertex* e = *eit;
                         Value * ev = ((Value*) e->getValue());
                         if (ev != NULL && !isa<Constant>(ev) && !isa<Argument>(ev)) {
-                            outs() << *ev << "\n";
-                            pp++;
+                            tmp_lvs.insert(ev);
+                            //outs() << *ev << "\n";
                             total = total + ev->getNumUses();
                         }
 
@@ -781,8 +782,11 @@ namespace {
 
                     Lit++;
                 }
+                llvm_lvs.clear();
+                llvm_lvs.insert(tmp_lvs.begin(), tmp_lvs.end());
+                tmp_lvs.clear();
                 outs() << total << "\n";
-                outs() << pp << "\n";
+                outs() << llvm_lvs.size() << "\n";
 
                 if (CanaryRecordTransformer) {
                     robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &address_map, this->getDataLayout()->getPointerSize());
@@ -793,12 +797,6 @@ namespace {
                     robot = new Transformer4CanaryReplay(&M, &llvm_svs, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-replay-transformer ...\n");
                 }
-
-                map<Value *, set<Value*>* >::iterator mit = address_map.begin();
-                while (mit != address_map.end()) {
-                    delete mit->second;
-                    mit++;
-                }
             } else {
                 errs() << "Error: unknown transformer\n";
                 exit(1);
@@ -806,6 +804,12 @@ namespace {
 
             robot->transform(*this);
             outs() << "Done!\n\n";
+
+            map<Value *, set<Value*>* >::iterator mit = address_map.begin();
+            while (mit != address_map.end()) {
+                delete mit->second;
+                mit++;
+            }
 
 
             if (LeapTransformer) {

@@ -57,84 +57,39 @@ static bool IS_LIB_FILE(std::string & filename) {
     return false;
 }
 
+static bool IS_SPECIAL_FUNC(Function * f) {
+    std::string name = f->getName().str();
+    return name.find("pthread") == 0 || name == "exit"
+            || name == "calloc" || name == "malloc"
+            || name == "realloc" || name == "_Znaj"
+            || name == "_ZnajRKSt9nothrow_t" || name == "_Znam"
+            || name == "_ZnamRKSt9nothrow_t" || name == "_Znwj"
+            || name == "_ZnwjRKSt9nothrow_t" || name == "_Znwm"
+            || name == "_ZnwmRKSt9nothrow_t";
+}
+
 int Transformer4CanaryRecord::stmt_idx = 0;
 
 Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
-    ///initialize functions
-    F_init = cast<Function>(m->getOrInsertFunction("OnInit",
-            VOID_TY(m),
-            INT_TY(m),
-            NULL));
-
-    F_exit = cast<Function>(m->getOrInsertFunction("OnExit",
-            VOID_TY(m),
-            NULL));
-
-    F_load = cast<Function>(m->getOrInsertFunction("OnLoad",
-            VOID_TY(m),
-            INT_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m),
-            NULL));
-
-    F_prestore = cast<Function>(m->getOrInsertFunction("OnPreStore",
-            INT_TY(m),
-            INT_TY(m), INT_TY(m),
-            NULL));
-
-    F_store = cast<Function>(m->getOrInsertFunction("OnStore",
-            VOID_TY(m),
-            INT_TY(m), INT_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m),
-            NULL));
-
-    F_prefork = cast<Function>(m->getOrInsertFunction("OnPreFork",
-            VOID_TY(m),
-            BOOL_TY(m),
-            NULL));
-
-    F_fork = cast<Function>(m->getOrInsertFunction("OnFork",
-            VOID_TY(m),
-            THREAD_PTR_TY(m), BOOL_TY(m),
-            NULL));
-
-    F_join = cast<Function>(m->getOrInsertFunction("OnJoin",
-            VOID_TY(m),
-            LONG_TY(m), BOOL_TY(m),
-            NULL));
-
-    F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
-            VOID_TY(m),
-            VOID_PTR_TY(m), LONG_TY(m), LONG_TY(m), // ptr, size, n
-            NULL));
-
-    if (MUTEX_TY(m) != NULL) {
-        F_lock = cast<Function>(m->getOrInsertFunction("OnLock",
-                VOID_TY(m),
-                MUTEX_PTR_TY(m),
-                NULL));
-
-        F_premutexinit = cast<Function>(m->getOrInsertFunction("OnPreMutexInit",
-                VOID_TY(m),
-                BOOL_TY(m),
-                NULL));
-
-        F_mutexinit = cast<Function>(m->getOrInsertFunction("OnMutexInit",
-                VOID_TY(m),
-                MUTEX_PTR_TY(m), BOOL_TY(m),
-                NULL));
-
-        if (CONDN_TY(m) != NULL) {
-            F_wait = cast<Function>(m->getOrInsertFunction("OnWait",
-                    VOID_TY(m),
-                    CONDN_PTR_TY(m), MUTEX_PTR_TY(m),
-                    NULL));
-        } else {
-            errs() << "No pthread_cond_t type is detected, which means no wait/signal.\n";
-        }
-    } else {
-        errs() << "No pthread_mutex_t type is detected, which means no synchronization.\n";
-    }
+    initializeFunctions(m);
 }
 
-Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, map<Value*, set<Value*>*> * addmap, unsigned psize) : Transformer4CanaryRecord(m, svs, psize) {
+Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, map<Value*, set<Value*>*> * addmap, unsigned psize) : Transformer(m, svs, psize) {
+    //Transformer4CanaryRecord::Transformer4CanaryRecord(m, svs, psize);
+    initializeFunctions(m);
+
+    for (ilist_iterator<Function> iterF = m->getFunctionList().begin(); iterF != m->getFunctionList().end(); iterF++) {
+        Function* f = iterF;
+
+        if (f->empty() && !f->isIntrinsic()
+                && !f->hasFnAttribute(Attribute::ReadOnly)
+                && !f->hasFnAttribute(Attribute::ReadNone)
+                && !(f->getArgumentList().empty() && f->getReturnType()->isVoidTy())
+                && !IS_SPECIAL_FUNC(f)) {
+            extern_lib_funcs.insert(f);
+        }
+    }
+
     this->local_variables = lvs;
     this->address_map = addmap;
 }
@@ -171,6 +126,69 @@ void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
     if (always_ignored) {
         errs() << "ERROR: nothing to be instrumented.\nPROMPT: it seems -g should be used at compile time.\n";
         exit(1);
+    }
+
+    // instrument instructions that use locals affected by extern calls
+    /// @TODO
+    set<Value*>::iterator lit = local_variables->begin();
+    while (lit != local_variables->end()) {
+        Value* local = *lit;
+        
+        set<Value*> useSnapShot;
+        Value::use_iterator uit = local->use_begin();
+        while (uit != local->use_end()) {
+            useSnapShot.insert(*uit);
+            uit++;
+        }
+        // constant has been removed, here we need not do it again
+
+        set<Value*>::iterator ussit = useSnapShot.begin();
+        while (ussit != useSnapShot.end()) {
+            Instruction * inst = cast<Instruction>(*ussit);
+            if(inst == NULL){
+                ussit++;
+                continue;
+            }
+
+            bool t = false;
+            if (isa<CallInst>(inst)) {
+                Function* called = ((CallInst*) inst)->getCalledFunction();
+                if (called == NULL || !IS_SPECIAL_FUNC(called)) {
+                    //outs() << "[U] " << **ussit << "\n";
+                    t = true;
+                }
+            } else {
+                t = true;
+                //outs() << "[U] " << **ussit << "\n";
+                if (isa<PHINode>(inst)) {
+                    local = inst;
+                    while (isa<PHINode>(inst)) {
+                        inst = inst->getNextNode();
+                    }
+                    inst = inst->getPrevNode();
+                }
+            }
+            if (t) {
+                CastInst* ci = NULL;
+                if (local->getType()->isPointerTy()) {
+                    ci = CastInst::CreatePointerCast(local, LONG_TY(module));
+                } else if (!local->getType()->isIntegerTy()) {
+                    ci = CastInst::Create(Instruction::FPToUI, local, LONG_TY(module));
+                } else if (!local->getType()->isIntegerTy(POINTER_BIT_SIZE)) {
+                    ci = CastInst::CreateIntegerCast(local, LONG_TY(module), false);
+                }
+                if (ci != NULL) {
+                    ci->insertAfter(inst);
+                    this->insertCallInstAfter(ci, F_local, ci, NULL);
+                } else {
+                    this->insertCallInstAfter(inst, F_local, local, NULL);
+                }
+            }
+
+            ussit++;
+        }
+
+        lit++;
     }
 }
 
@@ -382,6 +400,47 @@ void Transformer4CanaryRecord::transformSystemExit(CallInst* ins, AliasAnalysis&
 
 void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, AliasAnalysis& AA) {
     /// @TODO extern call, record the returned value
+
+    if (inst->doesNotReturn()) return;
+
+    // if it is a extern lib call, it has return value, and the return value's use number > 0 
+    // record it
+    bool record = false;
+    Value* cv = inst->getCalledValue();
+    if (isa<Function>(cv) && !((Function*) cv)->isIntrinsic() && ((Function*) cv)->empty()) {
+        record = true;
+    } else {
+        set<Function*>::iterator fit = extern_lib_funcs.begin();
+        while (fit != extern_lib_funcs.end()) {
+            Function* f = *fit;
+            if (AA.alias(f, cv) && !f->getReturnType()->isVoidTy()) {
+                record = true;
+            }
+            fit++;
+        }
+    }
+
+    if (record && inst->getNumUses() > 0) {
+        // instrument it
+        // cast return value to i32/64, and record
+        /// @TODO
+        CastInst* ci = NULL;
+        if (inst->getType()->isPointerTy()) {
+            ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
+        } else if (!inst->getType()->isIntegerTy()) {
+            ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
+        } else if (!inst->getType()->isIntegerTy(POINTER_BIT_SIZE)) {
+            ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+        }
+        if (ci != NULL) {
+            ci->insertAfter(inst);
+            this->insertCallInstAfter(ci, F_local, ci, NULL);
+        } else {
+            this->insertCallInstAfter(inst, F_local, inst, NULL);
+        }
+
+        //outs() << "[C] " << *inst << "\n";
+    }
 }
 
 bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
@@ -389,7 +448,7 @@ bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
             || called == F_load
             || called == F_prestore || called == F_store
             || called == F_lock
-            || called == F_prefork || called == F_fork
+            || called == F_prefork || called == F_fork || called == F_join
             || called == F_wait
             || called == F_premutexinit || called == F_mutexinit;
 }
@@ -426,7 +485,10 @@ int Transformer4CanaryRecord::getSharedValueIndex(Value* v, AliasAnalysis & AA) 
 }
 
 int Transformer4CanaryRecord::getLocalValueIndex(Value* v, AliasAnalysis& AA) {
-    v = v->stripPointerCastsNoFollowAliases();
+    if (v->getType()->isPointerTy()) {
+        v = v->stripPointerCastsNoFollowAliases();
+    }
+
     while (isa<GlobalAlias>(v)) {
         // aliasee can be either global or bitcast of global
         v = ((GlobalAlias*) v)->getAliasee()->stripPointerCastsNoFollowAliases();
@@ -454,7 +516,6 @@ int Transformer4CanaryRecord::getLocalValueIndex(Value* v, AliasAnalysis& AA) {
         }
         it++;
     }
-
     return -1;
 }
 
@@ -463,7 +524,7 @@ bool Transformer4CanaryRecord::spaceAllocShouldBeTransformed(Instruction* inst, 
         errs() << "Error during transform space alloc instructions\n";
         exit(1);
     }
-    set<Value*>* ess = address_map[inst];
+    set<Value*>* ess = address_map->at(inst);
     set<Value*>::iterator eit = ess ->begin();
     while (eit != ess->end()) {
         Value *e = *eit;
@@ -476,4 +537,84 @@ bool Transformer4CanaryRecord::spaceAllocShouldBeTransformed(Instruction* inst, 
     }
 
     return false;
+}
+
+void Transformer4CanaryRecord::initializeFunctions(Module * m) {
+    ///initialize functions
+    F_init = cast<Function>(m->getOrInsertFunction("OnInit",
+            VOID_TY(m),
+            INT_TY(m),
+            NULL));
+
+    F_exit = cast<Function>(m->getOrInsertFunction("OnExit",
+            VOID_TY(m),
+            NULL));
+
+    F_load = cast<Function>(m->getOrInsertFunction("OnLoad",
+            VOID_TY(m),
+            INT_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m),
+            NULL));
+
+    F_prestore = cast<Function>(m->getOrInsertFunction("OnPreStore",
+            INT_TY(m),
+            INT_TY(m), INT_TY(m),
+            NULL));
+
+    F_store = cast<Function>(m->getOrInsertFunction("OnStore",
+            VOID_TY(m),
+            INT_TY(m), INT_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m),
+            NULL));
+
+    F_prefork = cast<Function>(m->getOrInsertFunction("OnPreFork",
+            VOID_TY(m),
+            BOOL_TY(m),
+            NULL));
+
+    F_fork = cast<Function>(m->getOrInsertFunction("OnFork",
+            VOID_TY(m),
+            THREAD_PTR_TY(m), BOOL_TY(m),
+            NULL));
+
+    F_join = cast<Function>(m->getOrInsertFunction("OnJoin",
+            VOID_TY(m),
+            LONG_TY(m), BOOL_TY(m),
+            NULL));
+
+    F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
+            VOID_TY(m),
+            VOID_PTR_TY(m), LONG_TY(m), LONG_TY(m), // ptr, size, n
+            NULL));
+
+    F_local = cast<Function>(m->getOrInsertFunction("OnLocal",
+            VOID_TY(m),
+            LONG_TY(m), // value
+            NULL));
+
+    if (MUTEX_TY(m) != NULL) {
+        F_lock = cast<Function>(m->getOrInsertFunction("OnLock",
+                VOID_TY(m),
+                MUTEX_PTR_TY(m),
+                NULL));
+
+        F_premutexinit = cast<Function>(m->getOrInsertFunction("OnPreMutexInit",
+                VOID_TY(m),
+                BOOL_TY(m),
+                NULL));
+
+        F_mutexinit = cast<Function>(m->getOrInsertFunction("OnMutexInit",
+                VOID_TY(m),
+                MUTEX_PTR_TY(m), BOOL_TY(m),
+                NULL));
+
+        if (CONDN_TY(m) != NULL) {
+            F_wait = cast<Function>(m->getOrInsertFunction("OnWait",
+                    VOID_TY(m),
+                    CONDN_PTR_TY(m), MUTEX_PTR_TY(m),
+                    NULL));
+        } else {
+            errs() << "No pthread_cond_t type is detected, which means no wait/signal.\n";
+        }
+    } else {
+        errs() << "No pthread_mutex_t type is detected, which means no synchronization.\n";
+    }
 }

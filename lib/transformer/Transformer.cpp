@@ -141,7 +141,9 @@ void Transformer::transform(AliasAnalysis& AA) {
                     allocas.push_back((AllocaInst*)&inst);
                 }
                 
-                if(!isa<AllocaInst>(inst) && !allocHasHandled) {
+                if(!isa<AllocaInst>(inst) 
+                        && !(isa<CallInst>(inst) && ((CallInst*)&inst)->getCalledFunction()!= NULL && ((CallInst*)&inst)->getCalledFunction()->isIntrinsic()) 
+                        && !allocHasHandled) {
                     allocHasHandled = true;
                     
                     for(unsigned i = 0; i<allocas.size(); i++){
