@@ -51,85 +51,22 @@ static bool IS_MUTEX_INIT_TY(Type* t, Module* m) {
     return false;
 }
 
-static bool IS_LIB_FILE(std::string & filename) {
-    if (filename.find("include/c++/") != std::string::npos) {
-        return true;
-    }
-
-    return false;
-}
-
-static bool IS_SPECIAL_FUNC(Function * f) {
-    std::string name = f->getName().str();
-    return name.find("pthread") == 0 || name == "exit"
-            || name == "calloc" || name == "malloc"
-            || name == "realloc" || name == "_Znaj"
-            || name == "_ZnajRKSt9nothrow_t" || name == "_Znam"
-            || name == "_ZnamRKSt9nothrow_t" || name == "_Znwj"
-            || name == "_ZnwjRKSt9nothrow_t" || name == "_Znwm"
-            || name == "_ZnwmRKSt9nothrow_t";
-}
-
 int Transformer4CanaryRecord::stmt_idx = 0;
 
 Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
     initializeFunctions(m);
 }
 
-Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, map<Value*, set<Value*>*> * addmap, unsigned psize) : Transformer(m, svs, psize) {
+Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, map<Value*, set<Value*>*> * addmap, set<Function*> * ex_libs, unsigned psize) : Transformer(m, svs, psize) {
     //Transformer4CanaryRecord::Transformer4CanaryRecord(m, svs, psize);
     initializeFunctions(m);
 
-    for (ilist_iterator<Function> iterF = m->getFunctionList().begin(); iterF != m->getFunctionList().end(); iterF++) {
-        Function* f = iterF;
-
-        if (f->empty() && !f->isIntrinsic() && !f->doesNotAccessMemory() && !f->onlyReadsMemory()
-                && !f->hasFnAttribute(Attribute::ReadOnly)
-                && !f->hasFnAttribute(Attribute::ReadNone)
-                && !(f->getArgumentList().empty() && f->getReturnType()->isVoidTy())
-                && !IS_SPECIAL_FUNC(f)) {
-            extern_lib_funcs.insert(f);
-        }
-    }
-
+    this->extern_lib_funcs = ex_libs;
     this->local_variables = lvs;
     this->address_map = addmap;
 }
 
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
-    bool always_ignored = true;
-    for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-        Function& f = *iterF;
-        bool ignored = true;
-        for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
-            BasicBlock &b = *iterB;
-            for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
-                Instruction &inst = *iterI;
-                MDNode* mdn = inst.getMetadata("dbg");
-                DILocation LOC(mdn);
-                std::string filename = LOC.getFilename().str();
-                if (filename != "" && !IS_LIB_FILE(filename)) {
-                    always_ignored = false;
-                    ignored = false;
-                    break;
-                }
-            }
-            if (!ignored) {
-                break;
-            }
-        }
-
-        if (!f.empty() && ignored) {
-            outs() << "[INFO] Ignore non-empty library function: " << f.getName() << "\n";
-            ignored_funcs.insert(&f);
-        }
-    }
-
-    if (always_ignored) {
-        errs() << "[ERROR] Nothing to be instrumented.\n[PROMPT] it seems -g should be used at compile time.\n";
-        exit(1);
-    }
-    
 }
 
 void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
@@ -181,7 +118,6 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
 
 bool Transformer4CanaryRecord::functionToTransform(Function* f) {
     return !f->isIntrinsic() && !f->empty()
-            && ignored_funcs.find(f) == ignored_funcs.end()
             && !this->isInstrumentationFunction(f);
 }
 
@@ -377,8 +313,8 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
     if (isa<Function>(cv) && !((Function*) cv)->isIntrinsic() && ((Function*) cv)->empty()) {
         record = true;
     } else {
-        set<Function*>::iterator fit = extern_lib_funcs.begin();
-        while (fit != extern_lib_funcs.end()) {
+        set<Function*>::iterator fit = extern_lib_funcs->begin();
+        while (fit != extern_lib_funcs->end()) {
             Function* f = *fit;
             if (AA.alias(f, cv) && !f->getReturnType()->isVoidTy()) {
                 cv = f;

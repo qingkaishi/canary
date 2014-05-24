@@ -47,11 +47,8 @@ This option is used to print a call graph based on the alias analysis.
 * -alias-sets
 Outputs all alias sets.
 
-* -alias-sets-rel
+* -dot-alias-sets
 Print the relatoins between alias sets (dot style).
-
-* -escaped-alias-sets
-Output all thread escaped alias sets.
 
 * -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 
