@@ -19,6 +19,7 @@
  * l_ means local log types, each thread has a log
  * g_ means global log types, each shared variable has a log
  * r  -> read 
+ * lr -> local read
  * w  -> write
  * l  -> lock
  * m  -> mutex init
@@ -33,6 +34,8 @@ typedef struct {
 } l_rlog_t;
 
 typedef VLastOnePredictorLog l_wlog_t;
+
+typedef LastOnePredictorLog<long> l_lrlog_t;
 
 typedef LastOnePredictorLog<pthread_t> g_llog_t;
 
@@ -53,6 +56,7 @@ typedef struct {
 /*
  * Define local log keys
  */
+static pthread_key_t lrlog_key;
 static pthread_key_t rlog_key;
 static pthread_key_t wlog_key;
 static pthread_key_t cache_key;
@@ -86,6 +90,7 @@ static unsigned mutex_id = 0;
 static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
 static boost::unordered_map<pthread_t, l_rlog_t*> rlogs;
+static boost::unordered_map<pthread_t, l_lrlog_t*> lrlogs;
 static boost::unordered_map<pthread_t, l_wlog_t*> wlogs;
 static boost::unordered_map<pthread_t, l_addmap_t*> addlogs;
 
@@ -98,6 +103,7 @@ static std::set<unsigned> active_threads;
  * number of shared variables
  */
 static unsigned num_shared_vars = 0;
+static unsigned num_local_vars = 0;
 
 #ifdef NO_TIME_CMD
 static struct timeval tpstart, tpend;
@@ -137,6 +143,11 @@ void close_read_log(void* log) {
     rlogs[tid] = (l_rlog_t*) log;
 }
 
+void close_local_read_log(void* log) {
+    pthread_t tid = pthread_self();
+    lrlogs[tid] = (l_lrlog_t*) log;
+}
+
 void close_write_log(void* log) {
     pthread_t tid = pthread_self();
     wlogs[tid] = (l_wlog_t*) log;
@@ -157,12 +168,14 @@ void close_birthday_key(void* key) {
 
 extern "C" {
 
-    void OnInit(unsigned svsNum) {
+    void OnInit(unsigned svsNum, unsigned lvsNum) {
         printf("OnInit-Record\n");
         num_shared_vars = svsNum;
+        num_local_vars = lvsNum;
         initializeSigRoutine();
 
         pthread_key_create(&rlog_key, close_read_log);
+        pthread_key_create(&lrlog_key, close_local_read_log);
         pthread_key_create(&wlog_key, close_write_log);
         pthread_key_create(&address_birthday_map_key, close_map_log);
         pthread_key_create(&birthday_key, close_birthday_key);
@@ -238,6 +251,23 @@ extern "C" {
             }
             fclose(fout);
         }
+        {//lrlog
+#ifdef DEBUG
+            printf("dumping lrlog...\n");
+#endif
+            FILE * fout = fopen("lread.dat", "wb");
+            boost::unordered_map<pthread_t, l_lrlog_t*>::iterator rit = lrlogs.begin();
+            while (rit != lrlogs.end()) {
+                l_lrlog_t* rlog = rit->second;
+                unsigned _tid = thread_ht[rit->first];
+                for(unsigned i = 0; i < num_local_vars; i++){
+                    rlog[i].dumpWithUnsigned(fout, _tid);
+                }
+                
+                rit++;
+            }
+            fclose(fout);
+        }
         {//wlog
 #ifdef DEBUG
             printf("dumping wlog...\n");
@@ -283,8 +313,8 @@ extern "C" {
         
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
-        system("zip -9 canary.zip ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat");
-        system("rm -f ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat");
+        system("zip -9 canary.zip ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat ./lread.dat");
+        system("rm -f ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat ./lread.dat");
         system("echo -n \"Log size (Byte): \"; echo -n `du -sb canary.zip` | cut -d\" \" -f 1;");
     }
 
@@ -308,6 +338,19 @@ extern "C" {
         mlog->ADDRESS_LOG.push_back(m);
         mlog->BIRTHDAY_LOG.logValue(c++);
         (*counter) = c;
+    }
+    
+    void OnLocal(long value, int id) {
+#ifdef DEBUG
+        printf("OnLocal %d\n", id);
+#endif
+        l_lrlog_t * rlog = (l_lrlog_t*) pthread_getspecific(lrlog_key);
+        if (rlog == NULL) {
+            rlog = new l_lrlog_t[num_local_vars];
+            pthread_setspecific(lrlog_key, rlog);
+        }
+        
+        rlog[id].logValue(value);
     }
 
     void OnLoad(int svId, long address, long value, int debug) {

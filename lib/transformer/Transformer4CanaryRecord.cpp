@@ -18,6 +18,8 @@
 #define MUTEX_PTR_TY(m) PointerType::get(MUTEX_TY(m), 0)
 #define CONDN_PTR_TY(m) PointerType::get(CONDN_TY(m), 0)
 
+static int extern_lib_num = 0;
+
 static bool IS_MUTEX_INIT_TY(Type* t, Module* m) {
     // PTHREAD_MUTEX_INITIALIZER
     // { { i32, i32, i32, i32, i32, { %struct.anon } } }
@@ -81,7 +83,7 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs
     for (ilist_iterator<Function> iterF = m->getFunctionList().begin(); iterF != m->getFunctionList().end(); iterF++) {
         Function* f = iterF;
 
-        if (f->empty() && !f->isIntrinsic()
+        if (f->empty() && !f->isIntrinsic() && !f->doesNotAccessMemory() && !f->onlyReadsMemory()
                 && !f->hasFnAttribute(Attribute::ReadOnly)
                 && !f->hasFnAttribute(Attribute::ReadNone)
                 && !(f->getArgumentList().empty() && f->getReturnType()->isVoidTy())
@@ -118,95 +120,37 @@ void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
         }
 
         if (!f.empty() && ignored) {
-            outs() << "Ignore library function: " << f.getName() << "\n";
+            outs() << "[INFO] Ignore non-empty library function: " << f.getName() << "\n";
             ignored_funcs.insert(&f);
         }
     }
 
     if (always_ignored) {
-        errs() << "ERROR: nothing to be instrumented.\nPROMPT: it seems -g should be used at compile time.\n";
+        errs() << "[ERROR] Nothing to be instrumented.\n[PROMPT] it seems -g should be used at compile time.\n";
         exit(1);
     }
-
-    // instrument instructions that use locals affected by extern calls
-    /// @TODO
-    set<Value*>::iterator lit = local_variables->begin();
-    while (lit != local_variables->end()) {
-        Value* local = *lit;
-        
-        set<Value*> useSnapShot;
-        Value::use_iterator uit = local->use_begin();
-        while (uit != local->use_end()) {
-            useSnapShot.insert(*uit);
-            uit++;
-        }
-        // constant has been removed, here we need not do it again
-
-        set<Value*>::iterator ussit = useSnapShot.begin();
-        while (ussit != useSnapShot.end()) {
-            Instruction * inst = cast<Instruction>(*ussit);
-            if(inst == NULL){
-                ussit++;
-                continue;
-            }
-
-            bool t = false;
-            if (isa<CallInst>(inst)) {
-                Function* called = ((CallInst*) inst)->getCalledFunction();
-                if (called == NULL || !IS_SPECIAL_FUNC(called)) {
-                    //outs() << "[U] " << **ussit << "\n";
-                    t = true;
-                }
-            } else {
-                t = true;
-                //outs() << "[U] " << **ussit << "\n";
-                if (isa<PHINode>(inst)) {
-                    local = inst;
-                    while (isa<PHINode>(inst)) {
-                        inst = inst->getNextNode();
-                    }
-                    inst = inst->getPrevNode();
-                }
-            }
-            if (t) {
-                CastInst* ci = NULL;
-                if (local->getType()->isPointerTy()) {
-                    ci = CastInst::CreatePointerCast(local, LONG_TY(module));
-                } else if (!local->getType()->isIntegerTy()) {
-                    ci = CastInst::Create(Instruction::FPToUI, local, LONG_TY(module));
-                } else if (!local->getType()->isIntegerTy(POINTER_BIT_SIZE)) {
-                    ci = CastInst::CreateIntegerCast(local, LONG_TY(module), false);
-                }
-                if (ci != NULL) {
-                    ci->insertAfter(inst);
-                    this->insertCallInstAfter(ci, F_local, ci, NULL);
-                } else {
-                    this->insertCallInstAfter(inst, F_local, local, NULL);
-                }
-            }
-
-            ussit++;
-        }
-
-        lit++;
-    }
+    
 }
 
 void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
         ConstantInt* tmp = ConstantInt::get(INT_TY(module), sv_idx_map.size());
-        this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
+        ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lv_idx_map.size());
+
+        this->insertCallInstAtHead(mainFunction, F_init, tmp, tmp2, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, NULL);
 
-        outs() << "Shared variable groups number: " << sv_idx_map.size() << "\n";
+        outs() << "[INFO] Shared memory groups number: " << sv_idx_map.size() << "\n";
+        outs() << "[INFO] Critical local memory groups number: " << lv_idx_map.size() - extern_lib_num << "\n";
+        outs() << "[INFO] External function groups number: " << extern_lib_num << "\n";
 
         bool has_mutex_anon = (MUTEX_ANON_TY(module) != NULL);
         iplist<GlobalVariable>::iterator git = module->global_begin();
         while (git != module->global_end()) {
             GlobalVariable& gv = *git;
             if (!gv.isThreadLocal() && IS_MUTEX_INIT_TY(gv.getType()->getPointerElementType(), module)) {
-                outs() << "Find a global mutex..." << gv << "\n";
+                outs() << "[INFO] Find a global mutex..." << gv << "\n";
                 if (has_mutex_anon) {
                     Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
                     ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
@@ -227,10 +171,10 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
         }
 
         if (!has_mutex_anon) {
-            errs() << "No mutex anon type ... \n";
+            outs() << "[INFO] No mutex anon type ... \n";
         }
     } else {
-        errs() << "Cannot find main function...\n";
+        errs() << "[ERROR] Cannot find main function...\n";
         exit(1);
     }
 }
@@ -305,25 +249,48 @@ void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysi
 void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
     int svIdx = this->getSharedValueIndex(val, AA);
-    if (svIdx == -1) return;
+    if (svIdx != -1) {
+        // shared memory
+        CastInst* ci = NULL;
+        if (inst->getType()->isPointerTy()) {
+            ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
+        } else if (!inst->getType()->isIntegerTy()) {
+            ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
+        } else {
+            ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+        }
+        ci->insertAfter(inst);
 
-    CastInst* ci = NULL;
-    if (inst->getType()->isPointerTy()) {
-        ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
-    } else if (!inst->getType()->isIntegerTy()) {
-        ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
-    } else {
-        ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+        CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
+        addci->insertAfter(inst);
+
+        ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
+        ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
+
+        this->insertCallInstAfter(ci, F_load, tmp, addci, ci, debug_idx, NULL);
+        
+        return;
     }
-    ci->insertAfter(inst);
+    
+    int lvIdx = this->getLocalValueIndex(val, AA);
+    if(lvIdx != -1) {
+        // critical local memory
+        CastInst* ci = NULL;
+        if (inst->getType()->isPointerTy()) {
+            ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
+        } else if (!inst->getType()->isIntegerTy()) {
+            ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
+        } else {
+            ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+        }
+        ci->insertAfter(inst);
 
-    CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
-    addci->insertAfter(inst);
+        ConstantInt* tmp = ConstantInt::get(INT_TY(module), lvIdx);
 
-    ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
-    ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
-
-    this->insertCallInstAfter(ci, F_load, tmp, addci, ci, debug_idx, NULL);
+        this->insertCallInstAfter(ci, F_local, ci, tmp, NULL);
+        
+        return;
+    }
 }
 
 void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
@@ -401,7 +368,7 @@ void Transformer4CanaryRecord::transformSystemExit(CallInst* ins, AliasAnalysis&
 void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, AliasAnalysis& AA) {
     /// @TODO extern call, record the returned value
 
-    if (inst->doesNotReturn()) return;
+    if (inst->doesNotReturn() || inst->getNumUses() == 0) return;
 
     // if it is a extern lib call, it has return value, and the return value's use number > 0 
     // record it
@@ -414,16 +381,27 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
         while (fit != extern_lib_funcs.end()) {
             Function* f = *fit;
             if (AA.alias(f, cv) && !f->getReturnType()->isVoidTy()) {
+                cv = f;
                 record = true;
+                break;
             }
             fit++;
         }
     }
 
-    if (record && inst->getNumUses() > 0) {
+    if (record) {
+        // get index
+        int index = -1;
+        if (lv_idx_map.count(cv)) {
+            index = lv_idx_map[cv];
+        } else {
+            extern_lib_num ++;
+            index = lv_idx_map.size();
+            lv_idx_map.insert(pair<Value*, int>(cv, index));
+        }
+
         // instrument it
         // cast return value to i32/64, and record
-        /// @TODO
         CastInst* ci = NULL;
         if (inst->getType()->isPointerTy()) {
             ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
@@ -434,9 +412,9 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
         }
         if (ci != NULL) {
             ci->insertAfter(inst);
-            this->insertCallInstAfter(ci, F_local, ci, NULL);
+            this->insertCallInstAfter(ci, F_local, ci, ConstantInt::get(LONG_TY(module), index), NULL);
         } else {
-            this->insertCallInstAfter(inst, F_local, inst, NULL);
+            this->insertCallInstAfter(inst, F_local, inst, ConstantInt::get(LONG_TY(module), index), NULL);
         }
 
         //outs() << "[C] " << *inst << "\n";
@@ -450,7 +428,7 @@ bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
             || called == F_lock
             || called == F_prefork || called == F_fork || called == F_join
             || called == F_wait
-            || called == F_premutexinit || called == F_mutexinit;
+            || called == F_premutexinit || called == F_mutexinit || called == F_local;
 }
 
 // private functions
@@ -521,7 +499,7 @@ int Transformer4CanaryRecord::getLocalValueIndex(Value* v, AliasAnalysis& AA) {
 
 bool Transformer4CanaryRecord::spaceAllocShouldBeTransformed(Instruction* inst, AliasAnalysis & AA) {
     if (!address_map->count(inst)) {
-        errs() << "Error during transform space alloc instructions\n";
+        errs() << "[ERROR] Error during transform space alloc instructions\n";
         exit(1);
     }
     set<Value*>* ess = address_map->at(inst);
@@ -543,7 +521,7 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
     ///initialize functions
     F_init = cast<Function>(m->getOrInsertFunction("OnInit",
             VOID_TY(m),
-            INT_TY(m),
+            INT_TY(m), INT_TY(m),
             NULL));
 
     F_exit = cast<Function>(m->getOrInsertFunction("OnExit",
@@ -587,7 +565,7 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
 
     F_local = cast<Function>(m->getOrInsertFunction("OnLocal",
             VOID_TY(m),
-            LONG_TY(m), // value
+            LONG_TY(m), INT_TY(m), // value, index
             NULL));
 
     if (MUTEX_TY(m) != NULL) {
@@ -612,9 +590,9 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
                     CONDN_PTR_TY(m), MUTEX_PTR_TY(m),
                     NULL));
         } else {
-            errs() << "No pthread_cond_t type is detected, which means no wait/signal.\n";
+            outs() << "[INFO] No pthread_cond_t type is detected, which means no wait/signal.\n";
         }
     } else {
-        errs() << "No pthread_mutex_t type is detected, which means no synchronization.\n";
+        outs() << "[INFO] No pthread_mutex_t type is detected, which means no synchronization.\n";
     }
 }

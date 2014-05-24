@@ -666,7 +666,7 @@ namespace {
             set<DyckVertex*> svs;
             this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
             fromDyckVertexToValue(svs, llvm_svs);
-            
+
             map<Value *, set<Value*>* > address_map;
             set<Value *> llvm_lvs;
 
@@ -697,7 +697,7 @@ namespace {
                         }
                     }
 
-                    if (f->empty() && !f->isIntrinsic()
+                    if (f->empty() && !f->isIntrinsic() && !f->doesNotAccessMemory() && !f->onlyReadsMemory()
                             && !f->hasFnAttribute(Attribute::ReadOnly)
                             && !f->hasFnAttribute(Attribute::ReadNone)
                             && !(f->getArgumentList().empty() && f->getReturnType()->isVoidTy())
@@ -717,9 +717,21 @@ namespace {
                                 while (tmpIt != tmp.end()) {
                                     Value * cand = *tmpIt;
                                     bool add = true;
+
+                                    // exist?
                                     set<Value *>::iterator xit = llvm_lvs.begin();
                                     while (xit != llvm_lvs.end()) {
                                         if (this->alias(cand, *xit) != DyckAliasAnalysis::NoAlias) {
+                                            add = false;
+                                            break;
+                                        }
+                                        xit++;
+                                    }
+
+                                    // shared?
+                                    xit = llvm_svs.begin();
+                                    while (xit != llvm_svs.end()) {
+                                        if (this->alias(cand, *xit) != AliasAnalysis::NoAlias) {
                                             add = false;
                                             break;
                                         }
@@ -737,57 +749,7 @@ namespace {
                     }
                 }
 
-                set<Value *>::iterator XXit = llvm_lvs.begin();
-                while (XXit != llvm_lvs.end()) {
-                    bool isS = false;
-                    set<Value *>::iterator Sit = llvm_svs.begin();
-                    while (Sit != llvm_svs.end()) {
-                        if (this->alias(*XXit, *Sit) != AliasAnalysis::NoAlias) {
-                            isS = true;
-                            break;
-                        }
-                        Sit++;
-                    }
-
-                    if (isS) {
-                        //outs() << **XXit << "\n";
-                        llvm_lvs.erase(XXit++);
-                        continue;
-                    } else {
-                        //outs() << **XXit << "\n";
-                    }
-
-                    XXit++;
-                }
-
-                outs() << llvm_lvs.size() << "\n";
-
-                set<Value *> tmp_lvs;
-                unsigned total = 0;
-                set<Value *>::iterator Lit = llvm_lvs.begin();
-                while (Lit != llvm_lvs.end()) {
-                    set<DyckVertex*>* eset = dyck_graph->retrieveDyckVertex(*Lit).first->getEquivalentSet();
-                    set<DyckVertex*>::iterator eit = eset->begin();
-                    while (eit != eset->end()) {
-                        DyckVertex* e = *eit;
-                        Value * ev = ((Value*) e->getValue());
-                        if (ev != NULL && !isa<Constant>(ev) && !isa<Argument>(ev)) {
-                            tmp_lvs.insert(ev);
-                            //outs() << *ev << "\n";
-                            total = total + ev->getNumUses();
-                        }
-
-                        eit++;
-                    }
-
-                    Lit++;
-                }
-                llvm_lvs.clear();
-                llvm_lvs.insert(tmp_lvs.begin(), tmp_lvs.end());
-                tmp_lvs.clear();
-                outs() << total << "\n";
-                outs() << llvm_lvs.size() << "\n";
-
+                // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {
                     robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &address_map, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-record-transformer ...\n");

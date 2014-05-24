@@ -30,6 +30,13 @@ void AAAnalyzer::end_intra_procedure_analysis() {
 
 void AAAnalyzer::start_inter_procedure_analysis() {
     // do nothing
+    Function * gf = module->getFunction("pthread_getspecific");
+    Function * sf  = module->getFunction("pthread_setspecific");
+    Function * cf  = module->getFunction("pthread_key_create");
+    
+    if(gf || sf || cf) {
+        errs() << "Warning: dyckaa does not handle pthread_getspecific/setspecific/key_create\n";
+    }
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {

@@ -22,7 +22,7 @@ extern "C" {
     }
 
     void OnExit() {
-        
+
 #ifdef NO_TIME_CMD
         gettimeofday(&tpend, NULL);
         double timeuse = 1000000 * (tpend.tv_sec - tpstart.tv_sec) + tpend.tv_usec - tpstart.tv_usec;
@@ -64,6 +64,9 @@ extern "C" {
     }
 
     void OnJoin(pthread_t tid, bool race) {
+    }
+
+    void OnLocal(long value, int id) {
     }
 
 }
