@@ -58,6 +58,15 @@ technique for effective debugging of concurrent programs; in FSE 2010".
 
 SWARM is a parallel sort implementation.
 
+* memcached
+
+MEMCACHED is a free & open source, high-performance, distributed memory object 
+caching system, generic in nature, but intended for use in speeding up dynamic 
+web applications by alleviating database load.
+
+It is an in-memory key-value store for small chunks of arbitrary data (strings, 
+objects) from results of database calls, API calls, or page rendering
+
 
 TODO
 -------------------------------
