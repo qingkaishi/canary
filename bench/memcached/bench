@@ -1,0 +1,53 @@
+#!/bin/bash
+
+APP=memcached
+LIBPATH=.
+
+while getopts "c:dl:L:" arg #":" means the previous option needs arguments
+do
+        case $arg in
+             c)
+		COMPILE=$OPTARG
+                ;;
+	     d)
+		DEBUG="-d"
+                ;;
+	     l)
+		LIB=$OPTARG
+		;;
+	     L)
+		LIBPATH=$OPTARG
+		;;
+             ?)  #unknown args
+		exit -1
+                ;;
+        esac
+done
+
+if [ -n "$COMPILE" ];then
+        canary -$COMPILE $APP.bc -o $APP.t.bc
+fi
+
+if [ -n "$LIB" ];then
+	# how to link
+	if [ -f $APP.t.bc ]; then
+		echo "clang++ $APP.t.bc -o $APP -lpthread -lbz2 -levent -l$LIB -L$LIBPATH"
+		clang++ $APP.t.bc -o $APP.exe -lpthread -lbz2 -levent -l$LIB -L$LIBPATH
+	else
+		echo "clang++ $APP.bc -o $APP -lpthread -lbz2 -levent -L$LIBPATH"
+		clang++ $APP.bc -o $APP.exe -lpthread -lbz2 -levent -l$LIB -L$LIBPATH
+	fi
+fi
+
+if [ -n "$DEBUG" ];then
+	./$APP.exe &
+	pid=$!
+
+	sleep 1
+        time ./client/trigger
+
+        if [ -f "canary.zip" ]; then
+		rm -f canary.zip
+	fi
+	kill -9 $pid
+fi
