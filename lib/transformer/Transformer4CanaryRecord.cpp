@@ -187,44 +187,50 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
     int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx != -1) {
         // shared memory
-        CastInst* ci = NULL;
+        Instruction* ci = NULL;
         if (inst->getType()->isPointerTy()) {
             ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
         } else if (!inst->getType()->isIntegerTy()) {
             ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
-        } else {
+        } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
             ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
         }
-        ci->insertAfter(inst);
+        if (ci != NULL) {
+            ci->insertAfter(inst);
+        } else {
+            ci = inst;
+        }
 
         CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
-        addci->insertAfter(inst);
+        addci->insertAfter(ci);
 
         ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
         ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
-        this->insertCallInstAfter(ci, F_load, tmp, addci, ci, debug_idx, NULL);
-        
+        this->insertCallInstAfter(addci, F_load, tmp, addci, ci, debug_idx, NULL);
+
         return;
     }
-    
+
     int lvIdx = this->getLocalValueIndex(val, AA);
-    if(lvIdx != -1) {
+    if (lvIdx != -1) {
         // critical local memory
-        CastInst* ci = NULL;
+        Instruction* ci = NULL;
         if (inst->getType()->isPointerTy()) {
             ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
         } else if (!inst->getType()->isIntegerTy()) {
             ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
-        } else {
+        } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
             ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
         }
-        ci->insertAfter(inst);
+        if (ci != NULL) {
+            ci->insertAfter(inst);
+        } else {
+            ci = inst;
+        }
 
-        ConstantInt* tmp = ConstantInt::get(INT_TY(module), lvIdx);
+        this->insertCallInstAfter(ci, F_local, ci, ConstantInt::get(INT_TY(module), lvIdx), NULL);
 
-        this->insertCallInstAfter(ci, F_local, ci, tmp, NULL);
-        
         return;
     }
 }
@@ -234,24 +240,29 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    CastInst* ci = NULL;
+    Value* ci = NULL;
     if (inst->getOperand(0)->getType()->isPointerTy()) {
         ci = CastInst::CreatePointerCast(inst->getOperand(0), LONG_TY(module));
     } else if (!inst->getOperand(0)->getType()->isIntegerTy()) {
         ci = CastInst::Create(Instruction::FPToUI, inst->getOperand(0), LONG_TY(module));
-    } else {
+    } else if (inst->getOperand(0)->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
         ci = CastInst::CreateIntegerCast(inst->getOperand(0), LONG_TY(module), false);
     }
-    ci->insertAfter(inst);
-
+    
     CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
-    addci->insertAfter(inst);
+    if (ci != NULL) {
+        ((CastInst*)ci)->insertAfter(inst);
+        addci->insertAfter((CastInst*)ci);
+    } else {
+        ci = inst->getOperand(0);
+        addci->insertAfter(inst);
+    }
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(ci, F_store, tmp, call, addci, ci, debug_idx, NULL);
+    this->insertCallInstAfter(addci, F_store, tmp, call, addci, ci, debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
@@ -331,7 +342,7 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
         if (lv_idx_map.count(cv)) {
             index = lv_idx_map[cv];
         } else {
-            extern_lib_num ++;
+            extern_lib_num++;
             index = lv_idx_map.size();
             lv_idx_map.insert(pair<Value*, int>(cv, index));
         }
