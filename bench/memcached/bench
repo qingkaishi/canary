@@ -44,7 +44,7 @@ if [ -n "$DEBUG" ];then
 	pid=$!
 
 	sleep 1
-        time ./client/trigger
+        time ./client/trigger.exe
 
         if [ -f "canary.zip" ]; then
 		rm -f canary.zip

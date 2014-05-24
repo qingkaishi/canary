@@ -10,7 +10,7 @@ LDFLAGS = -L$(LIBMEMCACHED_HOME)/lib -Wl,-rpath,$(LIBMEMCACHED_HOME)/lib
 all: trigger
 
 trigger: trigger.c
-	@$(CC) $(CFLAGS) $(INCS) $(LDFLAGS) -o $@ $< -lpthread -lmemcached
+	@$(CC) $(CFLAGS) $(INCS) $(LDFLAGS) -o $@.exe $< -lpthread -lmemcached
 
 clean:
-	@$(RM) -f trigger
+	@$(RM) -f trigger.exe
