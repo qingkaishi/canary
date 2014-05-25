@@ -1,0 +1,44 @@
+#!/bin/bash
+
+APP=transmission
+LIBPATH=.
+
+while getopts "c:dl:L:" arg #":" means the previous option needs arguments
+do
+        case $arg in
+             c)
+		COMPILE=$OPTARG
+                ;;
+	     d)
+		DEBUG="-d"
+                ;;
+	     l)
+		LIB=$OPTARG
+		;;
+	     L)
+		LIBPATH=$OPTARG
+		;;
+             ?)  #unknown args
+		exit -1
+                ;;
+        esac
+done
+
+if [ -n "$COMPILE" ];then
+        canary -$COMPILE $APP.bc -o $APP.t.bc
+fi
+
+if [ -n "$LIB" ];then
+	# how to link
+	if [ -f $APP.t.bc ]; then
+		echo "clang transmission.t.bc -o transmission -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH"
+		clang transmission.t.bc -o transmission.exe -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH
+	else
+		echo "clang transmission.bc -o transmission -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH"
+		clang transmission.bc -o transmission.exe -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH
+	fi
+fi
+
+if [ -n "$DEBUG" ];then
+	#TODO transmission.exe xxx.torrent
+fi

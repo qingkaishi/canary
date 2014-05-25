@@ -8,6 +8,6 @@ LEVEL=..
 #
 # List all of the subdirectories that we will compile.
 #
-DIRS=simplerace bbuf swarm pbzip2 aget pfscan racey canneal memcached
+DIRS=simplerace bbuf swarm pbzip2 aget pfscan racey canneal memcached transmission
 
 include $(LEVEL)/Makefile.common

@@ -1,0 +1,5 @@
+minixml.o: minixml.c /usr/include/stdc-predef.h minixml.h
+
+/usr/include/stdc-predef.h:
+
+minixml.h:
