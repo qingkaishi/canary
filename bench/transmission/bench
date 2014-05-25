@@ -40,5 +40,9 @@ if [ -n "$LIB" ];then
 fi
 
 if [ -n "$DEBUG" ];then
-	#TODO transmission.exe xxx.torrent
+	./transmission.exe test.torrent -w /tmp/
+fi
+
+if [ -f "canary.zip" ]; then
+	rm -f canary.zip
 fi
