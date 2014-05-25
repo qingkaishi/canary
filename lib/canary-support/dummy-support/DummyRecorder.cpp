@@ -14,7 +14,7 @@ static struct timeval tpstart, tpend;
 extern "C" {
 
     void OnInit(unsigned svsNum) {
-        printf("OnInit-Record\n");
+        printf("OnInit-Record (dummy record)\n");
 
 #ifdef NO_TIME_CMD
         gettimeofday(&tpstart, NULL);
@@ -29,7 +29,7 @@ extern "C" {
         timeuse /= 1000;
         printf("processor time is %lf ms\n", timeuse);
 #endif
-        printf("OnExit-Record\n");
+        printf("OnExit-Record (dummy record)\n");
     }
 
     void OnAddressInit(void* value, size_t size, size_t n) {

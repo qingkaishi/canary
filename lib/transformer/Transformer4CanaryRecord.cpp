@@ -12,7 +12,6 @@
 #define BOOL_TY(m) INT_N_TY(m, 1)
 
 #define MUTEX_TY(m) m->getTypeByName("union.pthread_mutex_t")
-#define MUTEX_ANON_TY(m) m->getTypeByName("struct.anon")
 #define CONDN_TY(m) m->getTypeByName("union.pthread_cond_t")
 
 #define MUTEX_PTR_TY(m) PointerType::get(MUTEX_TY(m), 0)
@@ -39,8 +38,14 @@ static bool IS_MUTEX_INIT_TY(Type* t, Module* m) {
                     Type * sixest = est->getElementType(5);
                     if (sixest->isStructTy()) {
                         StructType* esixest = (StructType*) sixest;
-                        if (esixest->getNumElements() == 1 && esixest->getElementType(0) == MUTEX_ANON_TY(m)) {
-                            return true;
+                        if (esixest->getNumElements() == 1) {
+                            StructType* anonty = cast<StructType>(esixest->getElementType(0));
+                            if (anonty != NULL && anonty->getNumElements() == 2) {
+                                if (anonty->getElementType(0)->isIntegerTy()
+                                        && anonty->getElementType(1)->isIntegerTy()) {
+                                    return true;
+                                }
+                            }
                         }
                     }
                 }
@@ -82,17 +87,14 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
         outs() << "[INFO] Critical local memory groups number: " << lv_idx_map.size() - extern_lib_num << "\n";
         outs() << "[INFO] External function groups number: " << extern_lib_num << "\n";
 
-        bool has_mutex_anon = (MUTEX_ANON_TY(module) != NULL);
         iplist<GlobalVariable>::iterator git = module->global_begin();
         while (git != module->global_end()) {
             GlobalVariable& gv = *git;
             if (!gv.isThreadLocal() && IS_MUTEX_INIT_TY(gv.getType()->getPointerElementType(), module)) {
                 outs() << "[INFO] Find a global mutex..." << gv << "\n";
-                if (has_mutex_anon) {
-                    Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
-                    ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
-                    this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
-                }
+                Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
+                ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
+                this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
             }
 
             if (!gv.hasPrivateLinkage() && !gv.getName().startswith("llvm.")) {
@@ -107,9 +109,6 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
             git++;
         }
 
-        if (!has_mutex_anon) {
-            outs() << "[INFO] No mutex anon type ... \n";
-        }
     } else {
         errs() << "[ERROR] Cannot find main function...\n";
         exit(1);
@@ -248,11 +247,11 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     } else if (inst->getOperand(0)->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
         ci = CastInst::CreateIntegerCast(inst->getOperand(0), LONG_TY(module), false);
     }
-    
+
     CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
     if (ci != NULL) {
-        ((CastInst*)ci)->insertAfter(inst);
-        addci->insertAfter((CastInst*)ci);
+        ((CastInst*) ci)->insertAfter(inst);
+        addci->insertAfter((CastInst*) ci);
     } else {
         ci = inst->getOperand(0);
         addci->insertAfter(inst);

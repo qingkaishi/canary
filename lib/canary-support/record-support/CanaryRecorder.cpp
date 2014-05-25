@@ -169,7 +169,7 @@ void close_birthday_key(void* key) {
 extern "C" {
 
     void OnInit(unsigned svsNum, unsigned lvsNum) {
-        printf("OnInit-Record\n");
+        printf("OnInit-Record (canary record)\n");
         num_shared_vars = svsNum;
         num_local_vars = lvsNum;
         initializeSigRoutine();
@@ -208,7 +208,7 @@ extern "C" {
 #endif
         active_threads.clear();
         
-        printf("OnExit-Record\n");
+        printf("OnExit-Record (canary record)\n");
 
         // dump, delete/free is not needed, because program will exit.
         {//flog
@@ -433,7 +433,7 @@ extern "C" {
         // if map does not contain it, it must be a bug
         // because lock and init have a race.
         if (!mutex_ht.count(mutex_ptr)) {
-            fprintf(stderr, "ERROR: program bug!\n");
+            fprintf(stderr, "ERROR: program bug- mutex is not initialized before lock()!\n");
             OnExit();
             exit(1);
         }
@@ -458,7 +458,7 @@ extern "C" {
 #endif
 
         if (!mutex_ht.count(mutex_ptr)) {
-            fprintf(stderr, "ERROR: program bug!\n");
+            fprintf(stderr, "ERROR: program bug- mutex is not initialized before wait()!\n");
             OnExit();
             exit(1);
         }

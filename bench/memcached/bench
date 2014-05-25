@@ -49,5 +49,5 @@ if [ -n "$DEBUG" ];then
         if [ -f "canary.zip" ]; then
 		rm -f canary.zip
 	fi
-	kill -9 $pid
+	kill -INT $pid
 fi
