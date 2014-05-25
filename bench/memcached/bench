@@ -45,9 +45,11 @@ if [ -n "$DEBUG" ];then
 
 	sleep 1
         time ./client/trigger.exe
+        kill -INT $pid
+        sleep 1
 
         if [ -f "canary.zip" ]; then
 		rm -f canary.zip
 	fi
-	kill -INT $pid
+	
 fi
