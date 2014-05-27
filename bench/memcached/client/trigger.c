@@ -14,9 +14,9 @@ bool g_binary = false;
 const char* g_key = "test";
 size_t g_key_len = 4;
 
-unsigned int g_loop = 1;
-unsigned int g_threads = 2;
-unsigned int g_step = 10;
+unsigned int g_loop = 1000;
+unsigned int g_threads = 3;
+unsigned int g_step = 100;
 
 static memcached_st* create_st()
 {
