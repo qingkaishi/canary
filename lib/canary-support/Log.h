@@ -306,7 +306,7 @@ private:
         } else {
             Item<size_t> * vI = new Item<size_t>;
             vI->t = val;
-            vI->t = 1;
+            vI->counter = 1;
             __log.push_back(vI);
             
             __size++;
