@@ -42,7 +42,7 @@ fi
 if [ -n "$DEBUG" ];then
 	./bbuf.exe
 
-        if [ -f "canary.zip" ]; then
-		rm -f canary.zip
-	fi
+#        if [ -f "canary.zip" ]; then
+#		rm -f canary.zip
+#	fi
 fi

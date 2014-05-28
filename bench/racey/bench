@@ -41,5 +41,5 @@ fi
 
 if [ -n "$DEBUG" ];then
         ./racey.exe 3 4 5 6
-        if [ -f canary.zip ]; then rm canary.zip; fi
+#        if [ -f canary.zip ]; then rm canary.zip; fi
 fi

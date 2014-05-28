@@ -1,4 +1,4 @@
-#!/bin/bash
+#/bin/bash
 
 APP=canneal
 LIBPATH=.
@@ -42,7 +42,7 @@ fi
 if [ -n "$DEBUG" ];then
 	./$APP.exe 3 10000 10000 ./100.nets 5
 
-        if [ -f "canary.zip" ]; then
-		rm -f canary.zip
-	fi
+#        if [ -f "canary.zip" ]; then
+#		rm -f canary.zip
+#	fi
 fi

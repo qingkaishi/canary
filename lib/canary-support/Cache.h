@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-#define DEFAULT_CACHE_SIZE 100
+#define DEFAULT_CACHE_SIZE 200
 
 class CacheNode {
 public:

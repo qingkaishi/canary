@@ -50,7 +50,7 @@ if [ -n "$DEBUG" ];then
 	#kill -2 $psNo <- have been written into Download.c
 	#./reproduce-pkg/verifier
 
-        if [ -f "canary.zip" ]; then
-		rm -f canary.zip
-	fi
+#        if [ -f "canary.zip" ]; then
+#		rm -f canary.zip
+#	fi
 fi

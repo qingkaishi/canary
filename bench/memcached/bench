@@ -48,8 +48,8 @@ if [ -n "$DEBUG" ];then
         kill -INT $pid
         sleep 1
 
-        if [ -f "canary.zip" ]; then
-		rm -f canary.zip
-	fi
+#        if [ -f "canary.zip" ]; then
+#		rm -f canary.zip
+#	fi
 	
 fi

@@ -105,6 +105,12 @@ static std::set<unsigned> active_threads;
 static unsigned num_shared_vars = 0;
 static unsigned num_local_vars = 0;
 
+/*
+ * For cache performance 
+ */
+unsigned hit = 0;
+unsigned miss = 0;
+
 #ifdef NO_TIME_CMD
 static struct timeval tpstart, tpend;
 #endif
@@ -169,7 +175,7 @@ void close_birthday_key(void* key) {
 extern "C" {
 
     void OnInit(unsigned svsNum, unsigned lvsNum) {
-        printf("OnInit-Record (canary record)\n");
+        printf("[INFO] OnInit-Record (canary record)\n");
         num_shared_vars = svsNum;
         num_local_vars = lvsNum;
         initializeSigRoutine();
@@ -204,11 +210,11 @@ extern "C" {
         gettimeofday(&tpend, NULL);
         double timeuse = 1000000 * (tpend.tv_sec - tpstart.tv_sec) + tpend.tv_usec - tpstart.tv_usec;
         timeuse /= 1000;
-        printf("processor time is %lf ms\n", timeuse);
+        printf("[INFO] Wall time is %lf ms\n", timeuse);
 #endif
         active_threads.clear();
 
-        printf("OnExit-Record (canary record)\n");
+        printf("[INFO] OnExit-Record (canary record)\n");
 
         // dump, delete/free is not needed, because program will exit.
         {//flog
@@ -326,7 +332,8 @@ extern "C" {
             fclose(fout);
         }
 
-        printf("Threads num: %d\n", thread_ht.size());
+        printf("[INFO] Threads num: %d\n", thread_ht.size());
+        printf("[INFO] Cache hit rate: %.2lf%%(%d/%d)\n", hit * 100 / (double) (hit + miss), hit, hit + miss);
 
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
@@ -398,9 +405,11 @@ extern "C" {
         Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache != NULL && cache->query(address, value)) {
             rlog[svId].VER_LOG.logValue(-1);
+            hit++;
         } else {
             rlog[svId].VAL_LOG.logValue(value);
             rlog[svId].VER_LOG.logValue(write_versions[svId]);
+            miss++;
         }
 #ifdef DEBUG
         printf("OnLoad === 3\n");
@@ -434,7 +443,7 @@ extern "C" {
         l_wlog_t * wlog = (l_wlog_t*) pthread_getspecific(wlog_key);
         if (wlog == NULL) {
             wlog = new l_wlog_t[num_shared_vars];
-            wlogs[pthread_self()] =  wlog;
+            wlogs[pthread_self()] = wlog;
             pthread_setspecific(wlog_key, wlog);
         }
         wlog[svId].logValue(version);

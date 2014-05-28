@@ -44,5 +44,5 @@ if [ -n "$DEBUG" ];then
         path=${path%/*}
         path=${path%/*}
 	./pfscan.exe -n3 "#include" $path
-        if [ -f canary.zip ]; then rm canary.zip; fi
+#        if [ -f canary.zip ]; then rm canary.zip; fi
 fi
