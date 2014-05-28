@@ -139,23 +139,23 @@ static inline void mutexInitUnlock() {
  * in practice, we can dump them here to avoid memory leak
  */
 void close_read_log(void* log) {
-    pthread_t tid = pthread_self();
-    rlogs[tid] = (l_rlog_t*) log;
+    //pthread_t tid = pthread_self();
+    //rlogs[tid] = (l_rlog_t*) log;
 }
 
 void close_local_read_log(void* log) {
-    pthread_t tid = pthread_self();
-    lrlogs[tid] = (l_lrlog_t*) log;
+    //pthread_t tid = pthread_self();
+    //lrlogs[tid] = (l_lrlog_t*) log;
 }
 
 void close_write_log(void* log) {
-    pthread_t tid = pthread_self();
-    wlogs[tid] = (l_wlog_t*) log;
+    //pthread_t tid = pthread_self();
+    //wlogs[tid] = (l_wlog_t*) log;
 }
 
 void close_map_log(void* log) {
-    pthread_t tid = pthread_self();
-    addlogs[tid] = (l_addmap_t*) log;
+    //pthread_t tid = pthread_self();
+    //addlogs[tid] = (l_addmap_t*) log;
 }
 
 void close_cache(void* log) {
@@ -193,7 +193,7 @@ extern "C" {
         pthread_t tid = pthread_self();
         active_threads.insert(thread_ht.size());
         thread_ht[tid] = thread_ht.size();
-        
+
 #ifdef NO_TIME_CMD
         gettimeofday(&tpstart, NULL);
 #endif
@@ -207,7 +207,7 @@ extern "C" {
         printf("processor time is %lf ms\n", timeuse);
 #endif
         active_threads.clear();
-        
+
         printf("OnExit-Record (canary record)\n");
 
         // dump, delete/free is not needed, because program will exit.
@@ -215,7 +215,7 @@ extern "C" {
 #ifdef DEBUG
             printf("dumping flog...\n");
 #endif
-            FILE * fout = fopen("fork.dat", "wb");
+            FILE * fout = fopen("fork.dat", "w");
             flog.dumpWithValueUnsignedMap(fout, thread_ht);
             fclose(fout);
         }
@@ -224,7 +224,7 @@ extern "C" {
 #ifdef DEBUG
             printf("dumping mlog, llog...\n");
 #endif
-            FILE * fout = fopen("mutex.dat", "wb");
+            FILE * fout = fopen("mutex.dat", "w");
             mlog.dumpWithValueUnsignedMap(fout, thread_ht);
             for (unsigned i = 0; i < llogs.size(); i++) {
                 g_llog_t * llog = llogs[i];
@@ -237,7 +237,7 @@ extern "C" {
 #ifdef DEBUG
             printf("dumping rlog...\n");
 #endif
-            FILE * fout = fopen("read.dat", "wb");
+            FILE * fout = fopen("read.dat", "w");
             boost::unordered_map<pthread_t, l_rlog_t*>::iterator rit = rlogs.begin();
             while (rit != rlogs.end()) {
                 l_rlog_t* rlog = rit->second;
@@ -255,15 +255,15 @@ extern "C" {
 #ifdef DEBUG
             printf("dumping lrlog...\n");
 #endif
-            FILE * fout = fopen("lread.dat", "wb");
+            FILE * fout = fopen("lread.dat", "w");
             boost::unordered_map<pthread_t, l_lrlog_t*>::iterator rit = lrlogs.begin();
             while (rit != lrlogs.end()) {
                 l_lrlog_t* rlog = rit->second;
                 unsigned _tid = thread_ht[rit->first];
-                for(unsigned i = 0; i < num_local_vars; i++){
+                for (unsigned i = 0; i < num_local_vars; i++) {
                     rlog[i].dumpWithUnsigned(fout, _tid);
                 }
-                
+
                 rit++;
             }
             fclose(fout);
@@ -272,13 +272,13 @@ extern "C" {
 #ifdef DEBUG
             printf("dumping wlog...\n");
 #endif
-            FILE * fout = fopen("write.dat", "wb");
+            FILE * fout = fopen("write.dat", "w");
             boost::unordered_map<pthread_t, l_wlog_t*>::iterator wit = wlogs.begin();
             while (wit != wlogs.end()) {
                 l_wlog_t* wlog = wit->second;
                 unsigned _tid = thread_ht[wit->first];
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    wlog->dumpWithUnsigned(fout, _tid);
+                    wlog[i].dumpWithUnsigned(fout, _tid);
                 }
 
                 wit++;
@@ -289,28 +289,45 @@ extern "C" {
 #ifdef DEBUG
             printf("dumping addressmap...\n");
 #endif
-            FILE * fout = fopen("addressmap.dat", "wb");
+            FILE * fout = fopen("addressmap.dat", "w");
             boost::unordered_map<pthread_t, l_addmap_t*>::iterator it = addlogs.begin();
             while (it != addlogs.end()) {
                 unsigned _tid = thread_ht[it->first];
                 l_addmap_t * addmap = it->second;
 
                 unsigned size = addmap->ADDRESS_LOG.size();
+#ifdef LDEBUG
+                fprintf(fout, "Size = %u, Thread = %u\n", size, _tid);
+#else
                 fwrite(&size, sizeof (unsigned), 1, fout);
                 fwrite(&_tid, sizeof (unsigned), 1, fout);
+#endif
                 for (unsigned i = 0; i < size; i++) {
                     mem_t * m = addmap->ADDRESS_LOG[i];
+#ifdef LDEBUG
+                    fprintf(fout, "(%p, %u); ", m->address, m->range);
+#else
                     fwrite(&m->address, sizeof (void*), 1, fout);
                     fwrite(&m->range, sizeof (size_t), 1, fout);
+#endif
                 }
+#ifdef LDEBUG
+                fprintf(fout, "\n");
+#endif
 
                 addmap->BIRTHDAY_LOG.dump(fout);
+
+#ifdef LDEBUG
+                fprintf(fout, "\n");
+#endif
 
                 it++;
             }
             fclose(fout);
         }
-        
+
+        printf("Threads num: %d\n", thread_ht.size());
+
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
         system("zip -9 canary.zip ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat ./lread.dat");
@@ -322,6 +339,7 @@ extern "C" {
         l_addmap_t * mlog = (l_addmap_t*) pthread_getspecific(address_birthday_map_key);
         if (mlog == NULL) {
             mlog = new l_addmap_t;
+            addlogs[pthread_self()] = mlog;
             pthread_setspecific(address_birthday_map_key, mlog);
         }
 
@@ -329,6 +347,8 @@ extern "C" {
         if (counter == NULL) {
             counter = new size_t;
             (*counter) = 0;
+
+            pthread_setspecific(birthday_key, counter);
         }
 
         size_t c = *counter;
@@ -339,7 +359,7 @@ extern "C" {
         mlog->BIRTHDAY_LOG.logValue(c++);
         (*counter) = c;
     }
-    
+
     void OnLocal(long value, int id) {
 #ifdef DEBUG
         printf("OnLocal %d\n", id);
@@ -347,9 +367,10 @@ extern "C" {
         l_lrlog_t * rlog = (l_lrlog_t*) pthread_getspecific(lrlog_key);
         if (rlog == NULL) {
             rlog = new l_lrlog_t[num_local_vars];
+            lrlogs[pthread_self()] = rlog;
             pthread_setspecific(lrlog_key, rlog);
         }
-        
+
         rlog[id].logValue(value);
     }
 
@@ -366,6 +387,7 @@ extern "C" {
         l_rlog_t * rlog = (l_rlog_t*) pthread_getspecific(rlog_key);
         if (rlog == NULL) {
             rlog = new l_rlog_t[num_shared_vars];
+            rlogs[pthread_self()] = rlog;
             pthread_setspecific(rlog_key, rlog);
         }
 
@@ -412,6 +434,7 @@ extern "C" {
         l_wlog_t * wlog = (l_wlog_t*) pthread_getspecific(wlog_key);
         if (wlog == NULL) {
             wlog = new l_wlog_t[num_shared_vars];
+            wlogs[pthread_self()] =  wlog;
             pthread_setspecific(wlog_key, wlog);
         }
         wlog[svId].logValue(version);
@@ -513,9 +536,9 @@ extern "C" {
             forkUnlock();
         }
     }
-    
-    void OnJoin(pthread_t tid, bool race){
-        if(race){
+
+    void OnJoin(pthread_t tid, bool race) {
+        if (race) {
             forkLock();
             active_threads.erase(thread_ht[tid]);
             forkUnlock();

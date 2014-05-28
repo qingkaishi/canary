@@ -23,3 +23,8 @@ ifeq (${DEBUG}, 1)
     CFLAGS += -DDEBUG
     CXXFLAGS += -DDEBUG
 endif
+
+ifeq (${LDEBUG}, 1)
+    CFLAGS += -DLDEBUG
+    CXXFLAGS += -DLDEBUG
+endif

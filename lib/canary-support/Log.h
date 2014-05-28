@@ -22,6 +22,7 @@ template<typename T> class Log {
 public:
     std::vector<Item<T>* > __log;
     size_t __size;
+    bool __complete;
 
     enum DUMP_TYPE {
         PLAIN, // do not output idx
@@ -42,15 +43,26 @@ private:
             size = size + item->counter;
         }
 
+#ifdef LDEBUG
+        fprintf(fout, "Type: __plain_dump (%d). Size: %u.\n", __complete, size);
+#else
         DUMP_TYPE type = PLAIN;
         fwrite(&type, sizeof (DUMP_TYPE), 1, fout); // type
         fwrite(&size, sizeof (unsigned), 1, fout); // size
+#endif
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
             for (unsigned j = 0; j < item->counter; j++) {
+#ifdef LDEBUG
+                fprintf(fout, "%ld; ", item->t);
+#else
                 fwrite(&item->t, sizeof (T), 1, fout);
+#endif
             }
         }
+#ifdef LDEBUG
+        fprintf(fout, "\n");
+#endif
     }
 
     void __lop_dump(FILE * fout) {
@@ -58,14 +70,28 @@ private:
         printf("using __lop_dump\n");
 #endif
 
+        
+        unsigned size = __log.size(); // size
+#ifdef LDEBUG
+        fprintf(fout, "Type: __lop_dump (%d). Size: %u.\n", __complete, size);
+#else
         DUMP_TYPE type = LOP;
         fwrite(&type, sizeof (DUMP_TYPE), 1, fout); // type
-        unsigned size = __log.size(); // size
         fwrite(&size, sizeof (unsigned), 1, fout);
+#endif
+
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
+#ifdef LDEBUG
+            fprintf(fout, "(%ld, %u); ", item->t, item->counter);
+#else
             fwrite(item, sizeof (Item<T>), 1, fout);
+#endif
         }
+        
+#ifdef LDEBUG
+        fprintf(fout, "\n");
+#endif
     }
 
     void __dlop_dump(FILE * fout) {
@@ -81,40 +107,58 @@ private:
                 lastOne = __log[i]->counter;
             }
         }
-
+        
+        unsigned size = __log.size();
+#ifdef LDEBUG
+        fprintf(fout, "Type: __dlop_dump (%d). Size: %u. CounterSize: %u\n", __complete, size, s3);
+#else
         DUMP_TYPE type = DLOP;
         fwrite(&type, sizeof (DUMP_TYPE), 1, fout); // type
-        unsigned size = __log.size();
         fwrite(&size, sizeof (unsigned), 1, fout); // size
         fwrite(&s3, sizeof (unsigned), 1, fout); // counter size
+#endif
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
+#ifdef LDEBUG
+            fprintf(fout, "%ld; ", item->t);
+#else
             fwrite(&item->t, sizeof (T), 1, fout);
+#endif
         }
+#ifdef LDEBUG
+        fprintf(fout, "\n");
+#endif
 
         unsigned counter = 1;
         lastOne = __log[0]->counter;
         for (unsigned i = 1; i < __log.size(); i++) {
             if (__log[i]->counter != lastOne) {
+#ifdef LDEBUG
+                fprintf(fout, "(%u, %u); ", lastOne, counter);
+#else
                 fwrite(&lastOne, sizeof (unsigned), 1, fout);
                 fwrite(&counter, sizeof (unsigned), 1, fout);
+#endif
                 lastOne = __log[i]->counter;
                 counter = 1;
             } else {
                 counter++;
             }
         }
-
+#ifdef LDEBUG
+        fprintf(fout, "(%u, %u); \n", lastOne, counter);
+#else
         fwrite(&lastOne, sizeof (unsigned), 1, fout);
         fwrite(&counter, sizeof (unsigned), 1, fout);
+#endif
     }
 
 public:
 
-    Log() : __size(0) {
+    Log() : __size(0), __complete(true) {
     }
 
-    Log(size_t size) : __size(0) {
+    Log(size_t size) : __size(0), __complete(true) {
         __log.resize(size);
     }
 
@@ -180,8 +224,12 @@ public:
     }
 
     virtual void dumpWithUnsigned(FILE* fout, unsigned u) {
+#ifdef LDEBUG
+        fprintf(fout, "Thread %u \n", u);
+#else
         fwrite(&u, sizeof (unsigned), 1, fout);
-
+#endif
+        
         dump(fout);
     }
 
@@ -195,6 +243,7 @@ private:
         size_t currentIdx = -1;
         int previousIdx = Log<T>::__size - 1;
         if (Log<T>::__size == MAX_LOG_LEN) {
+            Log<T>::__complete = false;
             currentIdx = 0;
             Log<T>::__size = 0;
         } else {
@@ -207,6 +256,7 @@ private:
             Item<T> * vI = Log<T>::__log[currentIdx];
             vI->counter = 1;
             memcpy(&(vI->t), &val, sizeof (T));
+            Log<T>::__size++;
         } else {
             Item<T> * vI = new Item<T>;
             memcpy(&(vI->t), &val, sizeof (T));
@@ -237,6 +287,7 @@ private:
         size_t currentIdx = -1;
         int previousIdx = __size - 1;
         if (__size == MAX_LOG_LEN) {
+            __complete = false;
             currentIdx = 0;
             __size = 0;
         } else {
@@ -250,6 +301,8 @@ private:
             Item<size_t> * vI = __log[currentIdx];
             vI->counter = 1;
             vI->t = val;
+            
+            __size++;
         } else {
             Item<size_t> * vI = new Item<size_t>;
             vI->t = val;
@@ -271,7 +324,7 @@ public:
     virtual void logValue(size_t val) {
         vLastOnePredictorStore(val);
     }
-   
+
 };
 
 #endif	/* LOG_H */

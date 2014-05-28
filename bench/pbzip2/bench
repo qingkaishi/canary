@@ -44,10 +44,6 @@ if [ -n "$DEBUG" ];then
 
 	./pbzip2.exe -k -f -p3 test.tar
 
-        if [ -f "canary.zip" ]; then
-		rm -f canary.zip
-	fi
-
         if [ -f "test.tar" ]; then
             rm test.tar
         fi
