@@ -105,12 +105,6 @@ static std::set<unsigned> active_threads;
 static unsigned num_shared_vars = 0;
 static unsigned num_local_vars = 0;
 
-/*
- * For cache performance 
- */
-unsigned hit = 0;
-unsigned miss = 0;
-
 #ifdef NO_TIME_CMD
 static struct timeval tpstart, tpend;
 #endif
@@ -333,7 +327,6 @@ extern "C" {
         }
 
         printf("[INFO] Threads num: %d\n", thread_ht.size());
-        printf("[INFO] Cache hit rate: %.2lf%%(%d/%d)\n", hit * 100 / (double) (hit + miss), hit, hit + miss);
 
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
@@ -405,11 +398,9 @@ extern "C" {
         Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache != NULL && cache->query(address, value)) {
             rlog[svId].VER_LOG.logValue(-1);
-            hit++;
         } else {
             rlog[svId].VAL_LOG.logValue(value);
             rlog[svId].VER_LOG.logValue(write_versions[svId]);
-            miss++;
         }
 #ifdef DEBUG
         printf("OnLoad === 3\n");
@@ -551,6 +542,8 @@ extern "C" {
             forkLock();
             active_threads.erase(thread_ht[tid]);
             forkUnlock();
+        } else {
+            active_threads.erase(thread_ht[tid]);
         }
     }
 }
