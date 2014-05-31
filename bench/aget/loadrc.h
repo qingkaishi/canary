@@ -1,7 +1,6 @@
 #ifndef LOADCONFIG_H
 #define LOADCONFIG_H
 #include <stdio.h>
-#include <unistd.h>
 
 #define TOKENS " \n"
 

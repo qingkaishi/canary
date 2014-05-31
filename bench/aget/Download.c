@@ -9,6 +9,7 @@
  */
 
 #define _XOPEN_SOURCE 500
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -30,10 +31,6 @@
 #include "Defs.h"
 #include "Misc.h"
 #include "Download.h"
-
-
-/* Hacked by qingkai, so that it is easy to replay */
-const char * HEAD4REPLAY="HTTP/1.0 206 Partial Content\r\nDate: Mon, 16 Dec 2013 11:38:02 GMT\r\nServer: Apache/2.2.15 (CentOS)\r\nLast-Modified: Tue, 02 Jul 2013 22:42:24 GMT\r\nETag: \"160059b-a7d8c7-4e08f0f087400\"\r\nAccept-Ranges: bytes\r\nContent-Length: 5500004\r\nContent-Range: bytes 5500003-11000006/11000007\r\nContent-Type: application/zip\r\nX-Cache: MISS from ustlnx52.ust.hk\r\nX-Cache-Lookup: MISS from ustlnx52.ust.hk:8080\r\nVia: 1.0 ustlnx52.ust.hk (squid/3.1.20-20120626-r10456)\r\nConnection: close\r\n\r\n";
 
 extern sigset_t signal_set;
 
@@ -86,13 +83,9 @@ void *http_get(void *arg) {
 		pthread_exit((void *)1);
         }
 	rbuf[dr] = '\0';
-	
-	/* Hacked by qingkai, so that it is easy to replay */
-	strcpy(rbuf, HEAD4REPLAY);
-	dr = strlen(rbuf);
 
 	handleHttpRetcode(rbuf);
-        if ((strstr(rbuf, "HTTP/1.0 206")) == NULL) {
+        if ((strstr(rbuf, "HTTP/1.1 206")) == NULL) {
 		fprintf(stderr, "Something unhandled happened, shutting down...\n");
 		exit(1);
 	}
@@ -118,8 +111,7 @@ void *http_get(void *arg) {
 	pthread_mutex_unlock(&bwritten_mutex);
 
 	pthread_testcancel();	/* Check for pending cancel requests */
-	
-	int idx = 0;
+
 	while (td->offset < foffset) {
 		fd_set set;
 		/* Set Cancellation Type to Asynchronous
@@ -136,19 +128,10 @@ void *http_get(void *arg) {
 		/* --end of patch	*/
 
 		memset(rbuf, 0, MAXBUFSIZ);
-
-		/* Hacked by qingkai, so that it is easy to replay */
-		dr = MAXBUFSIZ/2;//recv(sd, rbuf, MAXBUFSIZ, 0);
-		
-		/* The following stmt shows that dr is not a fixed data; haked by qingkai */
-		//printf("[%d]====> %d/%d [Thread %d]\n\n", idx++, dr, MAXBUFSIZ, tid);
+		dr = recv(sd, rbuf, MAXBUFSIZ, 0);
 
 		/* Set Cancellation Type back to Deferred */
 		pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-
-		/* Qingkai: We can add a signal method here to send SIGINT to the program to expose the crug TODO */
-		//if(idx++ == 500)
-		    //kill(getpid(), SIGINT);
 
 		if ((td->offset + dr) > foffset)
 			dw = pwrite(td->fd, rbuf, foffset - td->offset, td->offset);

@@ -18,6 +18,7 @@ all: $(LLVMSRCS)
 	@clang -c -g -O2 -emit-llvm -fno-vectorize Resume.c -o Resume.bc $(LDFLAGS)
 	@clang -c -g -O2 -emit-llvm -fno-vectorize loadrc.c -o loadrc.bc $(LDFLAGS)
 	@llvm-link main.bc Aget.bc Misc.bc Head.bc Signal.bc Download.bc Ftp.bc Resume.bc loadrc.bc -o aget.bc
+	@$(MAKE) -C reproduce-pkg
 
 clean:
 	@$(RM) *.bc *.o *.ll 

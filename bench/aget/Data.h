@@ -15,7 +15,6 @@
 #include <pthread.h>
 #include <netinet/in.h>
 #include <time.h>
-#include <unistd.h>
 
 
 #define	SERVER_TYPE_UNIX	1

@@ -13,7 +13,6 @@
 #define DOWNLOAD_H
 
 #include <pthread.h>
-#include <unistd.h>
 
 void *http_get(void *);
 

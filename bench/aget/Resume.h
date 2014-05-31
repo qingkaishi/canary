@@ -14,7 +14,6 @@
 
 #include "Data.h"
 #include "Defs.h"
-#include <unistd.h>
 
 typedef struct hist_data {
 	struct request req;

@@ -14,7 +14,6 @@
 
 #include "Data.h"
 #include "Resume.h"
-#include <unistd.h>
 
 void startHTTP(struct request *);
 void startFTP(struct request *);

@@ -95,13 +95,6 @@ again:
 	}
 
 	if ((lseek(fd, req->clength - 1, SEEK_SET)) == -1) {
-		/*switch(errno){
-		case EBADF: printf("EBADF\n"); break;
-		case EINVAL: printf("EINVAL %ld\n", req->clength - 1); break;
-		case EOVERFLOW: printf("EOVERFLOW\n"); break;
-		case ESPIPE: printf("ESPIPE\n"); break;
-		case ENXIO: printf("ENXIO\n"); break;
-		}*/
 		fprintf(stderr, "get: couldn't lseek:  %s\n", strerror(errno));
 		exit(1);
 	}
@@ -271,6 +264,7 @@ again:
 				goto again;
 		}
 	}
+
 	if ((lseek(fd, req->clength - 1, SEEK_SET)) == -1) {
 		fprintf(stderr, "get: couldn't lseek:  %s\n", strerror(errno));
 		exit(1);

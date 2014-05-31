@@ -13,7 +13,6 @@
 #define MISC_H
 
 #include "Data.h"
-#include <unistd.h>
 
 #define	LOGSIZ	1024
 

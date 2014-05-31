@@ -1,15 +1,24 @@
-##===- projects/sample/lib/sample/Makefile -----------------*- Makefile -*-===##
+##===- projects/sample/lib/Makefile ------------------------*- Makefile -*-===##
 
 #
-# Indicate where we are relative to the top of the source tree.
+# Relative path to the top of the source tree.
 #
 LEVEL=../..
 
-all: pbzip2.cpp
-	@clang -c -emit-llvm -g -O2 -fno-vectorize pbzip2.cpp
+#
+# List all of the subdirectories that we will compile.
+#
+NO_INSTALL=1
 
-clean:
-	@$(RM) *.bc *.o *.ll 
+include $(LEVEL)/Makefile.common
 
-install:
-	@echo -n ""
+
+all:: pbzip2.cpp
+	@if [ -f "pbzip2.o" ]; then l=`cat pbzip2.o`; else l="0"; fi; \
+	n=`stat -c %Y pbzip2.cpp`; \
+	if [ "$$l" != "$$n" ]; then clang -c -emit-llvm -g -O2 -fno-vectorize pbzip2.cpp; stat -c %Y pbzip2.cpp > pbzip2.o; fi
+	
+
+clean-local::
+	@$(RM) -f *.bc *.o *.ll *.exe canary.zip
+

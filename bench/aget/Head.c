@@ -8,6 +8,7 @@
  */
 
 #define _XOPEN_SOURCE 500
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -76,7 +77,7 @@ void http_head_req(struct request *req)
 				hstrerror(h_errno));
 		exit(1);
 	}
-	strncpy(req->ip, inet_ntoa(*((struct in_addr *)he->h_addr)), MAXIPSIZ-1);
+	strncpy(req->ip, inet_ntoa(*(struct in_addr *)he->h_addr), MAXIPSIZ-1);
 	bzero(&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr =inet_addr(req->ip);
@@ -108,14 +109,12 @@ void http_head_req(struct request *req)
 		exit(1);
 	}
 	rbuf[nret] = '\0';
-	//printf("[DEBUG rbuf] %s\n", rbuf);
 	handleHttpRetcode(rbuf);
 	tok = strtok(rbuf, "\r\n");
         if ((strstr(tok, "HTTP/1.1 200")) != NULL) {
                 while ((tok = strtok(NULL, "\r\n")) != NULL) {
                         if ((strstr(tok, "Content-Length")) != NULL) {
                                 s = (tok + strlen("Content-Length: "));
-				//printf("[DEBUG] %s\n", s);
                                 clength = atoi(s);
 				req->clength = clength;
                         }
@@ -146,11 +145,11 @@ int ftp_head_req(struct request *req, int *head_sd)
 				hstrerror(h_errno));
 		exit(1);
 	}
-	strncpy(req->ip, inet_ntoa(*((struct in_addr *)he->h_addr_list[0])), MAXIPSIZ-1);
+	strncpy(req->ip, inet_ntoa(*(struct in_addr *)he->h_addr), MAXIPSIZ-1);
 	bzero(&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr =inet_addr(req->ip);
-	printf("%s", req->ip);
+	printf("%s\n", req->ip);
 	sin.sin_port = htons(req->port);
 	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		Log("Socket creation failed for Head Request: %s", strerror(errno));

@@ -13,7 +13,6 @@
 #define FTP_H
 
 #include <pthread.h>
-#include <unistd.h>
 
 void *ftp_get(void *);
 

@@ -8,13 +8,11 @@
  *
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <sys/types.h>
 
 #include "Signal.h"
 #include "Data.h"
@@ -42,11 +40,11 @@ void *signal_waiter(void *arg)
 	pthread_sigmask(SIG_BLOCK, &set, NULL);
 	sigaddset(&set, SIGINT);
 	sigaddset(&set, SIGTERM);
-	//sigaddset(&set, SIGALRM);
+	sigaddset(&set, SIGALRM);
 	/* Set off alarm so that progressbar is updated at regular intervals	*/
-	//alarm(1);	
+	alarm(1);	
 
-	//while(1) {
+	while(1) {
 		/* TODO for Solaris, fix bugs here. */
 		#ifdef SOLARIS
 		sigwait(&set);
@@ -61,8 +59,7 @@ void *signal_waiter(void *arg)
 				sigalrm_handler();
 				break;
 		}
-	//}
-        return NULL;
+	}
 }
 
 void sigint_handler(void)
@@ -92,6 +89,6 @@ void sigint_handler(void)
 
 void sigalrm_handler(void)
 {
-	//updateProgressBar();
-	//alarm(1);
+	updateProgressBar();
+	alarm(1);
 }

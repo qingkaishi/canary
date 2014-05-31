@@ -14,7 +14,6 @@
 
 #include <pthread.h>
 #include "Data.h"
-#include <unistd.h>
 
 char *fullurl;
 

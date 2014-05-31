@@ -11,8 +11,6 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#include <unistd.h>
-
 enum {
 	GETREQSIZ = 256,
 	GETRECVSIZ = 8192,

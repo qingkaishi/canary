@@ -9,12 +9,10 @@
  *
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <errno.h>
 #include <time.h>
 #include <pwd.h>
@@ -26,7 +24,7 @@
 extern struct thread_data *wthread;
 extern struct request *req;
 extern int nthreads;
-extern int bwritten;
+extern unsigned int bwritten;
 extern time_t t_start, t_finish;
 
 void save_log()

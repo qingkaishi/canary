@@ -13,7 +13,6 @@
 #define HEAD_H
 
 #include "Data.h"
-#include <unistd.h>
 
 void http_head_req(struct request *);
 int ftp_head_req(struct request *, int *);

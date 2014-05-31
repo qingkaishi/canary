@@ -12,6 +12,7 @@
 
 
 #define _XOPEN_SOURCE 500
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -95,7 +96,7 @@ void *ftp_get(void *arg) {
 		}
 
 		if(rbuf[0] != '1' && rbuf[0] != '2' && rbuf[0] != '3') {
-			fprintf(stderr, "%s", rbuf);
+			fprintf(stderr, "%s\n", rbuf);
 			handleFTPRetcode(rbuf);
 			close(sd_c);
 			pthread_exit((void *)1);

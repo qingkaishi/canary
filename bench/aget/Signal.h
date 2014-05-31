@@ -11,7 +11,6 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
 
-#include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
 
