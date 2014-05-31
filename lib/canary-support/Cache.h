@@ -99,8 +99,8 @@ public:
     }
     
     void info(){
-        printf("[INFO] Cache size: %d\n", __size_limit);
-        printf("[INFO] Cache hit rate: %.2lf%%(%d/%d)\n", __hit * 100 / (double) (__hit + __miss), __hit, __hit + __miss);
+        printf("[INFO] \tCache size: %d; ", __size_limit);
+        printf("Cache hit rate: %.2lf%%(%d/%d)\n", __hit * 100 / (double) (__hit + __miss), __hit, __hit + __miss);
     }
 
 };
