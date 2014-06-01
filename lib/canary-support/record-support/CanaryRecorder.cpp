@@ -167,6 +167,10 @@ void close_map_log(void* log) {
 }
 
 void close_cache(void* log) {
+    unsigned tid = thread_ht[pthread_self()];
+    printf("[INFO] Thread %u: \n", tid);
+    ((Cache*) log)->info();
+    caches[tid] = NULL;
     delete (Cache*) log;
 }
 
@@ -547,7 +551,7 @@ extern "C" {
         printf("OnPreFork\n");
 #endif
         if (race) forkLock();
-        if(thread_ht.size() >= CANARY_THREADS_MAX){
+        if (thread_ht.size() >= CANARY_THREADS_MAX) {
             fprintf(stderr, "[ERROR] Program bug- too many threads!!\n");
             OnExit();
             exit(1);
