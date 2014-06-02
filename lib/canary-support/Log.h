@@ -63,11 +63,21 @@ private:
 #endif
     }
 
+    void __plain_load(FILE* fin) {
+        unsigned size;
+        fread(&size, sizeof (unsigned), 1, fin); // size
+        T t[size];
+        fread(t, sizeof (T), size, fin);
+
+        for (unsigned i = 0; i < size; i++) {
+            this->logValue(t[i]);
+        }
+    }
+
     void __lop_dump(FILE * fout) {
 #ifdef DEBUG
         printf("using __lop_dump\n");
 #endif
-
 
         unsigned size = __log.size(); // size
 #ifdef LDEBUG
@@ -88,6 +98,11 @@ private:
 #ifdef LDEBUG
         fprintf(fout, "\n");
 #endif
+    }
+
+    void __lop_load(FILE* fin) {
+        printf("Unsupported \n");
+        exit(1);
     }
 
     void __dlop_dump(FILE * fout) {
@@ -147,6 +162,11 @@ private:
 #endif
     }
 
+    void __dlop_load(FILE* fin) {
+        printf("Unsupported \n");
+        exit(1);
+    }
+
 public:
 
     Log() : __size(0), __complete(true) {
@@ -163,7 +183,19 @@ public:
     }
 
     virtual void load(FILE* fin) {
-
+        DUMP_TYPE type;
+        fread(&type, sizeof (DUMP_TYPE), 1, fin); // type
+        switch (type) {
+            case PLAIN:
+                __plain_load(fin);
+                break;
+            case LOP:
+                __lop_load(fin);
+                break;
+            case DLOP:
+                __dlop_load(fin);
+                break;
+        }
     }
 
     virtual DUMP_TYPE evaluate() {
