@@ -94,8 +94,9 @@ extern "C" {
             FILE * fin = fopen("fork.dat", "rb");
             flog.load(fin);
             fclose(fin);
+            printf("[INFO] Load fork.dat successfully\n");
         }
-        printf("flog\n");
+        
         {//mlog, llogs
 #ifdef DEBUG
             printf("loading mlog, llog...\n");
@@ -114,8 +115,9 @@ extern "C" {
                 llogs.push_back(llog);
             }
             fclose(fin);
+            printf("[INFO] Load mutex.dat successfully\n");
         }
-        printf("m/llog\n");
+        
         {//rlog
 #ifdef DEBUG
             printf("loading rlog...\n");
@@ -139,8 +141,8 @@ extern "C" {
             }
 
             fclose(fin);
+            printf("[INFO] Load read.dat successfully\n");
         }
-        printf("rlog\n");
         {//lrlog
 #ifdef DEBUG
             printf("loading lrlog...\n");
@@ -163,8 +165,9 @@ extern "C" {
             }
 
             fclose(fin);
+            printf("[INFO] Load lread.dat successfully\n");
         }
-        printf("lrlog\n");
+
         {//wlog
 #ifdef DEBUG
             printf("loading wlog...\n");
@@ -186,8 +189,9 @@ extern "C" {
             }
 
             fclose(fin);
+            printf("[INFO] Load write.dat successfully\n");
         }
-        printf("wlog\n");
+
         {//address birthday map
 #ifdef DEBUG
             printf("loading addressmap...\n");
@@ -217,8 +221,9 @@ extern "C" {
             }
 
             fclose(fin);
+            printf("[INFO] Load addressmap.dat successfully\n");
         }
-        printf("addmap\n");
+
         system("rm -f ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat ./lread.dat");
         exit(0);
     }
