@@ -225,7 +225,6 @@ extern "C" {
         }
 
         system("rm -f ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat ./lread.dat");
-        exit(0);
     }
 
     void OnExit() {
