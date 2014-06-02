@@ -101,8 +101,15 @@ private:
     }
 
     void __lop_load(FILE* fin) {
-        printf("Unsupported \n");
-        exit(1);
+        fread(&__size, sizeof (unsigned), 1, fin); // size
+        Item<T> t[__size];
+        fread(t, sizeof (Item<T>), __size, fin);
+
+        for (unsigned i = 0; i < __size; i++) {
+            Item<T> * elmt = new Item<T>;
+            memcpy(elmt, &t[i], sizeof (Item<T>));
+            this->__log.push_back(elmt);
+        }
     }
 
     void __dlop_dump(FILE * fout) {
@@ -163,8 +170,39 @@ private:
     }
 
     void __dlop_load(FILE* fin) {
-        printf("Unsupported \n");
-        exit(1);
+        unsigned size = 0;
+        unsigned counter_size = 0;
+        fread(&size, sizeof (unsigned), 1, fin); // size
+        fread(&counter_size, sizeof (unsigned), 1, fin); // counter size
+
+        T t[size];
+        fread(t, sizeof (T), size, fin);
+
+        unsigned counter[counter_size];
+        fread(counter, sizeof (unsigned), counter_size, fin);
+
+        unsigned real_counters[size];
+        unsigned idx = 0;
+        for (unsigned i = 0; i < counter_size; i += 2) {
+            for (unsigned j = 0; j < counter[i + 1]; j++) {
+                if (idx >= size) {
+                    printf("[ERROR] load error!\n")
+                    exit(1);
+                }
+                real_counters[idx++] = counter[i];
+            }
+        }
+
+
+        for (unsigned i = 0; i < size; i++) {
+            Item<T>* elmt = new Item<T>;
+            elmt->t = t[i];
+            elmt->counter = real_counters[i];
+
+            __log.push_back(elmt);
+        }
+
+        __size = size;
     }
 
 public:
@@ -185,6 +223,10 @@ public:
     virtual void load(FILE* fin) {
         DUMP_TYPE type;
         fread(&type, sizeof (DUMP_TYPE), 1, fin); // type
+        fread(&__complete, sizeof (bool), 1, fin); // __complete?
+        if (!__complete) {
+            printf("[ERROR] incomplete log is not supported in the version!\n");
+        }
         switch (type) {
             case PLAIN:
                 __plain_load(fin);
@@ -233,6 +275,7 @@ public:
         DUMP_TYPE t = evaluate();
 #ifndef LDEBUG
         fwrite(&t, sizeof (DUMP_TYPE), 1, fout); // type
+        fwrite(&__complete, sizeof (bool), 1, fout); // __complete?
 #endif
         switch (t) {
             case PLAIN:
