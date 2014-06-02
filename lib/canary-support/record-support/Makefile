@@ -28,3 +28,7 @@ ifeq (${LDEBUG}, 1)
     CFLAGS += -DLDEBUG
     CXXFLAGS += -DLDEBUG
 endif
+
+
+CFLAGS+=-Wno-vla-extension 
+CXXFLAGS+=-Wno-vla-extension 

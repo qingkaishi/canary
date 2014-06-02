@@ -186,7 +186,7 @@ private:
         for (unsigned i = 0; i < counter_size; i += 2) {
             for (unsigned j = 0; j < counter[i + 1]; j++) {
                 if (idx >= size) {
-                    printf("[ERROR] load error!\n")
+                    printf("[ERROR] load error!\n");
                     exit(1);
                 }
                 real_counters[idx++] = counter[i];

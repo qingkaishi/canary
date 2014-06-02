@@ -89,23 +89,106 @@ extern "C" {
 
         {//flog
 #ifdef DEBUG
-            printf("dumping flog...\n");
+            printf("loading flog...\n");
 #endif
             FILE * fin = fopen("fork.dat", "r");
-            flog.load(fout);
+            flog.load(fin);
             fclose(fin);
         }
 
         {//mlog, llogs
 #ifdef DEBUG
-            printf("dumping mlog, llog...\n");
+            printf("loading mlog, llog...\n");
 #endif
             FILE * fin = fopen("mutex.dat", "r");
-            mlog.dumpWithValueUnsignedMap(fout, thread_ht);
-            for (unsigned i = 0; i < llogs.size(); i++) {
-                g_llog_t * llog = llogs[i];
-                llog->dumpWithValueUnsignedMap(fout, thread_ht);
+            mlog.load(fin);
+
+            while (!feof(fin)) {
+                g_llog_t * llog = new g_llog_t;
+                llog->load(fin);
+                llogs.push_back(llog);
             }
+            fclose(fin);
+        }
+        {//rlog
+#ifdef DEBUG
+            printf("loading rlog...\n");
+#endif
+            FILE * fin = fopen("read.dat", "r");
+            while(!feof(fin)){
+                unsigned tid = -1;
+                fread(&tid, sizeof (unsigned), 1, fin);
+                l_rlog_t* rlog = new l_rlog_t[num_shared_vars];
+                rlogs[tid] = rlog;
+                
+                for (unsigned i = 0; i < num_shared_vars; i++) {
+                    rlog[i].VAL_LOG.load(fin);
+                    rlog[i].VER_LOG.load(fin);
+                }
+            }
+            
+            fclose(fin);
+        }
+        {//lrlog
+#ifdef DEBUG
+            printf("loading lrlog...\n");
+#endif
+            FILE * fin = fopen("lread.dat", "r");
+            while(!feof(fin)){
+                unsigned tid = -1;
+                fread(&tid, sizeof (unsigned), 1, fin);
+                l_lrlog_t* rlog = new l_lrlog_t[num_local_vars];
+                lrlogs[tid] = rlog;
+                
+                for (unsigned i = 0; i < num_local_vars; i++) {
+                    rlog[i].load(fin);
+                }
+            }
+            
+            fclose(fin);
+        }
+        {//wlog
+#ifdef DEBUG
+            printf("loading wlog...\n");
+#endif
+            FILE * fin = fopen("write.dat", "r");
+            while(!feof(fin)){
+                unsigned tid = -1;
+                fread(&tid, sizeof (unsigned), 1, fin);
+                l_wlog_t* wlog = new l_wlog_t[num_shared_vars];
+                wlogs[tid] = wlog;
+                
+                for (unsigned i = 0; i < num_shared_vars; i++) {
+                    wlog[i].load(fin);
+                }
+            }
+            
+            fclose(fin);
+        }
+        
+        {//address birthday map
+#ifdef DEBUG
+            printf("loading addressmap...\n");
+#endif
+            FILE * fin = fopen("addressmap.dat", "r");
+            while(!feof(fin)){
+                unsigned tid = -1;
+                unsigned size = -1;
+                
+                fread(&size, sizeof (unsigned), 1, fin);
+                fread(&tid, sizeof (unsigned), 1, fin);
+                l_addmap_t * addmap = new l_addmap_t;
+                addlogs[tid] = addmap;
+                
+                for (unsigned i = 0; i < size; i++) {
+                    mem_t * m = new mem_t;
+                    fread(m, sizeof(mem_t), 1, fin);
+                    addmap->ADDRESS_LOG.push_back(m);
+                }
+                
+                addmap->BIRTHDAY_LOG.load(fin);
+            }
+            
             fclose(fin);
         }
     }

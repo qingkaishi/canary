@@ -15,3 +15,6 @@ LIBRARYNAME=canaryreplay
 #
 include $(LEVEL)/Makefile.common
 
+
+CFLAGS+=-Wno-vla-extension 
+CXXFLAGS+=-Wno-vla-extension 

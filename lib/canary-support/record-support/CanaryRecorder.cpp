@@ -289,8 +289,7 @@ extern "C" {
 #ifdef LDEBUG
                     fprintf(fout, "(%p, %u); ", m->address, m->range);
 #else
-                    fwrite(&m->address, sizeof (void*), 1, fout);
-                    fwrite(&m->range, sizeof (size_t), 1, fout);
+                    fwrite(m, sizeof(mem_t), 1, fout);
 #endif
                 }
 #ifdef LDEBUG

@@ -626,8 +626,7 @@ namespace {
                     robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &address_map, &extern_funcs, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-record-transformer ...\n");
                 } else {
-                    outs() << "Unsupported transformer in the version\n";
-                    exit(1);
+                    outs() << "[WARINING] The transformer is in progress\n";
                     robot = new Transformer4CanaryReplay(&M, &llvm_svs, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-replay-transformer ...\n");
                 }
