@@ -203,7 +203,10 @@ extern "C" {
 #endif
             FILE * fout = fopen("mutex.dat", "w");
             mlog.dumpWithValueUnsignedMap(fout, thread_ht);
-            for (unsigned i = 0; i < llogs.size(); i++) {
+
+            unsigned size = llogs.size();
+            fwrite(&size, sizeof (unsigned), 1, fout);
+            for (unsigned i = 0; i < size; i++) {
                 g_llog_t * llog = llogs[i];
                 llog->dumpWithValueUnsignedMap(fout, thread_ht);
             }
@@ -219,7 +222,7 @@ extern "C" {
                 l_rlog_t* rlog = rlogs[tid];
                 if (rlog == NULL) continue;
 #ifdef LDEBUG
-                fprintf(fout, "Thread %u \n", u);
+                fprintf(fout, "Thread %u \n", tid);
 #else
                 fwrite(&tid, sizeof (unsigned), 1, fout);
 #endif
@@ -239,7 +242,7 @@ extern "C" {
                 l_lrlog_t* rlog = lrlogs[tid];
                 if (rlog == NULL) continue;
 #ifdef LDEBUG
-                fprintf(fout, "Thread %u \n", u);
+                fprintf(fout, "Thread %u \n", tid);
 #else
                 fwrite(&tid, sizeof (unsigned), 1, fout);
 #endif
@@ -258,7 +261,7 @@ extern "C" {
                 l_wlog_t* wlog = wlogs[tid];
                 if (wlog == NULL) continue;
 #ifdef LDEBUG
-                fprintf(fout, "Thread %u \n", u);
+                fprintf(fout, "Thread %u \n", tid);
 #else
                 fwrite(&tid, sizeof (unsigned), 1, fout);
 #endif
@@ -289,7 +292,7 @@ extern "C" {
 #ifdef LDEBUG
                     fprintf(fout, "(%p, %u); ", m->address, m->range);
 #else
-                    fwrite(m, sizeof(mem_t), 1, fout);
+                    fwrite(m, sizeof (mem_t), 1, fout);
 #endif
                 }
 #ifdef LDEBUG

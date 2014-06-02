@@ -81,7 +81,7 @@ extern "C" {
         memset(lrlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
 
         // unzip
-        int ret = system("if [ -f canary.zip ]; then unzip canary.zip; else exit 99; fi");
+        int ret = system("if [ -f canary.zip ]; then unzip -o canary.zip; else exit 99; fi");
         if (WEXITSTATUS(ret) == 99) {
             printf("[ERROR] no logs can be detected!\n");
             exit(1);
@@ -91,106 +91,136 @@ extern "C" {
 #ifdef DEBUG
             printf("loading flog...\n");
 #endif
-            FILE * fin = fopen("fork.dat", "r");
+            FILE * fin = fopen("fork.dat", "rb");
             flog.load(fin);
             fclose(fin);
         }
-
+        printf("flog\n");
         {//mlog, llogs
 #ifdef DEBUG
             printf("loading mlog, llog...\n");
 #endif
-            FILE * fin = fopen("mutex.dat", "r");
+            FILE * fin = fopen("mutex.dat", "rb");
             mlog.load(fin);
 
-            while (!feof(fin)) {
+            unsigned size = 0;
+            if(!fread(&size, sizeof (unsigned), 1, fin)){
+                printf("[ERROR] IO error.");
+            }
+            
+            for (unsigned i = 0; i < size; i++) {
                 g_llog_t * llog = new g_llog_t;
                 llog->load(fin);
                 llogs.push_back(llog);
             }
             fclose(fin);
         }
+        printf("m/llog\n");
         {//rlog
 #ifdef DEBUG
             printf("loading rlog...\n");
 #endif
-            FILE * fin = fopen("read.dat", "r");
-            while(!feof(fin)){
+            FILE * fin = fopen("read.dat", "rb");
+            while (!feof(fin)) {
                 unsigned tid = -1;
                 fread(&tid, sizeof (unsigned), 1, fin);
+
+                if (feof(fin)) { // we have to use feof again
+                    break;
+                }
+
                 l_rlog_t* rlog = new l_rlog_t[num_shared_vars];
                 rlogs[tid] = rlog;
-                
+
                 for (unsigned i = 0; i < num_shared_vars; i++) {
                     rlog[i].VAL_LOG.load(fin);
                     rlog[i].VER_LOG.load(fin);
                 }
             }
-            
+
             fclose(fin);
         }
+        printf("rlog\n");
         {//lrlog
 #ifdef DEBUG
             printf("loading lrlog...\n");
 #endif
-            FILE * fin = fopen("lread.dat", "r");
-            while(!feof(fin)){
+            FILE * fin = fopen("lread.dat", "rb");
+            while (!feof(fin)) {
                 unsigned tid = -1;
                 fread(&tid, sizeof (unsigned), 1, fin);
+
+                if (feof(fin)) { // we have to use feof again
+                    break;
+                }
+
                 l_lrlog_t* rlog = new l_lrlog_t[num_local_vars];
                 lrlogs[tid] = rlog;
-                
+
                 for (unsigned i = 0; i < num_local_vars; i++) {
                     rlog[i].load(fin);
                 }
             }
-            
+
             fclose(fin);
         }
+        printf("lrlog\n");
         {//wlog
 #ifdef DEBUG
             printf("loading wlog...\n");
 #endif
-            FILE * fin = fopen("write.dat", "r");
-            while(!feof(fin)){
+            FILE * fin = fopen("write.dat", "rb");
+            while (!feof(fin)) {
                 unsigned tid = -1;
                 fread(&tid, sizeof (unsigned), 1, fin);
+                if (feof(fin)) { // we have to use feof again
+                    break;
+                }
+
                 l_wlog_t* wlog = new l_wlog_t[num_shared_vars];
                 wlogs[tid] = wlog;
-                
+
                 for (unsigned i = 0; i < num_shared_vars; i++) {
                     wlog[i].load(fin);
                 }
             }
-            
+
             fclose(fin);
         }
-        
+        printf("wlog\n");
         {//address birthday map
 #ifdef DEBUG
             printf("loading addressmap...\n");
 #endif
-            FILE * fin = fopen("addressmap.dat", "r");
-            while(!feof(fin)){
+            FILE * fin = fopen("addressmap.dat", "rb");
+            while (!feof(fin)) {
                 unsigned tid = -1;
                 unsigned size = -1;
-                
+
                 fread(&size, sizeof (unsigned), 1, fin);
                 fread(&tid, sizeof (unsigned), 1, fin);
+
+                if (feof(fin)) { // we have to use feof again
+                    break;
+                }
+
                 l_addmap_t * addmap = new l_addmap_t;
                 addlogs[tid] = addmap;
-                
+
                 for (unsigned i = 0; i < size; i++) {
                     mem_t * m = new mem_t;
-                    fread(m, sizeof(mem_t), 1, fin);
+                    fread(m, sizeof (mem_t), 1, fin);
                     addmap->ADDRESS_LOG.push_back(m);
                 }
-                
+
                 addmap->BIRTHDAY_LOG.load(fin);
             }
-            
+
             fclose(fin);
         }
+        printf("addmap\n");
+        system("rm -f ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat ./lread.dat");
+        exit(0);
     }
 
     void OnExit() {
@@ -235,3 +265,15 @@ extern "C" {
     }
 
 }
+
+/* ************************************************************************
+ * Signal Process
+ * ************************************************************************/
+
+void sigroutine(int dunno) {
+    printSigInformation(dunno);
+
+    OnExit();
+    exit(dunno);
+}
+
