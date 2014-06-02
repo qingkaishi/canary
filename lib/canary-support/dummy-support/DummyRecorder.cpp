@@ -13,7 +13,7 @@ static struct timeval tpstart, tpend;
 
 extern "C" {
 
-    void OnInit(unsigned svsNum) {
+    void OnInit(unsigned svsNum, unsigned lvsNum) {
         printf("OnInit-Record (dummy record)\n");
 
 #ifdef NO_TIME_CMD

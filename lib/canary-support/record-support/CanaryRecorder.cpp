@@ -14,47 +14,6 @@
 #include "../Log.h"
 #include "../Cache.h"
 
-#define CANARY_THREADS_MAX 32
-
-/*
- * Define log types
- * l_ means local log types, each thread has a log
- * g_ means global log types, each shared variable has a log
- * r  -> read 
- * lr -> local read
- * w  -> write
- * l  -> lock
- * m  -> mutex init
- * f  -> fork
- */
-typedef struct {
-    // <long/void *> sizeof pointer usually equals to sizeof long
-    LastOnePredictorLog<long> VAL_LOG;
-    // <int>, -1 is the place holder, means the read operation reads
-    // the local value
-    LastOnePredictorLog<int> VER_LOG;
-} l_rlog_t;
-
-typedef VLastOnePredictorLog l_wlog_t;
-
-typedef LastOnePredictorLog<long> l_lrlog_t;
-
-typedef LastOnePredictorLog<pthread_t> g_llog_t;
-
-typedef LastOnePredictorLog<pthread_t> g_mlog_t;
-
-typedef LastOnePredictorLog<pthread_t> g_flog_t;
-
-typedef struct {
-    void* address;
-    size_t range;
-} mem_t;
-
-typedef struct {
-    std::vector<mem_t *> ADDRESS_LOG;
-    VLastOnePredictorLog BIRTHDAY_LOG;
-} l_addmap_t;
-
 /*
  * Define local log keys
  */
