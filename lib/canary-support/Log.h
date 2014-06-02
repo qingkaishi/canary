@@ -46,8 +46,6 @@ private:
 #ifdef LDEBUG
         fprintf(fout, "Type: __plain_dump (%d). Size: %u.\n", __complete, size);
 #else
-        DUMP_TYPE type = PLAIN;
-        fwrite(&type, sizeof (DUMP_TYPE), 1, fout); // type
         fwrite(&size, sizeof (unsigned), 1, fout); // size
 #endif
         for (unsigned i = 0; i < __log.size(); i++) {
@@ -70,13 +68,11 @@ private:
         printf("using __lop_dump\n");
 #endif
 
-        
+
         unsigned size = __log.size(); // size
 #ifdef LDEBUG
         fprintf(fout, "Type: __lop_dump (%d). Size: %u.\n", __complete, size);
 #else
-        DUMP_TYPE type = LOP;
-        fwrite(&type, sizeof (DUMP_TYPE), 1, fout); // type
         fwrite(&size, sizeof (unsigned), 1, fout);
 #endif
 
@@ -88,7 +84,7 @@ private:
             fwrite(item, sizeof (Item<T>), 1, fout);
 #endif
         }
-        
+
 #ifdef LDEBUG
         fprintf(fout, "\n");
 #endif
@@ -107,13 +103,11 @@ private:
                 lastOne = __log[i]->counter;
             }
         }
-        
+
         unsigned size = __log.size();
 #ifdef LDEBUG
         fprintf(fout, "Type: __dlop_dump (%d). Size: %u. CounterSize: %u\n", __complete, size, s3);
 #else
-        DUMP_TYPE type = DLOP;
-        fwrite(&type, sizeof (DUMP_TYPE), 1, fout); // type
         fwrite(&size, sizeof (unsigned), 1, fout); // size
         fwrite(&s3, sizeof (unsigned), 1, fout); // counter size
 #endif
@@ -168,6 +162,10 @@ public:
         }
     }
 
+    virtual void load(FILE* fin) {
+
+    }
+
     virtual DUMP_TYPE evaluate() {
         size_t s1 = 0;
         for (unsigned i = 0; i < __log.size(); i++) {
@@ -201,6 +199,9 @@ public:
 
     virtual void dump(FILE * fout) {
         DUMP_TYPE t = evaluate();
+#ifndef LDEBUG
+        fwrite(&t, sizeof (DUMP_TYPE), 1, fout); // type
+#endif
         switch (t) {
             case PLAIN:
                 __plain_dump(fout);
@@ -220,16 +221,6 @@ public:
             item->t = map[item->t];
         }
 
-        dump(fout);
-    }
-
-    virtual void dumpWithUnsigned(FILE* fout, unsigned u) {
-#ifdef LDEBUG
-        fprintf(fout, "Thread %u \n", u);
-#else
-        fwrite(&u, sizeof (unsigned), 1, fout);
-#endif
-        
         dump(fout);
     }
 
@@ -301,14 +292,14 @@ private:
             Item<size_t> * vI = __log[currentIdx];
             vI->counter = 1;
             vI->t = val;
-            
+
             __size++;
         } else {
             Item<size_t> * vI = new Item<size_t>;
             vI->t = val;
             vI->counter = 1;
             __log.push_back(vI);
-            
+
             __size++;
         }
     }

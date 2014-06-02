@@ -71,6 +71,43 @@ extern "C" {
 
     void OnInit(unsigned svsNum, unsigned lvsNum) {
         printf("OnInit-Replay (canary replayer)\n");
+
+        num_shared_vars = svsNum;
+        num_local_vars = lvsNum;
+
+        memset(addlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
+        memset(wlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
+        memset(rlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
+        memset(lrlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
+
+        // unzip
+        int ret = system("if [ -f canary.zip ]; then unzip canary.zip; else exit 99; fi");
+        if (WEXITSTATUS(ret) == 99) {
+            printf("[ERROR] no logs can be detected!\n");
+            exit(1);
+        }
+
+        {//flog
+#ifdef DEBUG
+            printf("dumping flog...\n");
+#endif
+            FILE * fin = fopen("fork.dat", "r");
+            flog.load(fout);
+            fclose(fin);
+        }
+
+        {//mlog, llogs
+#ifdef DEBUG
+            printf("dumping mlog, llog...\n");
+#endif
+            FILE * fin = fopen("mutex.dat", "r");
+            mlog.dumpWithValueUnsignedMap(fout, thread_ht);
+            for (unsigned i = 0; i < llogs.size(); i++) {
+                g_llog_t * llog = llogs[i];
+                llog->dumpWithValueUnsignedMap(fout, thread_ht);
+            }
+            fclose(fin);
+        }
     }
 
     void OnExit() {

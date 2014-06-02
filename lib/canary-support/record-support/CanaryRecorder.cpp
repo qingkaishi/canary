@@ -218,9 +218,14 @@ extern "C" {
             for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
                 l_rlog_t* rlog = rlogs[tid];
                 if (rlog == NULL) continue;
+#ifdef LDEBUG
+                fprintf(fout, "Thread %u \n", u);
+#else
+                fwrite(&tid, sizeof (unsigned), 1, fout);
+#endif
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    rlog[i].VAL_LOG.dumpWithUnsigned(fout, tid);
-                    rlog[i].VER_LOG.dumpWithUnsigned(fout, tid);
+                    rlog[i].VAL_LOG.dump(fout);
+                    rlog[i].VER_LOG.dump(fout);
                 }
             }
             fclose(fout);
@@ -233,8 +238,13 @@ extern "C" {
             for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
                 l_lrlog_t* rlog = lrlogs[tid];
                 if (rlog == NULL) continue;
+#ifdef LDEBUG
+                fprintf(fout, "Thread %u \n", u);
+#else
+                fwrite(&tid, sizeof (unsigned), 1, fout);
+#endif
                 for (unsigned i = 0; i < num_local_vars; i++) {
-                    rlog[i].dumpWithUnsigned(fout, tid);
+                    rlog[i].dump(fout);
                 }
             }
             fclose(fout);
@@ -247,8 +257,13 @@ extern "C" {
             for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
                 l_wlog_t* wlog = wlogs[tid];
                 if (wlog == NULL) continue;
+#ifdef LDEBUG
+                fprintf(fout, "Thread %u \n", u);
+#else
+                fwrite(&tid, sizeof (unsigned), 1, fout);
+#endif
                 for (unsigned i = 0; i < num_shared_vars; i++) {
-                    wlog[i].dumpWithUnsigned(fout, tid);
+                    wlog[i].dump(fout);
                 }
             }
             fclose(fout);
