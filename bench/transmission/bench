@@ -31,11 +31,11 @@ fi
 if [ -n "$LIB" ];then
 	# how to link
 	if [ -f $APP.t.bc ]; then
-		echo "clang transmission.t.bc -o transmission -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH"
-		clang transmission.t.bc -o transmission.exe -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH
+		echo "clang++ transmission.t.bc -o transmission.exe -l$LIB -lptmalloc3 -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -L$LIBPATH"
+		clang++ transmission.t.bc -o transmission.exe -l$LIB -lptmalloc3 -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -L$LIBPATH
 	else
 		echo "clang transmission.bc -o transmission -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH"
-		clang transmission.bc -o transmission.exe -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH
+		clang++ transmission.bc -o transmission.exe -lcurl -lz -lssl -lcrypto -lm -lnsl -lrt -lresolv -lpthread -l$LIB -L$LIBPATH
 	fi
 fi
 

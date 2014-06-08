@@ -138,6 +138,9 @@ void close_birthday_key(void* key) {
 }
 
 extern "C" {
+    extern void* get_canary_heap_start();
+
+    extern void* get_canary_heap_end();
 
     void OnInit(unsigned svsNum, unsigned lvsNum) {
         printf("[INFO] OnInit-Record (canary record)\n");
@@ -276,6 +279,16 @@ extern "C" {
             printf("dumping addressmap...\n");
 #endif
             FILE * fout = fopen("addressmap.dat", "w");
+
+            void * hstart = get_canary_heap_start();
+            void * hend = get_canary_heap_end();
+#ifdef LDEBUG
+            fprintf(fout, "[%p, %p]\n", hstart, hend);
+#else
+            fwrite(&hstart, sizeof (void*), 1, fout);
+            fwrite(&hend, sizeof (void*), 1, fout);
+#endif            
+
             for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
                 l_addmap_t * addmap = addlogs[tid];
                 if (addmap == NULL) continue;

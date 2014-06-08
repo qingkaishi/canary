@@ -43,6 +43,10 @@ static pthread_mutex_t* locks;
 static pthread_mutex_t fork_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mutex_init_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/**/
+static void * recorded_heap_start = NULL;
+static void * recorded_heap_end = NULL;
+
 static inline void lock(unsigned svId) {
     pthread_mutex_lock(&locks[svId]);
 }
@@ -68,7 +72,10 @@ static inline void mutexInitUnlock() {
 }
 
 extern "C" {
+    extern void* get_canary_heap_start();
 
+    extern void* get_canary_heap_end();
+    
     void OnInit(unsigned svsNum, unsigned lvsNum) {
         printf("OnInit-Replay (canary replayer)\n");
 
@@ -197,6 +204,10 @@ extern "C" {
             printf("loading addressmap...\n");
 #endif
             FILE * fin = fopen("addressmap.dat", "rb");
+            
+            fread(&recorded_heap_start, sizeof(void*), 1, fin);
+            fread(&recorded_heap_end, sizeof(void*), 1, fin);
+            
             while (!feof(fin)) {
                 unsigned tid = -1;
                 unsigned size = -1;
