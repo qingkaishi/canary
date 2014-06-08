@@ -208,7 +208,11 @@ extern "C" {
             mlog.dumpWithValueUnsignedMap(fout, thread_ht);
 
             unsigned size = llogs.size();
+#ifdef LDEBUG
+            fprintf(fout, "Size: %u \n", size);
+#else
             fwrite(&size, sizeof (unsigned), 1, fout);
+#endif
             for (unsigned i = 0; i < size; i++) {
                 g_llog_t * llog = llogs[i];
                 llog->dumpWithValueUnsignedMap(fout, thread_ht);
