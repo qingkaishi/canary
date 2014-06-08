@@ -33,5 +33,5 @@ malloc.o: malloc.c
 clean:
 	rm -f *.o *.a
 	
-install:
+install: all
 	cp libptmalloc3.a /usr/local/lib/
