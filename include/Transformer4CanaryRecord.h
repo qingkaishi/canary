@@ -25,8 +25,7 @@ private:
 private:
     static int stmt_idx;
 
-    set<Function*> * extern_lib_funcs;
-
+    set<Function*> extern_lib_funcs;
     set<Value*>* local_variables;
 
 public:
@@ -37,7 +36,6 @@ public:
     Transformer4CanaryRecord(Module * m,
             set<Value*> * svs,
             set<Value*> * lvs,
-            set<Function*> * ex_libs,
             unsigned psize);
 
     void transform(AliasAnalysis& AA);
@@ -69,6 +67,25 @@ private:
     int getLocalValueIndex(Value * v, AliasAnalysis& AA);
 
     void initializeFunctions(Module * m);
+
+public:
+
+    static bool isExternalLibraryFunction(Function * f) {
+        if (!f->empty() || f->isIntrinsic())
+            return false;
+
+        std::string name = f->getName().str();
+        if (name.find("pthread") == 0 || name == "exit"
+                || name == "calloc" || name == "malloc"
+                || name == "realloc" || name == "_Znaj"
+                || name == "_ZnajRKSt9nothrow_t" || name == "_Znam"
+                || name == "_ZnamRKSt9nothrow_t" || name == "_Znwj"
+                || name == "_ZnwjRKSt9nothrow_t" || name == "_Znwm"
+                || name == "_ZnwmRKSt9nothrow_t")
+            return false;
+
+        return true;
+    }
 };
 
 

@@ -62,11 +62,10 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
     initializeFunctions(m);
 }
 
-Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, set<Function*> * ex_libs, unsigned psize) : Transformer(m, svs, psize) {
+Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, unsigned psize) : Transformer(m, svs, psize) {
     //Transformer4CanaryRecord::Transformer4CanaryRecord(m, svs, psize);
     initializeFunctions(m);
 
-    this->extern_lib_funcs = ex_libs;
     this->local_variables = lvs;
 }
 
@@ -128,7 +127,7 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
 }
 
 void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
-    if (getSharedValueIndex(alloca, AA) == -1 || getLocalValueIndex(alloca, AA) == -1){
+    if (getSharedValueIndex(alloca, AA) == -1 || getLocalValueIndex(alloca, AA) == -1) {
         return;
     }
 
@@ -156,7 +155,7 @@ void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instructi
 /// so, we need care about store inst
 
 void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA) {
-    if (getSharedValueIndex(inst, AA) == -1 || getLocalValueIndex(inst, AA) == -1){
+    if (getSharedValueIndex(inst, AA) == -1 || getLocalValueIndex(inst, AA) == -1) {
         return;
     }
 
@@ -311,7 +310,7 @@ void Transformer4CanaryRecord::transformSystemExit(CallInst* ins, AliasAnalysis&
 }
 
 void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, AliasAnalysis& AA) {
-    /// @TODO extern call, record the returned value
+    // extern call, record the returned value
 
     if (inst->doesNotReturn() || inst->getNumUses() == 0) return;
 
@@ -319,11 +318,11 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
     // record it
     bool record = false;
     Value* cv = inst->getCalledValue();
-    if (isa<Function>(cv) && !((Function*) cv)->isIntrinsic() && ((Function*) cv)->empty()) {
+    if (isa<Function>(cv) && Transformer4CanaryRecord::isExternalLibraryFunction((Function*) cv)) {
         record = true;
     } else {
-        set<Function*>::iterator fit = extern_lib_funcs->begin();
-        while (fit != extern_lib_funcs->end()) {
+        set<Function*>::iterator fit = extern_lib_funcs.begin();
+        while (fit != extern_lib_funcs.end()) {
             Function* f = *fit;
             if (AA.alias(f, cv) && !f->getReturnType()->isVoidTy()) {
                 cv = f;
@@ -447,30 +446,38 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
         errs() << "[ERROR] please handle posix_memalign\n";
         exit(1);
     }
-    
+
     if (m->getFunction("aligned_alloc") != NULL) {
         errs() << "[ERROR] please handle aligned_alloc\n";
         exit(1);
     }
-    
+
     if (m->getFunction("valloc") != NULL) {
         errs() << "[ERROR] please handle valloc\n";
         exit(1);
     }
-    
+
     if (m->getFunction("memalign") != NULL) {
         errs() << "[ERROR] please handle memalign\n";
         exit(1);
     }
-    
+
     if (m->getFunction("pvalloc") != NULL) {
         errs() << "[ERROR] please handle pvalloc\n";
         exit(1);
     }
-    
+
     if (m->getFunction("brk") != NULL || m->getFunction("sbrk") != NULL) {
         errs() << "[ERROR] please handle brk and sbrk\n";
         exit(1);
+    }
+
+    /// extern lib functions
+    for (ilist_iterator<Function> iterF = m->getFunctionList().begin(); iterF != m->getFunctionList().end(); iterF++) {
+        Function* f = iterF;
+        if (Transformer4CanaryRecord::isExternalLibraryFunction(f) /*&& !this->isInstrumentationFunction(f)*/) {
+            extern_lib_funcs.insert(f);
+        }
     }
 
     ///initialize functions

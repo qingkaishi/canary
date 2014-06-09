@@ -72,17 +72,6 @@ static bool notDifferentParent(const Value *O1, const Value *O2) {
     return !F1 || !F2 || F1 == F2;
 }
 
-static bool isSpecialFunction(Function * f) {
-    std::string name = f->getName().str();
-    return name.find("pthread") == 0 || name == "exit"
-            || name == "calloc" || name == "malloc"
-            || name == "realloc" || name == "_Znaj"
-            || name == "_ZnajRKSt9nothrow_t" || name == "_Znam"
-            || name == "_ZnamRKSt9nothrow_t" || name == "_Znwj"
-            || name == "_ZnwjRKSt9nothrow_t" || name == "_Znwm"
-            || name == "_ZnwmRKSt9nothrow_t";
-}
-
 namespace {
     /// DyckAliasAnalysis - This is the primary alias analysis implementation.
 
@@ -486,7 +475,6 @@ namespace {
 
             set<DyckVertex*> lvs;
             set<Value *> llvm_lvs;
-            set<Function* > extern_funcs;
 
             Transformer * robot = NULL;
             if (LeapTransformer) {
@@ -498,17 +486,16 @@ namespace {
             } else if (CanaryRecordTransformer || CanaryReplayTransformer) {
                 for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
                     Function* f = iterF;
-                    if (f->empty() && !f->isIntrinsic() && !f->doesNotAccessMemory() && !f->onlyReadsMemory()
+                    if (Transformer4CanaryRecord::isExternalLibraryFunction(f) 
+                            && !f->doesNotAccessMemory() 
+                            && !f->onlyReadsMemory()
                             && !f->hasFnAttribute(Attribute::ReadOnly)
                             && !f->hasFnAttribute(Attribute::ReadNone)
-                            && !(f->getArgumentList().empty() && f->getReturnType()->isVoidTy())
-                            && !isSpecialFunction(f)) {
-                        bool isCritical = false;
+                            && !f->getArgumentList().empty()) {
                         iplist<Argument>& alt = f->getArgumentList();
                         iplist<Argument>::iterator it = alt.begin();
                         while (it != alt.end()) {
                             if (!it->onlyReadsMemory()) {
-                                isCritical = true;
                                 set<DyckVertex*> tmp_lvs;
                                 this->getEscapedPointersFrom(&tmp_lvs, it);
 
@@ -523,16 +510,13 @@ namespace {
                             }
                             it++;
                         }
-                        if (isCritical) {
-                            extern_funcs.insert(f);
-                        }
                     }
                 }
                 this->fromDyckVertexToValue(lvs, llvm_lvs);
 
                 // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {
-                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &extern_funcs, this->getDataLayout()->getPointerSize());
+                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-record-transformer ...\n");
                 } else {
                     outs() << "[WARINING] The transformer is in progress\n";
