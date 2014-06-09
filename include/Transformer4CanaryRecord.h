@@ -28,7 +28,6 @@ private:
     set<Function*> * extern_lib_funcs;
 
     set<Value*>* local_variables;
-    map<Value*, set<Value*>*> * address_map;
 
 public:
 
@@ -38,7 +37,6 @@ public:
     Transformer4CanaryRecord(Module * m,
             set<Value*> * svs,
             set<Value*> * lvs,
-            map<Value*, set<Value*>*> * addmap,
             set<Function*> * ex_libs,
             unsigned psize);
 
@@ -69,7 +67,6 @@ private:
 
     int getSharedValueIndex(Value * v, AliasAnalysis& AA);
     int getLocalValueIndex(Value * v, AliasAnalysis& AA);
-    bool spaceAllocShouldBeTransformed(Instruction* inst, AliasAnalysis & AA);
 
     void initializeFunctions(Module * m);
 };

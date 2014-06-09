@@ -62,13 +62,12 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
     initializeFunctions(m);
 }
 
-Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, map<Value*, set<Value*>*> * addmap, set<Function*> * ex_libs, unsigned psize) : Transformer(m, svs, psize) {
+Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, set<Function*> * ex_libs, unsigned psize) : Transformer(m, svs, psize) {
     //Transformer4CanaryRecord::Transformer4CanaryRecord(m, svs, psize);
     initializeFunctions(m);
 
     this->extern_lib_funcs = ex_libs;
     this->local_variables = lvs;
-    this->address_map = addmap;
 }
 
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
@@ -129,7 +128,7 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
 }
 
 void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
-    if (!this->spaceAllocShouldBeTransformed(alloca, AA)) {
+    if (getSharedValueIndex(alloca, AA) == -1 || getLocalValueIndex(alloca, AA) == -1){
         return;
     }
 
@@ -157,7 +156,7 @@ void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instructi
 /// so, we need care about store inst
 
 void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA) {
-    if (!this->spaceAllocShouldBeTransformed(inst, AA)) {
+    if (getSharedValueIndex(inst, AA) == -1 || getLocalValueIndex(inst, AA) == -1){
         return;
     }
 
@@ -441,26 +440,6 @@ int Transformer4CanaryRecord::getLocalValueIndex(Value* v, AliasAnalysis& AA) {
         it++;
     }
     return -1;
-}
-
-bool Transformer4CanaryRecord::spaceAllocShouldBeTransformed(Instruction* inst, AliasAnalysis & AA) {
-    if (!address_map->count(inst)) {
-        errs() << "[ERROR] Error during transform space alloc instructions\n";
-        exit(1);
-    }
-    set<Value*>* ess = address_map->at(inst);
-    set<Value*>::iterator eit = ess ->begin();
-    while (eit != ess->end()) {
-        Value *e = *eit;
-
-        if (getSharedValueIndex(e, AA) != -1 || getLocalValueIndex(e, AA) != -1) {
-            return true;
-        }
-
-        eit++;
-    }
-
-    return false;
 }
 
 void Transformer4CanaryRecord::initializeFunctions(Module * m) {

@@ -203,8 +203,6 @@ namespace {
     public:
         void getEscapedPointersTo(set<DyckVertex*>* ret, Function * func); // escaped to 'func'
         void getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from); // escaped from 'from'
-
-        bool isSpaceAllocInst(Instruction* inst, Module& M);
     };
 
     RegisterPass<DyckAliasAnalysis> X("dyckaa", "Alias Analysis based on Qirun's PLDI 2013 paper");
@@ -212,72 +210,6 @@ namespace {
 
     // Register this pass...
     char DyckAliasAnalysis::ID = 0;
-
-    bool DyckAliasAnalysis::isSpaceAllocInst(Instruction* inst, Module& M) {
-        if (isa<AllocaInst>(inst)) {
-            return true;
-        } else if (isa<CallInst>(inst)) {
-            CallInst* call = (CallInst*) inst;
-            Value * calledValue = call->getCalledValue();
-
-            Function* f = M.getFunction("malloc");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("realloc");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("calloc");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_Znaj");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_Znwj");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_Znam");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_Znwm");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_ZnajRKSt9nothrow_t");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_ZnwjRKSt9nothrow_t");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_ZnamRKSt9nothrow_t");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-            f = M.getFunction("_ZnwmRKSt9nothrow_t");
-            if (f != NULL && this->alias(calledValue, f) != AliasAnalysis::NoAlias) {
-                return true;
-            }
-
-        }
-        return false;
-    }
 
     bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex *v2) {
         if (v1 == NULL || v2 == NULL) return false;
@@ -429,12 +361,7 @@ namespace {
             }
         }
 
-        set<DyckVertex*>::iterator vit = visited.begin();
-        while (vit != visited.end()) {
-            DyckVertex* dv = *vit;
-            ret->insert(dv);
-            vit++;
-        }
+        ret->insert(visited.begin(), visited.end());
     }
 
     void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function *func) {
@@ -559,7 +486,6 @@ namespace {
 
             set<DyckVertex*> lvs;
             set<Value *> llvm_lvs;
-            map<Value *, set<Value*>* > address_map;
             set<Function* > extern_funcs;
 
             Transformer * robot = NULL;
@@ -572,23 +498,6 @@ namespace {
             } else if (CanaryRecordTransformer || CanaryReplayTransformer) {
                 for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
                     Function* f = iterF;
-
-                    if (!f->empty()) {
-                        for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
-                            BasicBlock * b = iterB;
-                            for (ilist_iterator<Instruction> iterI = b->getInstList().begin(); iterI != b->getInstList().end(); iterI++) {
-                                Instruction * inst = iterI;
-                                if (isSpaceAllocInst(inst, M)) {
-                                    set<Value*>* ess = new set<Value*>;
-                                    set<DyckVertex*> dvs;
-                                    this->getEscapedPointersFrom(&dvs, inst);
-                                    this->fromDyckVertexToValue(dvs, *ess);
-                                    address_map.insert(pair<Value *, set<Value*>*>(inst, ess));
-                                }
-                            }
-                        }
-                    }
-
                     if (f->empty() && !f->isIntrinsic() && !f->doesNotAccessMemory() && !f->onlyReadsMemory()
                             && !f->hasFnAttribute(Attribute::ReadOnly)
                             && !f->hasFnAttribute(Attribute::ReadNone)
@@ -623,7 +532,7 @@ namespace {
 
                 // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {
-                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &address_map, &extern_funcs, this->getDataLayout()->getPointerSize());
+                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &extern_funcs, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-record-transformer ...\n");
                 } else {
                     outs() << "[WARINING] The transformer is in progress\n";
@@ -637,13 +546,6 @@ namespace {
 
             robot->transform(*this);
             outs() << "Done!\n\n";
-
-            map<Value *, set<Value*>* >::iterator mit = address_map.begin();
-            while (mit != address_map.end()) {
-                delete mit->second;
-                mit++;
-            }
-
 
             if (LeapTransformer) {
                 outs() << "\nPleaase add -ltsxleaprecord or -lleaprecord / -lleapreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
