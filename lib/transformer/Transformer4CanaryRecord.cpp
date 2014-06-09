@@ -464,6 +464,36 @@ bool Transformer4CanaryRecord::spaceAllocShouldBeTransformed(Instruction* inst, 
 }
 
 void Transformer4CanaryRecord::initializeFunctions(Module * m) {
+    if (m->getFunction("posix_memalign") != NULL) {
+        errs() << "[ERROR] please handle posix_memalign\n";
+        exit(1);
+    }
+    
+    if (m->getFunction("aligned_alloc") != NULL) {
+        errs() << "[ERROR] please handle aligned_alloc\n";
+        exit(1);
+    }
+    
+    if (m->getFunction("valloc") != NULL) {
+        errs() << "[ERROR] please handle valloc\n";
+        exit(1);
+    }
+    
+    if (m->getFunction("memalign") != NULL) {
+        errs() << "[ERROR] please handle memalign\n";
+        exit(1);
+    }
+    
+    if (m->getFunction("pvalloc") != NULL) {
+        errs() << "[ERROR] please handle pvalloc\n";
+        exit(1);
+    }
+    
+    if (m->getFunction("brk") != NULL || m->getFunction("sbrk") != NULL) {
+        errs() << "[ERROR] please handle brk and sbrk\n";
+        exit(1);
+    }
+
     ///initialize functions
     F_init = cast<Function>(m->getOrInsertFunction("OnInit",
             VOID_TY(m),
