@@ -127,7 +127,7 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
 }
 
 void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
-    if (getSharedValueIndex(alloca, AA) == -1 || getLocalValueIndex(alloca, AA) == -1) {
+    if (getSharedValueIndex(alloca, AA) == -1 && getLocalValueIndex(alloca, AA) == -1) {
         return;
     }
 
@@ -155,7 +155,7 @@ void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instructi
 /// so, we need care about store inst
 
 void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA) {
-    if (getSharedValueIndex(inst, AA) == -1 || getLocalValueIndex(inst, AA) == -1) {
+    if (getSharedValueIndex(inst, AA) == -1 && getLocalValueIndex(inst, AA) == -1) {
         return;
     }
 
