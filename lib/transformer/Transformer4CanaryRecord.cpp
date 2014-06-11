@@ -130,15 +130,24 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
     return true;
 }
 
+static set<Function*> foralloca;
+
 void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
     /*if (getSharedValueIndex(alloca, AA) == -1 && getLocalValueIndex(alloca, AA) == -1) {
         return;
     }*/
     
-    /* We instrument all alloca inst, because we do not know which one will be executed first.
+    /* We instrument the first alloca inst of every function, because we do not know which one will be executed first.
      * 
      * During record, we only record the first alloca of every thread.
      */
+    
+    Function * parent = alloca->getParent()->getParent();
+    if(foralloca.count(parent)){
+        return;
+    } else {
+        foralloca.insert(parent);
+    }
 
     Constant * nValue = (Constant*) alloca->getArraySize();
     if (!nValue->getType()->isIntegerTy(POINTER_BIT_SIZE)) {
