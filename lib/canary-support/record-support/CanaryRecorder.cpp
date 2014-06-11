@@ -21,7 +21,6 @@ static pthread_key_t lrlog_key;
 static pthread_key_t rlog_key;
 static pthread_key_t wlog_key;
 static pthread_key_t cache_key;
-//static pthread_key_t birthday_key;
 static pthread_key_t address_birthday_map_key;
 
 /*
@@ -50,10 +49,6 @@ static pthread_mutex_t mutex_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static unsigned mutex_id = 0;
 static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
 static boost::unordered_map<pthread_t, unsigned> thread_ht;
-//static boost::unordered_map<pthread_t, l_rlog_t*> rlogs;
-//static boost::unordered_map<pthread_t, l_lrlog_t*> lrlogs;
-//static boost::unordered_map<pthread_t, l_wlog_t*> wlogs;
-//static boost::unordered_map<pthread_t, l_addmap_t*> addlogs;
 
 static l_rlog_t* rlogs[CANARY_THREADS_MAX];
 static l_lrlog_t* lrlogs[CANARY_THREADS_MAX];
@@ -106,23 +101,15 @@ static inline void mutexInitUnlock() {
  * in practice, we can dump them here to avoid memory leak
  */
 void close_read_log(void* log) {
-    //pthread_t tid = pthread_self();
-    //rlogs[tid] = (l_rlog_t*) log;
 }
 
 void close_local_read_log(void* log) {
-    //pthread_t tid = pthread_self();
-    //lrlogs[tid] = (l_lrlog_t*) log;
 }
 
 void close_write_log(void* log) {
-    //pthread_t tid = pthread_self();
-    //wlogs[tid] = (l_wlog_t*) log;
 }
 
 void close_map_log(void* log) {
-    //pthread_t tid = pthread_self();
-    //addlogs[tid] = (l_addmap_t*) log;
 }
 
 void close_cache(void* log) {
@@ -132,10 +119,6 @@ void close_cache(void* log) {
     caches[tid] = NULL;
     delete (Cache*) log;
 }
-
-//void close_birthday_key(void* key) {
-//    delete (size_t*) key;
-//}
 
 extern "C" {
     extern void* get_canary_heap_start();
@@ -152,7 +135,6 @@ extern "C" {
         pthread_key_create(&lrlog_key, close_local_read_log);
         pthread_key_create(&wlog_key, close_write_log);
         pthread_key_create(&address_birthday_map_key, close_map_log);
-        //pthread_key_create(&birthday_key, close_birthday_key);
         pthread_key_create(&cache_key, close_cache);
 
         memset(addlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);

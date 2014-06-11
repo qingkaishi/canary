@@ -1,4 +1,5 @@
 #include "Transformer.h"
+#include <llvm/Support/Debug.h>
 
 Transformer::Transformer(Module* m, set<Value*>* svs, unsigned psize) {
     module = m;
@@ -132,9 +133,7 @@ void Transformer::transform(AliasAnalysis& AA) {
                     continue;
                 }
 
-#ifdef TRANSFORMER_DEBUG
-                errs() << "Transforming: " << inst << "\n";
-#endif
+                DEBUG_WITH_TYPE("transform", errs() << "[Transforming] " << inst << "\n");
                 
                 if(isa<AllocaInst>(inst)) {
                     // record a vector
