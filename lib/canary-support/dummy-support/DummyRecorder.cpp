@@ -32,7 +32,7 @@ extern "C" {
         printf("OnExit-Record (dummy record)\n");
     }
 
-    void OnAddressInit(void* value, size_t size, size_t n) {
+    void OnAddressInit(void* value, size_t size, size_t n, int type) {
     }
 
     void OnLoad(int svId, long address, long value, int debug) {
