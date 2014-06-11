@@ -17,6 +17,10 @@
 #define MUTEX_PTR_TY(m) PointerType::get(MUTEX_TY(m), 0)
 #define CONDN_PTR_TY(m) PointerType::get(CONDN_TY(m), 0)
 
+#define ADD_STACK(m) ConstantInt::get(LONG_TY(m), 1000)
+#define ADD_HEAP(m) ConstantInt::get(LONG_TY(m), 999)
+#define ADD_GLOBAL(m) ConstantInt::get(LONG_TY(m), 998)
+
 static int extern_lib_num = 0;
 
 static bool IS_MUTEX_INIT_TY(Type* t, Module* m) {
@@ -101,7 +105,7 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
                 ConstantInt* nValue = ConstantInt::get(LONG_TY(module), 1);
 
                 Constant* globalstar = ConstantExpr::getBitCast(&gv, VOID_PTR_TY(module));
-                this->insertCallInstAtHead(mainFunction, F_address_init, globalstar, sizeValue, nValue, NULL);
+                this->insertCallInstAtHead(mainFunction, F_address_init, globalstar, sizeValue, nValue, ADD_GLOBAL(module), NULL);
             }
 
             git++;
@@ -127,9 +131,14 @@ bool Transformer4CanaryRecord::instructionToTransform(Instruction* ins) {
 }
 
 void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
-    if (getSharedValueIndex(alloca, AA) == -1 && getLocalValueIndex(alloca, AA) == -1) {
+    /*if (getSharedValueIndex(alloca, AA) == -1 && getLocalValueIndex(alloca, AA) == -1) {
         return;
-    }
+    }*/
+    
+    /* We instrument all alloca inst, because we do not know which one will be executed first.
+     * 
+     * During record, we only record the first alloca of every thread.
+     */
 
     Constant * nValue = (Constant*) alloca->getArraySize();
     if (!nValue->getType()->isIntegerTy(POINTER_BIT_SIZE)) {
@@ -140,10 +149,10 @@ void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instructi
     ConstantInt* sizeValue = ConstantInt::get(LONG_TY(module), size);
 
     if (alloca->getType()->getPointerElementType()->isIntegerTy(8)) {
-        this->insertCallInstBefore(firstNotAlloca, F_address_init, alloca, sizeValue, nValue, NULL);
+        this->insertCallInstBefore(firstNotAlloca, F_address_init, alloca, sizeValue, nValue, ADD_STACK(module), NULL);
     } else {
         CastInst * ci = CastInst::CreatePointerCast(alloca, VOID_PTR_TY(module), "", firstNotAlloca);
-        this->insertCallInstBefore(firstNotAlloca, F_address_init, ci, sizeValue, nValue, NULL);
+        this->insertCallInstBefore(firstNotAlloca, F_address_init, ci, sizeValue, nValue, ADD_STACK(module), NULL);
     }
 
 
@@ -155,9 +164,9 @@ void Transformer4CanaryRecord::transformAllocaInst(AllocaInst* alloca, Instructi
 /// so, we need care about store inst
 
 void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysis& AA) {
-    if (getSharedValueIndex(inst, AA) == -1 && getLocalValueIndex(inst, AA) == -1) {
+    /*if (getSharedValueIndex(inst, AA) == -1 && getLocalValueIndex(inst, AA) == -1) {
         return;
-    }
+    }*/
 
     Instruction * tmp = inst;
 
@@ -176,7 +185,7 @@ void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysi
         sizeValue = ci;
         tmp = ci;
     }
-    this->insertCallInstAfter(tmp, F_address_init, inst, sizeValue, nValue, NULL);
+    this->insertCallInstAfter(tmp, F_address_init, inst, sizeValue, nValue, ADD_HEAP(module), NULL);
 }
 
 void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
@@ -522,7 +531,7 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
 
     F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
             VOID_TY(m),
-            VOID_PTR_TY(m), LONG_TY(m), LONG_TY(m), // ptr, size, n
+            VOID_PTR_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m), // ptr, size, n, type
             NULL));
 
     F_local = cast<Function>(m->getOrInsertFunction("OnLocal",
