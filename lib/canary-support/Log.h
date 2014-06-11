@@ -427,11 +427,12 @@ typedef LastOnePredictorLog<pthread_t> g_flog_t;
 typedef struct {
     void* address;
     size_t range;
+    int type;
 } mem_t;
 
-typedef struct {
-    std::vector<mem_t *> ADDRESS_LOG;
-    VLastOnePredictorLog BIRTHDAY_LOG;
+typedef struct{
+    std::vector<mem_t *> adds;
+    bool stack_tag;
 } l_addmap_t;
 
 #endif	/* LOG_H */

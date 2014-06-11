@@ -225,10 +225,9 @@ extern "C" {
                 for (unsigned i = 0; i < size; i++) {
                     mem_t * m = new mem_t;
                     fread(m, sizeof (mem_t), 1, fin);
-                    addmap->ADDRESS_LOG.push_back(m);
+                    addmap->adds.push_back(m);
                 }
 
-                addmap->BIRTHDAY_LOG.load(fin);
             }
 
             fclose(fin);

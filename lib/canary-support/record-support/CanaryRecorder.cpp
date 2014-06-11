@@ -21,7 +21,7 @@ static pthread_key_t lrlog_key;
 static pthread_key_t rlog_key;
 static pthread_key_t wlog_key;
 static pthread_key_t cache_key;
-static pthread_key_t birthday_key;
+//static pthread_key_t birthday_key;
 static pthread_key_t address_birthday_map_key;
 
 /*
@@ -133,9 +133,9 @@ void close_cache(void* log) {
     delete (Cache*) log;
 }
 
-void close_birthday_key(void* key) {
-    delete (size_t*) key;
-}
+//void close_birthday_key(void* key) {
+//    delete (size_t*) key;
+//}
 
 extern "C" {
     extern void* get_canary_heap_start();
@@ -152,7 +152,7 @@ extern "C" {
         pthread_key_create(&lrlog_key, close_local_read_log);
         pthread_key_create(&wlog_key, close_write_log);
         pthread_key_create(&address_birthday_map_key, close_map_log);
-        pthread_key_create(&birthday_key, close_birthday_key);
+        //pthread_key_create(&birthday_key, close_birthday_key);
         pthread_key_create(&cache_key, close_cache);
 
         memset(addlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
@@ -297,7 +297,7 @@ extern "C" {
                 l_addmap_t * addmap = addlogs[tid];
                 if (addmap == NULL) continue;
 
-                unsigned size = addmap->ADDRESS_LOG.size();
+                unsigned size = addmap->adds.size();
 #ifdef LDEBUG
                 fprintf(fout, "Size = %u, Thread = %u\n", size, tid);
 #else
@@ -305,19 +305,13 @@ extern "C" {
                 fwrite(&tid, sizeof (unsigned), 1, fout);
 #endif
                 for (unsigned i = 0; i < size; i++) {
-                    mem_t * m = addmap->ADDRESS_LOG[i];
+                    mem_t * m = addmap->adds.at(i);
 #ifdef LDEBUG
-                    fprintf(fout, "(%p, %u); ", m->address, m->range);
+                    fprintf(fout, "(%p, %u, %d); ", m->address, m->range, m->type);
 #else
                     fwrite(m, sizeof (mem_t), 1, fout);
 #endif
                 }
-#ifdef LDEBUG
-                fprintf(fout, "\n");
-#endif
-
-                addmap->BIRTHDAY_LOG.dump(fout);
-
 #ifdef LDEBUG
                 fprintf(fout, "\n");
 #endif
@@ -339,10 +333,11 @@ extern "C" {
         system("echo -n \"[INFO] Log size (Byte): \"; echo -n `du -sb canary.zip` | cut -d\" \" -f 1;");
     }
 
-    void OnAddressInit(void* value, size_t size, size_t n) {
+    void OnAddressInit(void* value, size_t size, size_t n, int type) {
         l_addmap_t * mlog = (l_addmap_t*) pthread_getspecific(address_birthday_map_key);
         if (mlog == NULL) {
             mlog = new l_addmap_t;
+            mlog->stack_tag = false;
             pthread_setspecific(address_birthday_map_key, mlog);
             pthread_t realtid = pthread_self();
             while (!thread_ht.empty() && !thread_ht.count(realtid)) {
@@ -355,21 +350,19 @@ extern "C" {
             }
         }
 
-        size_t * counter = (size_t *) pthread_getspecific(birthday_key);
-        if (counter == NULL) {
-            counter = new size_t;
-            (*counter) = 0;
-
-            pthread_setspecific(birthday_key, counter);
+        if (type == 1000) { // a stack address
+            if (mlog->stack_tag) {
+                return;
+            } else {
+                mlog->stack_tag = true;
+            }
         }
 
-        size_t c = *counter;
         mem_t * m = new mem_t;
         m->address = value;
         m->range = size*n;
-        mlog->ADDRESS_LOG.push_back(m);
-        mlog->BIRTHDAY_LOG.logValue(c++);
-        (*counter) = c;
+        m->type = type;
+        mlog->adds.push_back(m);
     }
 
     void OnLocal(long value, int id) {
