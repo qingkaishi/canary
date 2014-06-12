@@ -12,7 +12,7 @@
 
 #include "SignalRoutine.h"
 #include "../Log.h"
-#include "../Cache.h"
+//#include "../Cache.h"
 
 /*
  * Define local log keys
@@ -20,7 +20,7 @@
 static pthread_key_t lrlog_key;
 static pthread_key_t rlog_key;
 static pthread_key_t wlog_key;
-static pthread_key_t cache_key;
+//static pthread_key_t cache_key;
 static pthread_key_t address_birthday_map_key;
 
 /*
@@ -54,7 +54,7 @@ static l_rlog_t* rlogs[CANARY_THREADS_MAX];
 static l_lrlog_t* lrlogs[CANARY_THREADS_MAX];
 static l_wlog_t* wlogs[CANARY_THREADS_MAX];
 static l_addmap_t* addlogs[CANARY_THREADS_MAX];
-static Cache* caches[CANARY_THREADS_MAX];
+//static Cache* caches[CANARY_THREADS_MAX];
 
 /*
  * set of active threads, not the original tid
@@ -112,13 +112,13 @@ void close_write_log(void* log) {
 void close_map_log(void* log) {
 }
 
-void close_cache(void* log) {
+/*void close_cache(void* log) {
     unsigned tid = thread_ht[pthread_self()];
     printf("[INFO] Thread %u: \n", tid);
     ((Cache*) log)->info();
     caches[tid] = NULL;
     delete (Cache*) log;
-}
+}*/
 
 extern "C" {
     extern void* get_canary_heap_start();
@@ -135,13 +135,13 @@ extern "C" {
         pthread_key_create(&lrlog_key, close_local_read_log);
         pthread_key_create(&wlog_key, close_write_log);
         pthread_key_create(&address_birthday_map_key, close_map_log);
-        pthread_key_create(&cache_key, close_cache);
+        //pthread_key_create(&cache_key, close_cache);
 
         memset(addlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
         memset(wlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
         memset(rlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
         memset(lrlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
-        memset(caches, 0, sizeof (void*)*CANARY_THREADS_MAX);
+        //memset(caches, 0, sizeof (void*)*CANARY_THREADS_MAX);
 
         write_versions = new unsigned[svsNum];
         memset(write_versions, 0, sizeof (unsigned) * svsNum);
@@ -302,11 +302,11 @@ extern "C" {
         }
         printf("[INFO] Threads num: %d\n", thread_ht.size());
 
-        for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
+        /*for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
             if (caches[tid] == NULL) continue;
             printf("[INFO] Thread %u: \n", tid);
             caches[tid]->info();
-        }
+        }*/
 
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
@@ -365,6 +365,13 @@ extern "C" {
 
         rlog[id].logValue(value);
     }
+    
+    /*void InvalidateCache() {
+        Cache* cache = (Cache*) pthread_getspecific(cache_key);
+        if (cache != NULL){
+            cache->clear();
+        }
+    }*/
 
     void OnLoad(int svId, long address, long value, int debug) {
         if (active_threads.size() <= 1) {
@@ -391,14 +398,16 @@ extern "C" {
 #ifdef DEBUG
         printf("OnLoad === 2\n");
 #endif
+        
+        rlog[svId].VAL_LOG.logValue(value);
+        rlog[svId].VER_LOG.logValue(write_versions[svId]);
 
-        Cache* cache = (Cache*) pthread_getspecific(cache_key);
+        /*Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache != NULL && cache->query(address, value)) {
             rlog[svId].VER_LOG.logValue(-1);
         } else {
-            rlog[svId].VAL_LOG.logValue(value);
-            rlog[svId].VER_LOG.logValue(write_versions[svId]);
-        }
+            
+        }*/
 #ifdef DEBUG
         printf("OnLoad === 3\n");
 #endif
@@ -418,6 +427,31 @@ extern "C" {
 
         return version;
     }
+    
+    /*void OnStoreNoCache(int svId, unsigned version, int debug) {
+        if (active_threads.size() <= 1) {
+            return;
+        }
+#ifdef DEBUG
+        printf("OnStoreNoCache %d\n", debug);
+#endif
+        unlock(svId);
+
+        l_wlog_t * wlog = (l_wlog_t*) pthread_getspecific(wlog_key);
+        if (wlog == NULL) {
+            wlog = new l_wlog_t[num_shared_vars];
+            pthread_setspecific(wlog_key, wlog);
+
+            pthread_t realtid = pthread_self();
+            while (!thread_ht.count(realtid)) {
+                sched_yield();
+            }
+            wlogs[thread_ht[realtid]] = wlog;
+        }
+        wlog[svId].logValue(version);
+        
+        InvalidateCache();
+    }*/
 
     void OnStore(int svId, unsigned version, long address, long value, int debug) {
         if (active_threads.size() <= 1) {
@@ -441,14 +475,14 @@ extern "C" {
         }
         wlog[svId].logValue(version);
 
-        Cache* cache = (Cache*) pthread_getspecific(cache_key);
+        /*Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache == NULL) {
             cache = new Cache;
             pthread_setspecific(cache_key, cache);
             caches[thread_ht[pthread_self()]] = cache;
         }
 
-        cache->add(address, value);
+        cache->add(address, value);*/
     }
 
     void OnLock(pthread_mutex_t* mutex_ptr) {

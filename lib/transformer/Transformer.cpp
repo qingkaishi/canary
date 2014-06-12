@@ -158,6 +158,18 @@ void Transformer::transform(AliasAnalysis& AA) {
                 if (isa<StoreInst>(inst)) {
                     this->transformStoreInst((StoreInst*) & inst, AA);
                 }
+                
+                if (isa<AtomicRMWInst>(inst)) {
+                     this->transformAtomicRMWInst((AtomicRMWInst*) & inst, AA);
+                }
+                
+                if (isa<AtomicCmpXchgInst>(inst)) {
+                    this->transformAtomicCmpXchgInst((AtomicCmpXchgInst*) & inst, AA);
+                }
+                
+                if (isa<VAArgInst>(inst)) {
+                    this->transformVAArgInst((VAArgInst*) & inst, AA);
+                }
 
                 if (isa<CallInst>(inst)) {
                     CallInst &call = *(CallInst*) & inst;

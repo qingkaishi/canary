@@ -486,12 +486,7 @@ namespace {
             } else if (CanaryRecordTransformer || CanaryReplayTransformer) {
                 for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
                     Function* f = iterF;
-                    if (Transformer4CanaryRecord::isExternalLibraryFunction(f) 
-                            && !f->doesNotAccessMemory() 
-                            && !f->onlyReadsMemory()
-                            && !f->hasFnAttribute(Attribute::ReadOnly)
-                            && !f->hasFnAttribute(Attribute::ReadNone)
-                            && !f->getArgumentList().empty()) {
+                    if (Transformer4CanaryRecord::isUnsafeExternalLibraryFunction(f)) {
                         iplist<Argument>& alt = f->getArgumentList();
                         iplist<Argument>::iterator it = alt.begin();
                         while (it != alt.end()) {

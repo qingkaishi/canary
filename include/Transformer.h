@@ -126,6 +126,15 @@ public:
 
     virtual void transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
     }
+    
+    virtual void transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst,  AliasAnalysis& AA) {
+    }
+    
+    virtual void transformAtomicRMWInst(AtomicRMWInst* inst,  AliasAnalysis& AA) {
+    }
+    
+    virtual void transformVAArgInst(VAArgInst* inst, AliasAnalysis& AA) {
+    }
 
     virtual bool isInstrumentationFunction(Function *f) {
         return false;

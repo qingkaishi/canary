@@ -89,7 +89,7 @@ public:
     }
 
     bool query(size_t address, size_t value) {
-        if(__map.count(address) && __cache_lines[__map[address]].value == value) {
+        if (__map.count(address) && __cache_lines[__map[address]].value == value) {
             __hit++;
             return true;
         } else {
@@ -97,8 +97,14 @@ public:
             return false;
         }
     }
-    
-    void info(){
+
+    void clear() {
+        __size = 0;
+        __head = 0;
+        __map.clear();
+    }
+
+    void info() {
         printf("[INFO] \tCache size: %d; ", __size_limit);
         printf("Cache hit rate: %.2lf%%(%d/%d)\n", __hit * 100 / (double) (__hit + __miss), __hit, __hit + __miss);
     }

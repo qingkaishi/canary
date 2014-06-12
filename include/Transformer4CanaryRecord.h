@@ -21,7 +21,7 @@ private:
     Function *F_premutexinit, *F_mutexinit;
     Function *F_wait;
     Function *F_init, *F_exit, *F_address_init;
-    Function *F_local;
+    Function *F_local/*, *F_invalidate_cache, *F_store_without_cache*/;
 private:
     static int stmt_idx;
 
@@ -48,6 +48,8 @@ public:
     virtual bool instructionToTransform(Instruction * ins);
     virtual void transformLoadInst(LoadInst* ins, AliasAnalysis& AA);
     virtual void transformStoreInst(StoreInst* ins, AliasAnalysis& AA);
+    virtual void transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst, AliasAnalysis& AA);
+    virtual void transformAtomicRMWInst(AtomicRMWInst* inst, AliasAnalysis& AA);
     virtual void transformPthreadCreate(CallInst* ins, AliasAnalysis& AA);
     virtual void transformPthreadJoin(CallInst* ins, AliasAnalysis& AA);
     virtual void transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA);
@@ -56,10 +58,13 @@ public:
     virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA);
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA);
     virtual void transformSpecialFunctionCall(CallInst* ins, AliasAnalysis& AA);
+    virtual void transformMemCpyMov(CallInst* ins, AliasAnalysis& AA);
+    virtual void transformMemSet(CallInst* ins, AliasAnalysis& AA);
     virtual bool isInstrumentationFunction(Function *f);
 
     virtual void transformAddressInit(CallInst* ins, AliasAnalysis& AA);
     virtual void transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA);
+    virtual void transformVAArgInst(VAArgInst* inst, AliasAnalysis& AA);
 
 private:
 
@@ -68,9 +73,53 @@ private:
 
     void initializeFunctions(Module * m);
 
+    /*bool isUnsafeExternalLibraryCall(CallInst * ci, AliasAnalysis& AA) {
+        Value* cv = ci->getCalledValue();
+        if (isa<Function>(cv)) {
+            Function *f = (Function*) cv;
+            if (Transformer4CanaryRecord::isUnsafeExternalLibraryFunction(f) && !this->isInstrumentationFunction(f)) {
+                return true;
+            }
+        } else {
+            return false;
+        }
+
+        for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+            Function* f = iterF;
+            if (Transformer4CanaryRecord::isUnsafeExternalLibraryFunction(f) && !this->isInstrumentationFunction(f)) {
+                if (AA.alias(f, ci->getCalledValue())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }*/
+
 public:
 
+    static bool isUnsafeExternalLibraryFunction(Function * f) {
+        if (Transformer4CanaryRecord::isExternalLibraryFunction(f)
+                && !f->doesNotAccessMemory()
+                && !f->onlyReadsMemory()
+                && !f->hasFnAttribute(Attribute::ReadOnly)
+                && !f->hasFnAttribute(Attribute::ReadNone)
+                && !f->getArgumentList().empty()) {
+            return true;
+        }
+
+        return false;
+    }
+
     static bool isExternalLibraryFunction(Function * f) {
+        if (f->isIntrinsic()) {
+            switch (f->getIntrinsicID()) {
+                case Intrinsic::memmove:
+                case Intrinsic::memcpy:
+                case Intrinsic::memset: return true;
+            }
+        }
+
         if (!f->empty() || f->isIntrinsic())
             return false;
 
