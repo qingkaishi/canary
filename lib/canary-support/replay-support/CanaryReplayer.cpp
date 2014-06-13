@@ -11,7 +11,6 @@
 
 #include "SignalRoutine.h"
 #include "../Log.h"
-#include "../Cache.h"
 
 /*
  * Define global log variables, each shared var has one
