@@ -31,15 +31,31 @@ void AAAnalyzer::end_intra_procedure_analysis() {
 void AAAnalyzer::start_inter_procedure_analysis() {
     // do nothing
     Function * gf = module->getFunction("pthread_getspecific");
-    Function * sf  = module->getFunction("pthread_setspecific");
-    Function * cf  = module->getFunction("pthread_key_create");
-    
-    if(gf || sf || cf) {
+    Function * sf = module->getFunction("pthread_setspecific");
+    Function * cf = module->getFunction("pthread_key_create");
+
+    if (gf || sf || cf) {
         errs() << "Warning: dyckaa does not handle pthread_getspecific/setspecific/key_create\n";
     }
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
+    set<FunctionWrapper *>::iterator dfit = wrapped_functions.begin();
+    while (dfit != wrapped_functions.end()) {
+        FunctionWrapper * df = *dfit;
+        set<PointerCall*>& unhandled = df->getPointerCalls();
+
+        set<PointerCall*>::iterator pcit = unhandled.begin();
+        while (pcit != unhandled.end()) {
+            PointerCall* pc = *pcit;
+
+            unhandled_call_insts.insert((Instruction*) pc->ret);
+
+            pcit++;
+        }
+
+        dfit++;
+    }
 }
 
 bool AAAnalyzer::intra_procedure_analysis() {
@@ -83,9 +99,9 @@ bool AAAnalyzer::inter_procedure_analysis() {
     return finished;
 }
 
-/*void AAAnalyzer::getValuesEscapedFromThreadCreate(set<Value*>* ret) {
-    ret->insert(valuesEscapedFromThreadCreate.begin(), valuesEscapedFromThreadCreate.end());
-}*/
+void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
+    ret->insert(unhandled_call_insts.begin(), unhandled_call_insts.end());
+}
 
 //// call graph printer
 
@@ -657,7 +673,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 
             DyckVertex* src_ver = addPtrTo(src_ptr_ver, NULL);
             DyckVertex* dst_ver = addPtrTo(dst_ptr_ver, NULL);
-            
+
             makeAlias(src_ver, dst_ver);
         }
             break;
@@ -899,6 +915,10 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             break;
 
             // conversion operations
+        case Instruction::AddrSpaceCast:
+        {
+            outs() << "[INFO] Detect AddrSpaceCast Instruction: " << *inst << "\n";
+        }
         case Instruction::Trunc:
         case Instruction::ZExt:
         case Instruction::SExt:
@@ -938,6 +958,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
             CallInst * callinst = (CallInst*) inst;
 
             if (callinst->isInlineAsm()) {
+                unhandled_call_insts.insert(callinst);
                 break;
             }
 
@@ -1163,25 +1184,25 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 }
 
 void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Value*>* args, FunctionWrapper* parent) {
-    if(!f->empty() || f->isIntrinsic())
+    if (!f->empty() || f->isIntrinsic())
         return;
-    
+
     const string& functionName = f->getName().str();
     switch (args->size()) {
         case 2:
         {
             if (functionName == "strcat" || functionName == "strcpy") {
-                if (ret != NULL){
+                if (ret != NULL) {
                     DyckVertex * dst_ptr = wrapValue(args->at(0));
                     DyckVertex * src_ptr = wrapValue(args->at(1));
-                    
+
                     DyckVertex* dst_val = addPtrTo(dst_ptr, NULL);
                     DyckVertex* src_val = addPtrTo(src_ptr, NULL);
-                    
+
                     this->makeAlias(dst_val, src_val);
                     this->makeAlias(wrapValue(ret), dst_ptr);
-                } else{
-                    errs()<< "ERROR strcat/cpy does not return.\n";
+                } else {
+                    errs() << "ERROR strcat/cpy does not return.\n";
                     exit(1);
                 }
             }
@@ -1190,17 +1211,17 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
         case 3:
         {
             if (functionName == "strncat" || functionName == "strncpy") {
-                if (ret != NULL){
+                if (ret != NULL) {
                     DyckVertex * dst_ptr = wrapValue(args->at(0));
                     DyckVertex * src_ptr = wrapValue(args->at(1));
-                    
+
                     DyckVertex* dst_val = addPtrTo(dst_ptr, NULL);
                     DyckVertex* src_val = addPtrTo(src_ptr, NULL);
-                    
+
                     this->makeAlias(dst_val, src_val);
                     this->makeAlias(wrapValue(ret), dst_ptr);
-                } else{
-                    errs()<< "ERROR strncat/cpy does not return.\n";
+                } else {
+                    errs() << "ERROR strncat/cpy does not return.\n";
                     exit(1);
                 }
             }

@@ -320,7 +320,7 @@ void Transformer4CanaryRecord::transformAtomicCmpXchgInst(AtomicCmpXchgInst* ins
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, debug_idx, NULL);
+    this->insertCallInstAfter(inst, F_store, tmp, call, ConstantInt::get(LONG_TY(module), -1), ConstantInt::get(LONG_TY(module), -1), debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformAtomicRMWInst(AtomicRMWInst* inst, AliasAnalysis& AA) {
@@ -332,7 +332,7 @@ void Transformer4CanaryRecord::transformAtomicRMWInst(AtomicRMWInst* inst, Alias
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, debug_idx, NULL);
+    this->insertCallInstAfter(inst, F_store, tmp, call, ConstantInt::get(LONG_TY(module), -1), ConstantInt::get(LONG_TY(module), -1), debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {

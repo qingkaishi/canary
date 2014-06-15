@@ -462,6 +462,20 @@ namespace {
             aaa->printFunctionPointersInformation(M.getModuleIdentifier());
             outs() << "Done!\n\n";
         }
+        
+        set<Instruction*> unhandled_calls;
+        aaa->getUnhandledCallInstructions(&unhandled_calls);
+         set<Instruction*>::iterator ucit = unhandled_calls.begin();
+         while(ucit!=unhandled_calls.end()){
+             Instruction * ci = *ucit;
+             if(((CallInst*)ci)->isInlineAsm()){
+                 ucit++;
+                 continue;
+             }
+             outs() << "[INFO] Unhandled call instruction: " << **ucit << "\n";
+             ucit++;
+         }
+         outs() << "\n";
 
         delete aaa;
 
@@ -508,6 +522,8 @@ namespace {
                     }
                 }
                 this->fromDyckVertexToValue(lvs, llvm_lvs);
+                
+                ///@TODO only global function pointer, not function declaration.
 
                 // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {

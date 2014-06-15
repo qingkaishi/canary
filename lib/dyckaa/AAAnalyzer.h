@@ -36,7 +36,7 @@ private:
 private:
     map<Function*, FunctionWrapper *> wrapped_functions_map;
     set<FunctionWrapper*> wrapped_functions;
-    //set<Value*> valuesEscapedFromThreadCreate;
+    set<Instruction*> unhandled_call_insts; // canary will change all invoke to call, TODO invoke
     
 private:
     bool recordCGInfo;
@@ -54,10 +54,10 @@ public:
     bool intra_procedure_analysis();
     bool inter_procedure_analysis();
 
-    //void getValuesEscapedFromThreadCreate(set<Value*>* ret);
-    
     void printCallGraph(const string& mIdentifier);
     void printFunctionPointersInformation(const string& mIdentifier);
+    
+    void getUnhandledCallInstructions(set<Instruction*>* ret);
 
 private:
     void handle_inst(Instruction *inst, FunctionWrapper * parent);

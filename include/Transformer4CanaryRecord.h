@@ -116,7 +116,8 @@ public:
             switch (f->getIntrinsicID()) {
                 case Intrinsic::memmove:
                 case Intrinsic::memcpy:
-                case Intrinsic::memset: return true;
+                case Intrinsic::memset: 
+                case Intrinsic::vacopy: return true;
             }
         }
 
