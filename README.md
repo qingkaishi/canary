@@ -31,7 +31,16 @@ Using Canary
 **Using Alias Analysis**
 
 ```bash
+clang -c -emit-llvm -O2 -g -fno-vectorize -fno-slp-vectorize <src_file> -o <bitcode_file>
 canary <bitcode_file> -o <output_file>
+```
+
+Or you can build a shared library (you need to modify the Makefile yourself), 
+and use the following equivalent commands.
+
+```bash
+clang -c -emit-llvm -O2 -g -fno-vectorize -fno-slp-vectorize <src_file> -o <bitcode_file>
+opt -load dyckaa.so -lowerinvoke  -dyckaa -basicaa  <bitcode_file> -o <output_file>
 ```
 
 * -inter-aa-eval
