@@ -1,8 +1,10 @@
 /* 
  * File:   Transformer4CanaryRecord.h
- * Author: jack
  *
  * Created on March 25, 2014, 17:00 PM
+ * 
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
 #ifndef TRANSFORMER4CANARYREPLAY_H

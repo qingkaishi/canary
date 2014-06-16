@@ -1,16 +1,7 @@
-//===-- DyckAliasAnalysis.h - Constructors for analyses ------*- C++ -*-===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// This header file defines prototypes for accessor functions that expose passes
-// in the analysis libraries.
-//
-//===----------------------------------------------------------------------===//
+/*
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ */
 
 #ifndef DYCKALIASANALYSIS_H
 #define DYCKALIASANALYSIS_H

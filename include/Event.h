@@ -1,8 +1,6 @@
-/* 
- * File:   event.hpp
- * Author: jack
- *
- * Created on October 23, 2013, 2:47 PM
+/*
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
 #ifndef EVENT_HPP

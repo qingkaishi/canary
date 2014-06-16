@@ -1,8 +1,10 @@
 /* 
  * File:   Transformer.h
- * Author: jack
  *
  * Created on December 19, 2013, 2:14 PM
+ * 
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
 #ifndef TRANSFORMER_H

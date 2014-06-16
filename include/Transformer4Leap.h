@@ -1,8 +1,10 @@
 /* 
  * File:   Transformer4Replay.h
- * Author: jack
  *
  * Created on December 3, 2013, 10:30 AM
+ * 
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
 #ifndef TRANSFORMER4LEAP_H

@@ -1,8 +1,10 @@
 /* 
  * File:   hbgraph.hpp
- * Author: jack
  *
  * Created on October 21, 2013, 9:05 PM
+ * 
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.
  */
 
 #ifndef HBGRAPH_HPP

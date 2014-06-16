@@ -1,8 +1,10 @@
 /* 
  * File:   anomaly.hpp
- * Author: jack
  *
  * Created on October 23, 2013, 2:45 PM
+ * 
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.
  */
 #include <vector>
 #include "Event.h"
@@ -24,7 +26,7 @@ private:
     vector<Event *> events;
     unsigned max_event_num;
     int type;
-    string  typeStr;
+    string typeStr;
 
     vector<Anomaly*> anomalies;
 
@@ -59,7 +61,7 @@ public:
 
     bool add_event(Event * e) {
         if (events.size() >= max_event_num) return false;
-        
+
         events.push_back(e);
         return true;
     }
@@ -80,26 +82,26 @@ public:
             exit(-1);
         }
 
-	return false;
+        return false;
     }
-    
-    Event * getEvent(int idx){
-        if(idx>=0 && ((unsigned)idx)<events.size()){
+
+    Event * getEvent(int idx) {
+        if (idx >= 0 && ((unsigned) idx) < events.size()) {
             return events[idx];
         }
         return NULL;
     }
-    
-    bool containsAllEventsIn(Anomaly * a){
+
+    bool containsAllEventsIn(Anomaly * a) {
         bool ret = true;
-        
+
         for (unsigned j = 0; j < a->events.size(); j++) {
             int aln = a->events[j]->line;
             const char * asrc = a->events[j]->srcfile;
             int amem = a->events[j]->mem;
             int atype = a->events[j]->type;
             bool findOne = true;
-            
+
             for (unsigned i = 0; i < events.size(); i++) {
                 int ln = events[i]->line;
                 const char * src = events[i]->srcfile;
@@ -110,7 +112,7 @@ public:
                     break;
                 }
             }
-            
+
             if (!findOne) {
                 ret = false;
                 break;

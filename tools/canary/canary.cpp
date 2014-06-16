@@ -1,3 +1,25 @@
+//===- opt.cpp - The LLVM Modular Optimizer -------------------------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+// Optimizations may be specified an arbitrary number of times on the command
+// line, They are run in the order specified.
+//
+//===----------------------------------------------------------------------===//
+
+/*
+ * 
+ * Modified from opt.cpp
+ * 
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ */
+
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/Triple.h"

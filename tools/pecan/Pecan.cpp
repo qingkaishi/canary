@@ -1,3 +1,8 @@
+/*
+ * Developed by Qingkai Shi
+ * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -413,7 +418,7 @@ void predictMAVs() {
                             if (potential) {
                                 //printf("[PECAN] [mAtomicity] Line %d\tLine %d\t Line %d\t Line %d.\n", em->line, en->line, ep->line, eq->line);
                                 fprintf(fout, "[mAtomicity] Line %ld\tLine %ld\t Line %ld\t Line %ld.\n", em->line, en->line, ep->line, eq->line);
-                                
+
                                 Anomaly* mav = new Anomaly(M_ATOMICITY);
                                 mav->add_event(em);
                                 mav->add_event(en);
