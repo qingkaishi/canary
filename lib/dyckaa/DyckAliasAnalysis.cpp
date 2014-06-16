@@ -467,8 +467,8 @@ namespace {
         aaa->getUnhandledCallInstructions(&unhandled_calls);
          set<Instruction*>::iterator ucit = unhandled_calls.begin();
          while(ucit!=unhandled_calls.end()){
-             Instruction * ci = *ucit;
-             if(((CallInst*)ci)->isInlineAsm()){
+             CallInst * ci = cast<CallInst>(*ucit);
+             if(ci->isInlineAsm()){
                  ucit++;
                  continue;
              }

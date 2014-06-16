@@ -48,8 +48,8 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         set<PointerCall*>::iterator pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
             PointerCall* pc = *pcit;
-
-            unhandled_call_insts.insert((Instruction*) pc->ret);
+            if (!pc->handled) // if it is handled, we assume there exists one function definitely aliases with the function pointer
+                unhandled_call_insts.insert((Instruction*) pc->ret);
 
             pcit++;
         }
@@ -1030,6 +1030,19 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
                 PointerCall* pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cvcopy->getType()->getPointerElementType())), args);
                 parent->addPointerCall(pcall);
             }
+        } else if (isa<GlobalAlias>(cv)) {
+            Value * cvcopy = cv;
+            while (isa<GlobalAlias>(cvcopy)) {
+                cvcopy = ((GlobalAlias*) cvcopy)->getAliasedGlobal()->stripPointerCastsNoFollowAliases();
+            }
+
+            if (isa<Function>(cvcopy)) {
+                this->handle_lib_invoke_call_inst(ret, (Function*) cvcopy, args, parent);
+                parent->addCommonCall(new CommonCall(ret, (Function*) cvcopy, args));
+            } else {
+                PointerCall* pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cvcopy->getType()->getPointerElementType())), args);
+                parent->addPointerCall(pcall);
+            }
         } else {
             PointerCall * pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cv->getType()->getPointerElementType())), args);
             parent->addPointerCall(pcall);
@@ -1163,6 +1176,8 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         while (pfit != cands->end()) {
             if (aa->alias(*pfit, cv) == AliasAnalysis::MayAlias) {
                 ret = true;
+                pcall->handled = true;
+
                 handle_common_function_call(pcall, caller, (wrapped_functions_map)[*pfit]);
 
                 if (recordCGInfo) {

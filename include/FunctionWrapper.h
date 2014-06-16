@@ -59,6 +59,8 @@ class PointerCall : public Call{
 public:
     set<Function*> calleeCands;
     set<Function*> handledCallees;
+    
+    bool handled;
 
     PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args);
 };

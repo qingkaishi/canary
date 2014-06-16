@@ -15,6 +15,7 @@ CommonCall::CommonCall(Value* ret, Function * f, vector<Value*>* args) : Call(re
 
 PointerCall::PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args) : Call(ret, cv, args) {
     this->calleeCands.insert(fs->begin(), fs->end());
+    this->handled = false;
 }
 
 int FunctionWrapper::global_idx = 0;
