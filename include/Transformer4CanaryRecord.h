@@ -26,6 +26,7 @@ private:
     static int stmt_idx;
 
     set<Function*> extern_lib_funcs;
+    set<Instruction*>* unhandled_calls;
     set<Value*>* local_variables;
 
 public:
@@ -36,6 +37,7 @@ public:
     Transformer4CanaryRecord(Module * m,
             set<Value*> * svs,
             set<Value*> * lvs,
+            set<Instruction*> * unhandled_calls, // function pointer calls that does not find may-aliased functions
             unsigned psize);
 
     void transform(AliasAnalysis& AA);

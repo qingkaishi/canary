@@ -66,11 +66,12 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
     initializeFunctions(m);
 }
 
-Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, unsigned psize) : Transformer(m, svs, psize) {
+Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, set<Instruction*> * ucs, unsigned psize) : Transformer(m, svs, psize) {
     //Transformer4CanaryRecord::Transformer4CanaryRecord(m, svs, psize);
     initializeFunctions(m);
 
     this->local_variables = lvs;
+    this->unhandled_calls = ucs;
 }
 
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
@@ -403,6 +404,8 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
     bool record = false;
     Value* cv = inst->getCalledValue();
     if (isa<Function>(cv) && Transformer4CanaryRecord::isExternalLibraryFunction((Function*) cv)) {
+        record = true;
+    } else if (unhandled_calls->count(inst)) {
         record = true;
     } else {
         set<Function*>::iterator fit = extern_lib_funcs.begin();

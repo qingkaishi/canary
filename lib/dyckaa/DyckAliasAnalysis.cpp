@@ -462,20 +462,9 @@ namespace {
             aaa->printFunctionPointersInformation(M.getModuleIdentifier());
             outs() << "Done!\n\n";
         }
-        
-        set<Instruction*> unhandled_calls;
+
+        set<Instruction*> unhandled_calls; // Currently, it is used only for canary-record-transformer
         aaa->getUnhandledCallInstructions(&unhandled_calls);
-         set<Instruction*>::iterator ucit = unhandled_calls.begin();
-         while(ucit!=unhandled_calls.end()){
-             CallInst * ci = cast<CallInst>(*ucit);
-             if(ci->isInlineAsm()){
-                 ucit++;
-                 continue;
-             }
-             outs() << "[INFO] Unhandled call instruction: " << **ucit << "\n";
-             ucit++;
-         }
-         outs() << "\n";
 
         delete aaa;
 
@@ -521,13 +510,39 @@ namespace {
                         }
                     }
                 }
-                this->fromDyckVertexToValue(lvs, llvm_lvs);
+
+                // calls that does not find may-aliased functions
                 
-                ///@TODO only global function pointer, not function declaration.
+                set<Instruction*>::iterator ucit = unhandled_calls.begin();
+                while (ucit != unhandled_calls.end()) {
+                    CallInst * ci = cast<CallInst>(*ucit);
+                    if (!ci->doesNotReturn()) {
+                        if (ci->isInlineAsm()) {
+                        } else {
+                            for (unsigned i = 0; i < ci->getNumOperands(); i++) {
+                                Value* it = ci->getArgOperand(i);
+                                set<DyckVertex*> tmp_lvs;
+                                this->getEscapedPointersFrom(&tmp_lvs, it);
+
+                                set<DyckVertex*>::iterator tlvsIt = tmp_lvs.begin();
+                                while (tlvsIt != tmp_lvs.end()) {
+                                    if (!svs.count(*tlvsIt)) { // not a shared memory
+                                        lvs.insert(*tlvsIt); // not an existed memory (this is a set)
+                                    }
+
+                                    tlvsIt++;
+                                }
+                            }
+                        }
+                    }
+                    ucit++;
+                }
+
+                this->fromDyckVertexToValue(lvs, llvm_lvs);
 
                 // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {
-                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, this->getDataLayout()->getPointerSize());
+                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &unhandled_calls, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-record-transformer ...\n");
                 } else {
                     outs() << "[WARINING] The transformer is in progress\n";
@@ -535,7 +550,7 @@ namespace {
                     outs() << ("Start transforming using canary-replay-transformer ...\n");
                 }
             } else {
-                errs() << "Error: unknown transformer\n";
+                errs() << "[ERROR] unknown transformer\n";
                 exit(1);
             }
 
