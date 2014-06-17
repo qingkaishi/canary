@@ -292,7 +292,7 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    Value* ci = NULL;
+    /*Value* ci = NULL;
     if (inst->getOperand(0)->getType()->isPointerTy()) {
         ci = CastInst::CreatePointerCast(inst->getOperand(0), LONG_TY(module));
     } else if (!inst->getOperand(0)->getType()->isIntegerTy()) {
@@ -308,13 +308,14 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     } else {
         ci = inst->getOperand(0);
         addci->insertAfter(inst);
-    }
+    }*/
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(addci, F_store, tmp, call, addci, ci, debug_idx, NULL);
+    this->insertCallInstAfter(inst, F_store, tmp, call, ConstantInt::get(LONG_TY(module), -1), ConstantInt::get(LONG_TY(module), -1), debug_idx, NULL);
+    // this->insertCallInstAfter(addci, F_store, tmp, call, addci, ci, debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst, AliasAnalysis& AA) {
