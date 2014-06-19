@@ -31,8 +31,8 @@ fi
 if [ -n "$LIB" ];then
 	# how to link
 	if [ -f $APP.t.bc ]; then
-		echo "clang++ $APP.t.bc -o $APP.exe  -l$LIB -lptmalloc3 -lpthread -lm -L$LIBPATH"
-		clang++ $APP.t.bc -o $APP.exe  -l$LIB -lptmalloc3 -lpthread -lm -L$LIBPATH
+		echo "clang++ $APP.t.bc -o $APP.exe  -l$LIB  -lpthread -lm -L$LIBPATH"
+		clang++ $APP.t.bc -o $APP.exe  -l$LIB  -lpthread -lm -L$LIBPATH
 	else
 		echo "clang++ $APP.bc -o $APP -lpthread -lbz2 -lm -L$LIBPATH"
 		clang++ boundedBuffer.bc -o $APP.exe -lpthread -lm -l$LIB -L$LIBPATH
