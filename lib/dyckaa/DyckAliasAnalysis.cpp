@@ -452,8 +452,8 @@ namespace {
                 break;
             }
         }
-        outs() << "\nDone!\n\n";
         aaa->end_inter_procedure_analysis();
+        outs() << "\nDone!\n\n";
 
         /* call graph */
         if (DotCallGraph) {
@@ -547,8 +547,8 @@ namespace {
 
                 // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {
-                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &unhandled_calls, this->getDataLayout()->getPointerSize());
                     outs() << ("Start transforming using canary-record-transformer ...\n");
+                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &unhandled_calls, this->getDataLayout()->getPointerSize());
                 } else {
                     outs() << "[WARINING] The transformer is in progress\n";
                     robot = new Transformer4CanaryReplay(&M, &llvm_svs, this->getDataLayout()->getPointerSize());

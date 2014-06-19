@@ -42,6 +42,13 @@ void AAAnalyzer::start_inter_procedure_analysis() {
     if (gf || sf || cf) {
         errs() << "Warning: dyckaa does not handle pthread_getspecific/setspecific/key_create\n";
     }
+
+    /* for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+            Function* f = iterF;
+            if(f->empty() && !f->isIntrinsic()){
+                outs() << *f <<"\n";
+            }
+        }*/
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
@@ -61,6 +68,47 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 
         dfit++;
     }
+
+    int num = 0;
+    /// @TODO delete unnecessary null-value dyckvertices
+    set<DyckVertex*>& allver = dgraph->getVertices();
+    set<DyckVertex*>& reps = dgraph->getRepresentatives();
+    set<DyckVertex*>::iterator rit = reps.begin();
+    while (rit != reps.end()) {
+        DyckVertex* rep = *rit;
+
+        // for each value in rep's equiv class, if it's the 2nd null-value vertex, delete it
+        bool has_value_null = (rep->getValue() == NULL);
+        set<DyckVertex*> * eset = rep->getEquivalentSet();
+        set<DyckVertex*>::iterator esetIt = eset->begin();
+        while (esetIt != eset->end()) {
+            DyckVertex* d = *esetIt;
+            if (d->getValue() == NULL && d != rep) {
+                if (!has_value_null) {
+                    has_value_null = true;
+                } else {
+                    allver.erase(d);
+                    eset->erase(esetIt++);
+                    delete d;
+                    num++;
+                    continue;
+                }
+            } 
+
+            esetIt++;
+        }
+        
+        if (eset->size() == 1 && rep == NULL && !rep->isBridge()) {
+            allver.erase(rep);
+            reps.erase(rit++);
+            delete rep;
+            num++;
+            continue;
+        }
+
+        rit++;
+    }
+    outs() << "\n# Unnecessary nodes: " << num << "(" << (num*100/(allver.size() + num)) << "%)";
 }
 
 bool AAAnalyzer::intra_procedure_analysis() {
@@ -473,6 +521,13 @@ DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
 void AAAnalyzer::makeAlias(DyckVertex* x, DyckVertex* y) {
     // combine x's rep and y's rep
     dgraph->combine(x, y);
+}
+
+void AAAnalyzer::makeContentAlias(DyckVertex* x, DyckVertex* y) {
+    DyckVertex * x_content = addPtrTo(x, NULL);
+    DyckVertex * y_content = addPtrTo(y, NULL);
+
+    this->makeAlias(x_content, y_content);
 }
 
 DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
@@ -1209,6 +1264,14 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 
     const string& functionName = f->getName().str();
     switch (args->size()) {
+        case 1:
+        {
+            if (functionName == "strdup" || functionName == "__strdup" || functionName == "strdupa") {
+                // content alias r/1st
+                this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
+            }
+        }
+            break;
         case 2:
         {
             if (functionName == "strcat" || functionName == "strcpy") {
@@ -1216,15 +1279,26 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
                     DyckVertex * dst_ptr = wrapValue(args->at(0));
                     DyckVertex * src_ptr = wrapValue(args->at(1));
 
-                    DyckVertex* dst_val = addPtrTo(dst_ptr, NULL);
-                    DyckVertex* src_val = addPtrTo(src_ptr, NULL);
-
-                    this->makeAlias(dst_val, src_val);
+                    this->makeContentAlias(dst_ptr, src_ptr);
                     this->makeAlias(wrapValue(ret), dst_ptr);
                 } else {
                     errs() << "ERROR strcat/cpy does not return.\n";
                     exit(1);
                 }
+            } else if (functionName == "strndup" || functionName == "strndupa") {
+                // content alias r/1st
+                this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
+            } else if (functionName == "strstr" || functionName == "strcasestr") {
+                // content alias r/2nd
+                this->makeContentAlias(wrapValue(args->at(1)), wrapValue(ret));
+                // alias r/1st
+                this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
+            } else if (functionName == "strchr" || functionName == "strrchr" || functionName == "strchrnul" || functionName == "rawmemchr") {
+                // alias r/1st
+                this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
+            } else if (functionName == "strtok") {
+                // content alias r/1st
+                this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
             }
         }
             break;
@@ -1235,15 +1309,18 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
                     DyckVertex * dst_ptr = wrapValue(args->at(0));
                     DyckVertex * src_ptr = wrapValue(args->at(1));
 
-                    DyckVertex* dst_val = addPtrTo(dst_ptr, NULL);
-                    DyckVertex* src_val = addPtrTo(src_ptr, NULL);
-
-                    this->makeAlias(dst_val, src_val);
+                    this->makeContentAlias(dst_ptr, src_ptr);
                     this->makeAlias(wrapValue(ret), dst_ptr);
                 } else {
                     errs() << "ERROR strncat/cpy does not return.\n";
                     exit(1);
                 }
+            } else if (functionName == "memchr" || functionName == "memrchr") {
+                // alias r/1st
+                this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
+            } else if (functionName == "strtok_r" || functionName == "__strtok_r") {
+                // content alias r/1st
+                this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
             }
         }
             break;
@@ -1264,7 +1341,6 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
                 }
 
                 this->handle_invoke_call_inst(ret, args->at(2), &xargs, parent);
-                //valuesEscapedFromThreadCreate.insert(args->at(3));
             }
         }
             break;

@@ -92,8 +92,15 @@ void DyckVertex::setRepresentative(DyckVertex* root) {
     set<DyckVertex*> * thisecls = thisRep->getEquivClass();
 
     rootecls->insert(thisecls->begin(), thisecls->end());
+    set<DyckVertex*>::iterator thiseclsIt = thisecls->begin();
+    while (thiseclsIt != thisecls->end()) {
+        (*thiseclsIt)->representative = rootRep;
+        thiseclsIt++;
+    }
+
     thisRep->representative = rootRep;
     delete thisecls;
+    thisRep->equivclass = NULL; // set null after delete
 }
 
 DyckVertex* DyckVertex::getRepresentative() {
@@ -269,56 +276,6 @@ map<const char*, void*>& DyckVertex::getAllProperties() {
     return properties;
 }
 
-bool DyckVertex::hasLabelsBesides(void* label) {
-    set<void*>::iterator it = out_lables.begin();
-    while (it != out_lables.end()) {
-        if (*it != label) {
-            if (out_vers.count(*it)) {
-                set<DyckVertex*> * dvs = out_vers[*it];
-                if (dvs->size() != 0) {
-                    return true;
-                } else {
-                    out_vers.erase(*it);
-                    delete dvs;
-                    out_lables.erase(it++);
-                    continue;
-                }
-            } else {
-                out_lables.erase(it++);
-                continue;
-            }
-        }
-
-        it++;
-    }
-
-
-    it = in_lables.begin();
-    while (it != in_lables.end()) {
-        if (*it != label) {
-            if (in_vers.count(*it)) {
-                set<DyckVertex*> * dvs = in_vers[*it];
-                if (dvs->size() != 0) {
-                    return true;
-                } else {
-                    in_vers.erase(*it);
-                    delete dvs;
-                    in_lables.erase(it++);
-                    continue;
-                }
-            } else {
-                in_lables.erase(it++);
-                continue;
-            }
-        }
-
-        it++;
-    }
-
-    return false;
-}
-
-
 // the followings are private functions
 
 void DyckVertex::addSource(DyckVertex* ver, void* label) {
@@ -344,4 +301,22 @@ set<DyckVertex*> * DyckVertex::getEquivClass() {
     } else {
         return representative->getEquivClass();
     }
+}
+
+bool DyckVertex::isBridge() {
+    DyckVertex* rep = this->getRepresentative();
+
+    set<DyckVertex*> ins;
+    rep->getInVertices(&ins);
+    if (ins.size() > 1) {
+        return true;
+    }
+
+    set<DyckVertex*> outs;
+    rep->getOutVertices(&outs);
+    if (outs.size() + ins.size() > 1) {
+        return true;
+    }
+
+    return false;
 }

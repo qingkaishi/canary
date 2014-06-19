@@ -81,6 +81,7 @@ private:
     DyckVertex* addField(DyckVertex* val, long fieldIndex, DyckVertex* field);
     DyckVertex* addPtrTo(DyckVertex* address, DyckVertex* val);
     void makeAlias(DyckVertex* x, DyckVertex* y);
+    void makeContentAlias(DyckVertex* x, DyckVertex* y);
 
     DyckVertex* handle_gep(GEPOperator* gep);
     DyckVertex* wrapValue(Value * v);

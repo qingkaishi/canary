@@ -5,6 +5,7 @@
 
 #include "Transformer.h"
 #include <llvm/Support/Debug.h>
+#include <list>
 
 Transformer::Transformer(Module* m, set<Value*>* svs, unsigned psize) {
     module = m;
@@ -118,12 +119,18 @@ void Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall, ...)
 void Transformer::transform(AliasAnalysis& AA) {
     this->beforeTransform(AA);
 
+    unsigned functionsNum = module->getFunctionList().size();
+    unsigned handledNum = 0;
+
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function& f = *iterF;
         if (!this->functionToTransform(&f)) {
+            outs() << "Remaining... " << (functionsNum - handledNum++) << " functions             \r";
             continue;
         }
-        
+
+        outs() << "Remaining... " << (functionsNum - handledNum++) << " functions             \r";
+
         bool allocHasHandled = false;
         vector<AllocaInst*> allocas;
         for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
@@ -139,18 +146,18 @@ void Transformer::transform(AliasAnalysis& AA) {
                 }
 
                 DEBUG_WITH_TYPE("transform", errs() << "[Transforming] " << inst << "\n");
-                
-                if(isa<AllocaInst>(inst)) {
+
+                if (isa<AllocaInst>(inst)) {
                     // record a vector
-                    allocas.push_back((AllocaInst*)&inst);
+                    allocas.push_back((AllocaInst*) & inst);
                 }
-                
-                if(!isa<AllocaInst>(inst) 
-                        && !(isa<CallInst>(inst) && ((CallInst*)&inst)->getCalledFunction()!= NULL && ((CallInst*)&inst)->getCalledFunction()->isIntrinsic()) 
+
+                if (!isa<AllocaInst>(inst)
+                        && !(isa<CallInst>(inst) && ((CallInst*) & inst)->getCalledFunction() != NULL && ((CallInst*) & inst)->getCalledFunction()->isIntrinsic())
                         && !allocHasHandled) {
                     allocHasHandled = true;
-                    
-                    for(unsigned i = 0; i<allocas.size(); i++){
+
+                    for (unsigned i = 0; i < allocas.size(); i++) {
                         AllocaInst * a = allocas[i];
                         this->transformAllocaInst(a, & inst, AA);
                     }
@@ -163,15 +170,15 @@ void Transformer::transform(AliasAnalysis& AA) {
                 if (isa<StoreInst>(inst)) {
                     this->transformStoreInst((StoreInst*) & inst, AA);
                 }
-                
+
                 if (isa<AtomicRMWInst>(inst)) {
-                     this->transformAtomicRMWInst((AtomicRMWInst*) & inst, AA);
+                    this->transformAtomicRMWInst((AtomicRMWInst*) & inst, AA);
                 }
-                
+
                 if (isa<AtomicCmpXchgInst>(inst)) {
                     this->transformAtomicCmpXchgInst((AtomicCmpXchgInst*) & inst, AA);
                 }
-                
+
                 if (isa<VAArgInst>(inst)) {
                     this->transformVAArgInst((VAArgInst*) & inst, AA);
                 }
@@ -285,7 +292,7 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
         // system exit
         transformSystemExit(call, AA);
         return true;
-    } else if (cf.getName().str() == "malloc" || cf.getName().str() == "calloc" 
+    } else if (cf.getName().str() == "malloc" || cf.getName().str() == "calloc"
             || cf.getName().str() == "realloc"
             || cf.getName().str() == "_Znaj"
             || cf.getName().str() == "_ZnajRKSt9nothrow_t"

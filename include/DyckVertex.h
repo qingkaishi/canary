@@ -63,6 +63,9 @@ public:
     /// Set the value
     void setValue(void *);
     
+    /// Determine whether the vertex connect two other vertices
+    bool isBridge();
+    
     /// Create a copy of this vertex.
     /// The following fields will be copied
     /// 1. value; 2. name; 3. in_labels; 4. out_labels; 5. in_vers; 6. out_vers.
@@ -155,9 +158,6 @@ public:
     /// Get all properties of the vertex.
     map<const char*, void*>& getAllProperties();
     
-    /// Contains other labels besides label?
-    bool hasLabelsBesides(void * label);
-
 private:
     void addSource(DyckVertex* ver, void* label);
     void removeSource(DyckVertex* ver, void* label);
