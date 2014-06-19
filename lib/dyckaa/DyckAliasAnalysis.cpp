@@ -521,9 +521,9 @@ namespace {
                 set<Instruction*>::iterator ucit = unhandled_calls.begin();
                 while (ucit != unhandled_calls.end()) {
                     CallInst * ci = cast<CallInst>(*ucit);
-                    //if (ci->isInlineAsm()) {
-                    //    outs() << *ci << "\n";
-                    //}
+                    if (ci->isInlineAsm()) {
+                        DEBUG_WITH_TYPE("asm", errs() << "[Inline Asm] " << *ci << "\n");
+                    }
 
                     for (unsigned i = 0; i < ci->getNumOperands(); i++) {
                         Value* it = ci->getArgOperand(i);
