@@ -517,27 +517,26 @@ namespace {
                 }
 
                 // calls that does not find may-aliased functions
-                
+
                 set<Instruction*>::iterator ucit = unhandled_calls.begin();
                 while (ucit != unhandled_calls.end()) {
                     CallInst * ci = cast<CallInst>(*ucit);
-                    if (!ci->doesNotReturn()) {
-                        if (ci->isInlineAsm()) {
-                        } else {
-                            for (unsigned i = 0; i < ci->getNumOperands(); i++) {
-                                Value* it = ci->getArgOperand(i);
-                                set<DyckVertex*> tmp_lvs;
-                                this->getEscapedPointersFrom(&tmp_lvs, it);
+                    //if (ci->isInlineAsm()) {
+                    //    outs() << *ci << "\n";
+                    //}
 
-                                set<DyckVertex*>::iterator tlvsIt = tmp_lvs.begin();
-                                while (tlvsIt != tmp_lvs.end()) {
-                                    if (!svs.count(*tlvsIt)) { // not a shared memory
-                                        lvs.insert(*tlvsIt); // not an existed memory (this is a set)
-                                    }
+                    for (unsigned i = 0; i < ci->getNumOperands(); i++) {
+                        Value* it = ci->getArgOperand(i);
+                        set<DyckVertex*> tmp_lvs;
+                        this->getEscapedPointersFrom(&tmp_lvs, it);
 
-                                    tlvsIt++;
-                                }
+                        set<DyckVertex*>::iterator tlvsIt = tmp_lvs.begin();
+                        while (tlvsIt != tmp_lvs.end()) {
+                            if (!svs.count(*tlvsIt)) { // not a shared memory
+                                lvs.insert(*tlvsIt); // not an existed memory (this is a set)
                             }
+
+                            tlvsIt++;
                         }
                     }
                     ucit++;
