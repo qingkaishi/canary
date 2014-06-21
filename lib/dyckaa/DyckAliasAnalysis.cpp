@@ -16,6 +16,8 @@
 #include <stdio.h>
 #include <algorithm>
 #include <stack>
+#include <llvm/IR/InlineAsm.h>
+
 using namespace llvm;
 
 // cananry options
@@ -541,6 +543,8 @@ namespace {
                     }
                     ucit++;
                 }
+
+                DEBUG_WITH_TYPE("asm", errs() << "\n");
 
                 this->fromDyckVertexToValue(lvs, llvm_lvs);
 
