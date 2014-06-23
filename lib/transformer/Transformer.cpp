@@ -1,6 +1,9 @@
 /*
  * Developed by Qingkai Shi
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ * 
+ * @TODO
+ * 1. matchFunctionAndCall; e.g. if a function is considered as pthread_create, we may lock it...
  */
 
 #include "Transformer.h"

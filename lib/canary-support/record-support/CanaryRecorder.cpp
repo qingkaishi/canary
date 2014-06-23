@@ -5,6 +5,8 @@
  * @TODO
  * 1. An external call may call an instrumented function.
  * 2. An external call may fork a new thread. Such a thread may also fork threads. These threads may call instrumented functions.
+ * 
+ * we now can assume that #1 and #2 do not exist.
  */
 
 #include <stdio.h>
