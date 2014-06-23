@@ -295,7 +295,12 @@ public:
     virtual void dumpWithValueUnsignedMap(FILE* fout, boost::unordered_map<T, unsigned>& map) {
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T> * item = __log[i];
-            item->t = map[item->t];
+            if (map.count(item->t)) {
+                item->t = map[item->t];
+            } else {
+                fprintf(stderr, "[ERROR] in dumpWithValueUnsignedMap\n");
+                exit(1);
+            }
         }
 
         dump(fout);
@@ -432,7 +437,7 @@ typedef struct {
     int type;
 } mem_t;
 
-typedef struct{
+typedef struct {
     std::vector<mem_t *> adds;
     bool stack_tag;
 } l_addmap_t;
