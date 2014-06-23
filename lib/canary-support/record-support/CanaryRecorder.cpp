@@ -137,9 +137,6 @@ void close_map_log(void* log) {
 }*/
 
 extern "C" {
-    // extern void* get_canary_heap_start();
-
-    // extern void* get_canary_heap_end();
 
     void OnInit(unsigned svsNum, unsigned lvsNum) {
         printf("[INFO] OnInit-Record (canary record)\n");
@@ -280,15 +277,6 @@ extern "C" {
             printf("dumping addressmap...\n");
 #endif
             FILE * fout = fopen("addressmap.dat", "w");
-
-            /*void * hstart = get_canary_heap_start();
-            void * hend = get_canary_heap_end();
-#ifdef LDEBUG
-            fprintf(fout, "[%p, %p]\n", hstart, hend);
-#else
-            fwrite(&hstart, sizeof (void*), 1, fout);
-            fwrite(&hend, sizeof (void*), 1, fout);
-#endif */
 
             for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
                 l_addmap_t * addmap = addlogs[tid];
@@ -445,31 +433,6 @@ extern "C" {
 
         return version;
     }
-
-    /*void OnStoreNoCache(int svId, unsigned version, int debug) {
-        if (active_threads.size() <= 1) {
-            return;
-        }
-#ifdef DEBUG
-        printf("OnStoreNoCache %d\n", debug);
-#endif
-        unlock(svId);
-
-        l_wlog_t * wlog = (l_wlog_t*) pthread_getspecific(wlog_key);
-        if (wlog == NULL) {
-            wlog = new l_wlog_t[num_shared_vars];
-            pthread_setspecific(wlog_key, wlog);
-
-            pthread_t realtid = pthread_self();
-            while (!thread_ht.count(realtid)) {
-                sched_yield();
-            }
-            wlogs[thread_ht[realtid]] = wlog;
-        }
-        wlog[svId].logValue(version);
-        
-        InvalidateCache();
-    }*/
 
     void OnStore(int svId, unsigned version, long address, long value, int debug) {
         if (!start) {
