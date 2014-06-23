@@ -69,8 +69,13 @@ static l_addmap_t* addlogs[CANARY_THREADS_MAX];
 
 /*
  * set of active threads, not the original tid
+ * 
+ * static std::set<unsigned> active_threads;
+ * 
+ * cannot use it!!
  */
-static std::set<unsigned> active_threads;
+
+static bool start = false;
 
 /*
  * number of shared variables
@@ -164,7 +169,6 @@ extern "C" {
 
         // main thread.
         pthread_t tid = pthread_self();
-        active_threads.insert(thread_ht.size());
         thread_ht[tid] = thread_ht.size();
 
 #ifdef NO_TIME_CMD
@@ -179,7 +183,7 @@ extern "C" {
         timeuse /= 1000;
         printf("[INFO] Wall time is %lf ms\n", timeuse);
 #endif
-        active_threads.clear();
+        start = false;
 
         printf("[INFO] OnExit-Record (canary record)\n");
 
@@ -385,7 +389,7 @@ extern "C" {
     }*/
 
     void OnLoad(int svId, int lvId, long value, int debug) {
-        if (active_threads.size() <= 1) {
+        if (!start) {
             if (lvId != -1) {
                 OnLocal(value, lvId);
             }
@@ -428,7 +432,7 @@ extern "C" {
     }
 
     unsigned OnPreStore(int svId, int debug) {
-        if (active_threads.size() <= 1) {
+        if (!start) {
             return 0;
         }
 
@@ -468,7 +472,7 @@ extern "C" {
     }*/
 
     void OnStore(int svId, unsigned version, long address, long value, int debug) {
-        if (active_threads.size() <= 1) {
+        if (!start) {
             return;
         }
 #ifdef DEBUG
@@ -500,7 +504,7 @@ extern "C" {
     }
 
     void OnLock(pthread_mutex_t* mutex_ptr) {
-        if (active_threads.size() <= 1) {
+        if (!start) {
             return;
         }
 
@@ -524,7 +528,7 @@ extern "C" {
     }
 
     void OnWait(pthread_cond_t* cond_ptr, pthread_mutex_t* mutex_ptr) {
-        if (active_threads.size() <= 1) {
+        if (!start) {
             return;
         }
 #ifdef DEBUG
@@ -541,7 +545,7 @@ extern "C" {
     }
 
     void OnPreMutexInit(bool race) {
-        if (active_threads.size() > 1 && race) {
+        if (race) {
             mutexInitLock();
         }
     }
@@ -554,7 +558,7 @@ extern "C" {
         llogs.push_back(llog);
 
 
-        if (active_threads.size() > 1 && race) {
+        if (race) {
             pthread_t tid = pthread_self();
             mlog.logValue(tid);
 
@@ -563,6 +567,9 @@ extern "C" {
     }
 
     void OnPreFork(bool race) {
+        if (!start)
+            start = true;
+        
 #ifdef DEBUG
         printf("OnPreFork\n");
 #endif
@@ -572,7 +579,6 @@ extern "C" {
             OnExit();
             exit(1);
         }
-        active_threads.insert(thread_ht.size());
     }
 
     void OnFork(pthread_t* forked_tid_ptr, bool race) {
@@ -590,16 +596,6 @@ extern "C" {
             flog.logValue(tid);
 
             forkUnlock();
-        }
-    }
-
-    void OnJoin(pthread_t tid, bool race) {
-        if (race) {
-            forkLock();
-            active_threads.erase(thread_ht[tid]);
-            forkUnlock();
-        } else {
-            active_threads.erase(thread_ht[tid]);
         }
     }
 }

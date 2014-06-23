@@ -238,7 +238,7 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
     Value * val = inst->getOperand(0);
     int svIdx = this->getSharedValueIndex(val, AA);
     int lvIdx = this->getLocalValueIndex(val, AA);
-    
+
     if (svIdx != -1) {
         // shared memory
         Instruction* ci = NULL;
@@ -260,7 +260,7 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
 
         ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
         ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lvIdx);
-        
+
         ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
         this->insertCallInstAfter(ci, F_load, tmp, tmp2, ci, debug_idx, NULL);
@@ -352,8 +352,8 @@ void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalys
 }
 
 void Transformer4CanaryRecord::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
-    ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
-    this->insertCallInstAfter(ins, F_join, ins->getArgOperand(0), tmp, NULL);
+    //ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
+    //this->insertCallInstAfter(ins, F_join, ins->getArgOperand(0), tmp, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) {
@@ -464,7 +464,7 @@ bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
             || called == F_load
             || called == F_prestore || called == F_store /*|| called == F_store_without_cache*/
             || called == F_lock
-            || called == F_prefork || called == F_fork || called == F_join
+            || called == F_prefork || called == F_fork //|| called == F_join
             || called == F_wait
             || called == F_premutexinit || called == F_mutexinit || called == F_local /*|| called == F_invalidate_cache*/;
 }
@@ -519,7 +519,7 @@ int Transformer4CanaryRecord::getLocalValueIndex(Value* v, AliasAnalysis& AA) {
      * 
      * if (getSharedValueIndex(v, AA) != -1) {
         return -1;
-    }*/ 
+    }*/
 
     set<Value*>::iterator it = local_variables->begin();
     while (it != local_variables->end()) {
@@ -617,10 +617,10 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
             THREAD_PTR_TY(m), BOOL_TY(m),
             NULL));
 
-    F_join = cast<Function>(m->getOrInsertFunction("OnJoin",
-            VOID_TY(m),
-            LONG_TY(m), BOOL_TY(m),
-            NULL));
+    //F_join = cast<Function>(m->getOrInsertFunction("OnJoin",
+    //        VOID_TY(m),
+    //       LONG_TY(m), BOOL_TY(m),
+    //      NULL));
 
     F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
             VOID_TY(m),

@@ -246,8 +246,8 @@ set<Function * >* Transformer::getAliasFunctions(Value* callInst, Value* ptr, Al
         }
 
         if (isa<Function>(cvcopy)) {
-            ret->insert(cvcopy);
-            return;
+            ret->insert((Function*)cvcopy);
+            return ret;
         }
     } else if (isa<GlobalAlias>(cv)) {
         Value * cvcopy = cv;
@@ -256,8 +256,8 @@ set<Function * >* Transformer::getAliasFunctions(Value* callInst, Value* ptr, Al
         }
 
         if (isa<Function>(cvcopy)) {
-            ret->insert(cvcopy);
-            return;
+            ret->insert((Function*)cvcopy);
+            return ret;
         }
     }
 
