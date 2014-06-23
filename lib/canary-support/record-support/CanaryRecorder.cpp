@@ -1,6 +1,10 @@
 /*
  * Developed by Qingkai Shi
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ * 
+ * @TODO
+ * 1. An external call may call an instrumented function.
+ * 2. An external call may fork a new thread. Such a thread may also fork threads. These threads may call instrumented functions.
  */
 
 #include <stdio.h>
@@ -278,7 +282,7 @@ extern "C" {
 #else
             fwrite(&hstart, sizeof (void*), 1, fout);
             fwrite(&hend, sizeof (void*), 1, fout);
-#endif */           
+#endif */
 
             for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
                 l_addmap_t * addmap = addlogs[tid];
@@ -370,7 +374,7 @@ extern "C" {
 
         rlog[id].logValue(value);
     }
-    
+
     /*void InvalidateCache() {
         Cache* cache = (Cache*) pthread_getspecific(cache_key);
         if (cache != NULL){
@@ -378,8 +382,11 @@ extern "C" {
         }
     }*/
 
-    void OnLoad(int svId, long address, long value, int debug) {
+    void OnLoad(int svId, int lvId, long value, int debug) {
         if (active_threads.size() <= 1) {
+            if (lvId != -1) {
+                OnLocal(value, lvId);
+            }
             return;
         }
 
@@ -403,7 +410,7 @@ extern "C" {
 #ifdef DEBUG
         printf("OnLoad === 2\n");
 #endif
-        
+
         rlog[svId].VAL_LOG.logValue(value);
         rlog[svId].VER_LOG.logValue(write_versions[svId]);
 
@@ -432,7 +439,7 @@ extern "C" {
 
         return version;
     }
-    
+
     /*void OnStoreNoCache(int svId, unsigned version, int debug) {
         if (active_threads.size() <= 1) {
             return;

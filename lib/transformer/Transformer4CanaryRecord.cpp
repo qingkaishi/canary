@@ -237,6 +237,8 @@ void Transformer4CanaryRecord::transformVAArgInst(VAArgInst* inst, AliasAnalysis
 void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
     int svIdx = this->getSharedValueIndex(val, AA);
+    int lvIdx = this->getLocalValueIndex(val, AA);
+    
     if (svIdx != -1) {
         // shared memory
         Instruction* ci = NULL;
@@ -253,18 +255,19 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
             ci = inst;
         }
 
-        CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
-        addci->insertAfter(ci);
+        /*CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
+        addci->insertAfter(ci);*/
 
         ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
+        ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lvIdx);
+        
         ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
-        this->insertCallInstAfter(addci, F_load, tmp, addci, ci, debug_idx, NULL);
+        this->insertCallInstAfter(ci, F_load, tmp, tmp2, ci, debug_idx, NULL);
 
         return;
     }
 
-    int lvIdx = this->getLocalValueIndex(val, AA);
     if (lvIdx != -1) {
         // critical local memory
         Instruction* ci = NULL;
@@ -511,9 +514,12 @@ int Transformer4CanaryRecord::getLocalValueIndex(Value* v, AliasAnalysis& AA) {
         return -1;
     }
 
-    if (getSharedValueIndex(v, AA) != -1) {
+    /*
+     * a variable may be both shared and local
+     * 
+     * if (getSharedValueIndex(v, AA) != -1) {
         return -1;
-    }
+    }*/ 
 
     set<Value*>::iterator it = local_variables->begin();
     while (it != local_variables->end()) {
@@ -583,7 +589,7 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
 
     F_load = cast<Function>(m->getOrInsertFunction("OnLoad",
             VOID_TY(m),
-            INT_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m),
+            INT_TY(m), INT_TY(m), LONG_TY(m), INT_TY(m),
             NULL));
 
     F_prestore = cast<Function>(m->getOrInsertFunction("OnPreStore",

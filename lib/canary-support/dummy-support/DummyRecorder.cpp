@@ -40,7 +40,7 @@ extern "C" {
     void OnAddressInit(void* value, size_t size, size_t n, int type) {
     }
 
-    void OnLoad(int svId, long address, long value, int debug) {
+    void OnLoad(int svId, int address, long value, int debug) {
     }
 
     unsigned OnPreStore(int svId, int debug) {

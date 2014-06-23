@@ -235,6 +235,29 @@ set<Function * >* Transformer::getAliasFunctions(Value* callInst, Value* ptr, Al
     if (ret == NULL)
         return NULL;
 
+    Value * cv = ptr;
+    if (isa<ConstantExpr>(cv)) {
+        Value * cvcopy = cv;
+        while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
+            cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
+        }
+
+        if (isa<Function>(cvcopy)) {
+            ret->insert(cvcopy);
+            return;
+        }
+    } else if (isa<GlobalAlias>(cv)) {
+        Value * cvcopy = cv;
+        while (isa<GlobalAlias>(cvcopy)) {
+            cvcopy = ((GlobalAlias*) cvcopy)->getAliasedGlobal()->stripPointerCastsNoFollowAliases();
+        }
+
+        if (isa<Function>(cvcopy)) {
+            ret->insert(cvcopy);
+            return;
+        }
+    }
+
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         if (AA.alias(ptr, iterF) != AliasAnalysis::NoAlias) {
             if (matchFunctionAndCall(iterF, callInst, AA)) {
