@@ -125,7 +125,7 @@ extern "C" {
         return 0;
     }
 
-    void OnExternalCall(unsigned tid) {
+    void OnExternalCall(unsigned tid, long value, int lvid) {
         if(!main_started)
             return;
 #ifdef DEBUG

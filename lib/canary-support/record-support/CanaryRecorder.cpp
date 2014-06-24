@@ -324,7 +324,7 @@ extern "C" {
     }
 
     unsigned OnPreExternalCall() {
-        if(!main_started)
+        if (!main_started)
             return INVALID_THREAD_ID;
 
         unsigned tid = INVALID_THREAD_ID;
@@ -335,9 +335,23 @@ extern "C" {
         return tid;
     }
 
-    void OnExternalCall(unsigned tid) {
-        if (tid != INVALID_THREAD_ID)
-            onexternals[tid]--;
+    void OnExternalCall(unsigned tid, long value, int lvid) {
+        if (tid == INVALID_THREAD_ID)
+            return;
+        unsigned oe = onexternals[tid];
+        onexternals[tid] = oe - 1;
+
+        if (oe == 1 && lvid != -1) {
+            l_lrlog_t * rlog = (l_lrlog_t*) pthread_getspecific(lrlog_key);
+            if (rlog == NULL) {
+                rlog = new l_lrlog_t[num_local_vars];
+                pthread_setspecific(lrlog_key, rlog);
+
+                lrlogs[tid] = rlog;
+            }
+
+            rlog[lvid].logValue(value);
+        }
     }
 
     void OnAddressInit(void* value, size_t size, size_t n, int type) {
@@ -380,7 +394,7 @@ extern "C" {
         }
 
 #ifdef DEBUG
-        printf("OnLocal %d\n", id);
+        printf("OnLocal %d, %d, %ld\n", id, tid, value);
 #endif
         l_lrlog_t * rlog = (l_lrlog_t*) pthread_getspecific(lrlog_key);
         if (rlog == NULL) {

@@ -386,10 +386,12 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
     //if (this->isUnsafeExternalLibraryCall(inst, AA))
     //this->insertCallInstAfter(inst, F_invalidate_cache, NULL);
     CallInst* call = this->insertCallInstBefore(inst, F_preexternal, NULL);
-    CallInst* call2 = this->insertCallInstAfter(inst, F_external, call, NULL);
 
     // extern call, record the returned value
-    if (inst->doesNotReturn() || inst->getNumUses() == 0) return;
+    if (inst->doesNotReturn() || inst->getNumUses() == 0) {
+        this->insertCallInstAfter(inst, F_external, call, ConstantInt::get(INT_TY(module), -1, true), ConstantInt::get(INT_TY(module), -1, true), NULL);
+        return;
+    }
 
     // if it is a extern lib call, it has return value, and the return value's use number > 0 
     // record it
@@ -434,10 +436,10 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
             ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
         }
         if (ci != NULL) {
-            ci->insertAfter(call2);
-            this->insertCallInstAfter(ci, F_local, ci, ConstantInt::get(LONG_TY(module), index), NULL);
+            ci->insertAfter(inst);
+            this->insertCallInstAfter(ci, F_external, call, ci, ConstantInt::get(LONG_TY(module), index), NULL);
         } else {
-            this->insertCallInstAfter(call2, F_local, inst, ConstantInt::get(LONG_TY(module), index), NULL);
+            this->insertCallInstAfter(inst, F_external, call, inst, ConstantInt::get(LONG_TY(module), index), NULL);
         }
     }
 }
@@ -611,7 +613,7 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
 
     F_external = cast<Function>(m->getOrInsertFunction("OnExternalCall",
             VOID_TY(m),
-            INT_TY(m),
+            INT_TY(m), LONG_TY(m), INT_TY(m),
             NULL));
 
     if (MUTEX_TY(m) != NULL) {
