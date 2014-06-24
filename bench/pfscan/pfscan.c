@@ -52,9 +52,9 @@ int verbose = 0;
 
 int nworkers = 0;
 
-int aworkers = 0;
-pthread_mutex_t aworker_lock;
-pthread_cond_t  aworker_cv;
+//int aworkers = 0;
+//pthread_mutex_t aworker_lock;
+//pthread_cond_t  aworker_cv;
 
 int line_f  = 0;
 int maxlen  = 64;
@@ -478,10 +478,10 @@ worker(void *arg)
 
     fflush(stdout);
 
-    pthread_mutex_lock(&aworker_lock);
-    --aworkers;
-    pthread_mutex_unlock(&aworker_lock);
-    pthread_cond_signal(&aworker_cv);
+    //pthread_mutex_lock(&aworker_lock);
+    //--aworkers;
+    //pthread_mutex_unlock(&aworker_lock);
+    //pthread_cond_signal(&aworker_cv);
 
     return NULL;
 }
@@ -536,7 +536,7 @@ main(int argc,
     nworkers = 2;
 
     pthread_mutex_init(&print_lock, NULL);
-    pthread_mutex_init(&aworker_lock, NULL);
+    //pthread_mutex_init(&aworker_lock, NULL);
     pthread_mutex_init(&matches_lock, NULL);
 
     for (i = 1; i < argc && argv[i][0] == '-'; i++)
@@ -631,10 +631,10 @@ main(int argc,
     pthread_attr_init(&pab);
     pthread_attr_setscope(&pab, PTHREAD_SCOPE_SYSTEM);
 
-    aworkers = nworkers;
+    //aworkers = nworkers;
     pthread_t tid[nworkers];
     for (j = 0; j < nworkers; ++j)
-	if (pthread_create(&(tid[i]), &pab, worker, NULL) != 0)
+	if (pthread_create(&(tid[j]), &pab, worker, NULL) != 0)
 	{
 	    fprintf(stderr, "%s: pthread_create: failed to create worker thread\n",
 		    argv[0]);
@@ -648,12 +648,14 @@ main(int argc,
 
     if (debug)
 	fprintf(stderr, "Waiting for workers to finish...\n");
-//for (j = 0; j < nworkers; ++j)
-//  pthread_join(tid[i], NULL);  
-    pthread_mutex_lock(&aworker_lock);
-    while (aworkers > 0)
-	pthread_cond_wait(&aworker_cv, &aworker_lock);
-    pthread_mutex_unlock(&aworker_lock);
+
+    for (j = 0; j < nworkers; ++j){
+        pthread_join(tid[j], NULL);
+    }
+    //pthread_mutex_lock(&aworker_lock);
+    //while (aworkers > 0)
+    //   pthread_cond_wait(&aworker_cv, &aworker_lock);
+    //pthread_mutex_unlock(&aworker_lock);
 
     if (debug)
 	fprintf(stderr, "n_files = %d, n_matches = %d, n_workers = %d, n_Mbytes = %d\n",

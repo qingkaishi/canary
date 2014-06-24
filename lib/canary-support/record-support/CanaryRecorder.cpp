@@ -176,7 +176,7 @@ extern "C" {
         // main thread.
         pthread_t tid = pthread_self();
         thread_ht[tid] = thread_ht.size();
-        
+
         main_started = true;
 
 #ifdef NO_TIME_CMD
@@ -326,7 +326,7 @@ extern "C" {
     unsigned OnPreExternalCall() {
         if(!main_started)
             return INVALID_THREAD_ID;
-        
+
         unsigned tid = INVALID_THREAD_ID;
         sready(pthread_self(), &tid);
         if (tid != INVALID_THREAD_ID)
