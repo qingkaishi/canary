@@ -292,20 +292,6 @@ public:
         }
     }
 
-    virtual void dumpWithValueUnsignedMap(FILE* fout, boost::unordered_map<T, unsigned>& map) {
-        for (unsigned i = 0; i < __log.size(); i++) {
-            Item<T> * item = __log[i];
-            if (map.count(item->t)) {
-                item->t = map[item->t];
-            } else {
-                fprintf(stderr, "[ERROR] in dumpWithValueUnsignedMap\n");
-                exit(1);
-            }
-        }
-
-        dump(fout);
-    }
-
     virtual void logValue(T val) = 0;
 };
 
@@ -401,6 +387,7 @@ public:
 };
 
 #define CANARY_THREADS_MAX 32
+#define INVALID_THREAD_ID (CANARY_THREADS_MAX<<2) 
 
 /*
  * Define log types
@@ -425,11 +412,11 @@ typedef VLastOnePredictorLog l_wlog_t;
 
 typedef LastOnePredictorLog<long> l_lrlog_t;
 
-typedef LastOnePredictorLog<pthread_t> g_llog_t;
+typedef LastOnePredictorLog<unsigned> g_llog_t;
 
-typedef LastOnePredictorLog<pthread_t> g_mlog_t;
+typedef LastOnePredictorLog<unsigned> g_mlog_t;
 
-typedef LastOnePredictorLog<pthread_t> g_flog_t;
+typedef LastOnePredictorLog<unsigned> g_flog_t;
 
 typedef struct {
     void* address;

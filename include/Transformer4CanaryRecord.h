@@ -19,11 +19,11 @@ private:
 
     Function *F_load, *F_prestore, *F_store;
     Function *F_lock;
-    Function *F_prefork, *F_fork;//, *F_join;
+    Function *F_prefork, *F_fork;
     Function *F_premutexinit, *F_mutexinit;
     Function *F_wait;
     Function *F_init, *F_exit, *F_address_init;
-    Function *F_local/*, *F_invalidate_cache, *F_store_without_cache*/;
+    Function *F_local, *F_preexternal, *F_external;
 private:
     static int stmt_idx;
 

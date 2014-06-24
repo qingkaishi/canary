@@ -1,12 +1,6 @@
 /*
  * Developed by Qingkai Shi
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
- * 
- * @TODO
- * 1. An external call may call an instrumented function.
- * 2. An external call may fork a new thread. Such a thread may also fork threads. These threads may call instrumented functions.
- * 
- * we now can assume that #1 and #2 do not exist.
  */
 
 #include <stdio.h>
@@ -23,7 +17,6 @@
 
 #include "SignalRoutine.h"
 #include "../Log.h"
-//#include "../Cache.h"
 
 /*
  * Define local log keys
@@ -31,7 +24,6 @@
 static pthread_key_t lrlog_key;
 static pthread_key_t rlog_key;
 static pthread_key_t wlog_key;
-//static pthread_key_t cache_key;
 static pthread_key_t address_birthday_map_key;
 
 /*
@@ -65,7 +57,7 @@ static l_rlog_t* rlogs[CANARY_THREADS_MAX];
 static l_lrlog_t* lrlogs[CANARY_THREADS_MAX];
 static l_wlog_t* wlogs[CANARY_THREADS_MAX];
 static l_addmap_t* addlogs[CANARY_THREADS_MAX];
-//static Cache* caches[CANARY_THREADS_MAX];
+static unsigned onexternals[CANARY_THREADS_MAX];
 
 /*
  * set of active threads, not the original tid
@@ -76,6 +68,8 @@ static l_addmap_t* addlogs[CANARY_THREADS_MAX];
  */
 
 static bool start = false;
+static bool forking = false;
+static bool main_started = false;
 
 /*
  * number of shared variables
@@ -86,6 +80,30 @@ static unsigned num_local_vars = 0;
 #ifdef NO_TIME_CMD
 static struct timeval tpstart, tpend;
 #endif
+
+// seq record ready
+
+static inline bool sready(pthread_t self, unsigned * tid) {
+    bool contains = thread_ht.count(self);
+    while (!contains && forking) {
+        sched_yield();
+        contains = thread_ht.count(self);
+    }
+
+    if (contains) {
+        unsigned idtemp = thread_ht[self];
+        *tid = idtemp;
+        return onexternals[idtemp] == 0;
+    }
+
+    return false;
+}
+
+// concurrency record ready
+
+static inline bool cready(pthread_t self, unsigned * tid) {
+    return start && sready(self, tid);
+}
 
 static inline void lock(unsigned svId) {
     pthread_mutex_lock(&locks[svId]);
@@ -128,14 +146,6 @@ void close_write_log(void* log) {
 void close_map_log(void* log) {
 }
 
-/*void close_cache(void* log) {
-    unsigned tid = thread_ht[pthread_self()];
-    printf("[INFO] Thread %u: \n", tid);
-    ((Cache*) log)->info();
-    caches[tid] = NULL;
-    delete (Cache*) log;
-}*/
-
 extern "C" {
 
     void OnInit(unsigned svsNum, unsigned lvsNum) {
@@ -148,13 +158,12 @@ extern "C" {
         pthread_key_create(&lrlog_key, close_local_read_log);
         pthread_key_create(&wlog_key, close_write_log);
         pthread_key_create(&address_birthday_map_key, close_map_log);
-        //pthread_key_create(&cache_key, close_cache);
 
         memset(addlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
         memset(wlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
         memset(rlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
         memset(lrlogs, 0, sizeof (void*)*CANARY_THREADS_MAX);
-        //memset(caches, 0, sizeof (void*)*CANARY_THREADS_MAX);
+        memset(onexternals, 0, sizeof (unsigned)*CANARY_THREADS_MAX);
 
         write_versions = new unsigned[svsNum];
         memset(write_versions, 0, sizeof (unsigned) * svsNum);
@@ -167,6 +176,8 @@ extern "C" {
         // main thread.
         pthread_t tid = pthread_self();
         thread_ht[tid] = thread_ht.size();
+        
+        main_started = true;
 
 #ifdef NO_TIME_CMD
         gettimeofday(&tpstart, NULL);
@@ -190,7 +201,7 @@ extern "C" {
             printf("dumping flog...\n");
 #endif
             FILE * fout = fopen("fork.dat", "w");
-            flog.dumpWithValueUnsignedMap(fout, thread_ht);
+            flog.dump(fout);
             fclose(fout);
         }
 
@@ -199,7 +210,7 @@ extern "C" {
             printf("dumping mlog, llog...\n");
 #endif
             FILE * fout = fopen("mutex.dat", "w");
-            mlog.dumpWithValueUnsignedMap(fout, thread_ht);
+            mlog.dump(fout);
 
             unsigned size = llogs.size();
 #ifdef LDEBUG
@@ -209,7 +220,7 @@ extern "C" {
 #endif
             for (unsigned i = 0; i < size; i++) {
                 g_llog_t * llog = llogs[i];
-                llog->dumpWithValueUnsignedMap(fout, thread_ht);
+                llog->dump(fout);
             }
             fclose(fout);
         }
@@ -305,12 +316,6 @@ extern "C" {
         }
         printf("[INFO] Threads num: %d\n", thread_ht.size());
 
-        /*for (unsigned tid = 0; tid < thread_ht.size(); tid++) {
-            if (caches[tid] == NULL) continue;
-            printf("[INFO] Thread %u: \n", tid);
-            caches[tid]->info();
-        }*/
-
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
         system("zip -9 canary.zip ./fork.dat ./mutex.dat ./addressmap.dat ./write.dat ./read.dat ./lread.dat");
@@ -318,21 +323,39 @@ extern "C" {
         system("echo -n \"[INFO] Log size (Byte): \"; echo -n `du -sb canary.zip` | cut -d\" \" -f 1;");
     }
 
+    unsigned OnPreExternalCall() {
+        if(!main_started)
+            return INVALID_THREAD_ID;
+        
+        unsigned tid = INVALID_THREAD_ID;
+        sready(pthread_self(), &tid);
+        if (tid != INVALID_THREAD_ID)
+            onexternals[tid]++;
+
+        return tid;
+    }
+
+    void OnExternalCall(unsigned tid) {
+        if (tid != INVALID_THREAD_ID)
+            onexternals[tid]--;
+    }
+
     void OnAddressInit(void* value, size_t size, size_t n, int type) {
+        unsigned tid = 0; // should be zero
+        if (!thread_ht.empty() && !sready(pthread_self(), &tid)) {
+            return;
+        }
+
+#ifdef DEBUG
+        printf("OnAddressInit\n");
+#endif
+
         l_addmap_t * mlog = (l_addmap_t*) pthread_getspecific(address_birthday_map_key);
         if (mlog == NULL) {
             mlog = new l_addmap_t;
             mlog->stack_tag = false;
             pthread_setspecific(address_birthday_map_key, mlog);
-            pthread_t realtid = pthread_self();
-            while (!thread_ht.empty() && !thread_ht.count(realtid)) {
-                sched_yield();
-            }
-            if (thread_ht.empty()) {
-                addlogs[0] = mlog;
-            } else {
-                addlogs[thread_ht[realtid]] = mlog;
-            }
+            addlogs[tid] = mlog;
         }
 
         if (type == 1000) { // a stack address
@@ -351,6 +374,11 @@ extern "C" {
     }
 
     void OnLocal(long value, int id) {
+        unsigned tid = INVALID_THREAD_ID;
+        if (!sready(pthread_self(), &tid)) {
+            return;
+        }
+
 #ifdef DEBUG
         printf("OnLocal %d\n", id);
 #endif
@@ -359,28 +387,22 @@ extern "C" {
             rlog = new l_lrlog_t[num_local_vars];
             pthread_setspecific(lrlog_key, rlog);
 
-            pthread_t realtid = pthread_self();
-            while (!thread_ht.count(realtid)) {
-                sched_yield();
-            }
-            lrlogs[thread_ht[realtid]] = rlog;
+            lrlogs[tid] = rlog;
         }
 
         rlog[id].logValue(value);
     }
-
-    /*void InvalidateCache() {
-        Cache* cache = (Cache*) pthread_getspecific(cache_key);
-        if (cache != NULL){
-            cache->clear();
-        }
-    }*/
 
     void OnLoad(int svId, int lvId, long value, int debug) {
         if (!start) {
             if (lvId != -1) {
                 OnLocal(value, lvId);
             }
+            return;
+        }
+
+        unsigned tid = INVALID_THREAD_ID;
+        if (!sready(pthread_self(), &tid)) {
             return;
         }
 
@@ -394,11 +416,7 @@ extern "C" {
             rlog = new l_rlog_t[num_shared_vars];
             pthread_setspecific(rlog_key, rlog);
 
-            pthread_t realtid = pthread_self();
-            while (!thread_ht.count(realtid)) {
-                sched_yield();
-            }
-            rlogs[thread_ht[realtid]] = rlog;
+            rlogs[tid] = rlog;
         }
 
 #ifdef DEBUG
@@ -407,20 +425,11 @@ extern "C" {
 
         rlog[svId].VAL_LOG.logValue(value);
         rlog[svId].VER_LOG.logValue(write_versions[svId]);
-
-        /*Cache* cache = (Cache*) pthread_getspecific(cache_key);
-        if (cache != NULL && cache->query(address, value)) {
-            rlog[svId].VER_LOG.logValue(-1);
-        } else {
-            
-        }*/
-#ifdef DEBUG
-        printf("OnLoad === 3\n");
-#endif
     }
 
     unsigned OnPreStore(int svId, int debug) {
-        if (!start) {
+        unsigned tid = INVALID_THREAD_ID;
+        if (!cready(pthread_self(), &tid)) {
             return 0;
         }
 
@@ -434,8 +443,9 @@ extern "C" {
         return version;
     }
 
-    void OnStore(int svId, unsigned version, long address, long value, int debug) {
-        if (!start) {
+    void OnStore(int svId, unsigned version, int debug) {
+        unsigned tid = INVALID_THREAD_ID;
+        if (!cready(pthread_self(), &tid)) {
             return;
         }
 #ifdef DEBUG
@@ -448,26 +458,14 @@ extern "C" {
             wlog = new l_wlog_t[num_shared_vars];
             pthread_setspecific(wlog_key, wlog);
 
-            pthread_t realtid = pthread_self();
-            while (!thread_ht.count(realtid)) {
-                sched_yield();
-            }
-            wlogs[thread_ht[realtid]] = wlog;
+            wlogs[tid] = wlog;
         }
         wlog[svId].logValue(version);
-
-        /*Cache* cache = (Cache*) pthread_getspecific(cache_key);
-        if (cache == NULL) {
-            cache = new Cache;
-            pthread_setspecific(cache_key, cache);
-            caches[thread_ht[pthread_self()]] = cache;
-        }
-
-        cache->add(address, value);*/
     }
 
     void OnLock(pthread_mutex_t* mutex_ptr) {
-        if (!start) {
+        unsigned tid = INVALID_THREAD_ID;
+        if (!cready(pthread_self(), &tid)) {
             return;
         }
 
@@ -491,7 +489,8 @@ extern "C" {
     }
 
     void OnWait(pthread_cond_t* cond_ptr, pthread_mutex_t* mutex_ptr) {
-        if (!start) {
+        unsigned tid = INVALID_THREAD_ID;
+        if (!cready(pthread_self(), &tid)) {
             return;
         }
 #ifdef DEBUG
@@ -504,16 +503,22 @@ extern "C" {
             exit(1);
         }
         g_llog_t* llog = llogs[mutex_ht[mutex_ptr]];
-        llog->logValue(pthread_self());
+        llog->logValue(tid);
     }
 
-    void OnPreMutexInit(bool race) {
-        if (race) {
+    unsigned OnPreMutexInit(bool race) {
+        unsigned tid = INVALID_THREAD_ID;
+        if (sready(pthread_self(), &tid) && race) {
             mutexInitLock();
         }
+        return tid;
     }
 
-    void OnMutexInit(pthread_mutex_t* mutex_ptr, bool race) {
+    void OnMutexInit(pthread_mutex_t* mutex_ptr, bool race, unsigned tid) {
+        if (tid == INVALID_THREAD_ID) {
+            return;
+        }
+
         // if mutex_ht contains mutex_ptr, it means that the original one may be
         // destroyed; No matther mutex_ht contains it or not, it is a new lock
         mutex_ht[mutex_ptr] = mutex_id++;
@@ -522,17 +527,21 @@ extern "C" {
 
 
         if (race) {
-            pthread_t tid = pthread_self();
             mlog.logValue(tid);
 
             mutexInitUnlock();
         }
     }
 
-    void OnPreFork(bool race) {
+    unsigned OnPreFork(bool race) {
+        unsigned tid = INVALID_THREAD_ID;
+        if (!sready(pthread_self(), &tid)) {
+            return tid;
+        }
+
         if (!start)
             start = true;
-        
+
 #ifdef DEBUG
         printf("OnPreFork\n");
 #endif
@@ -542,9 +551,16 @@ extern "C" {
             OnExit();
             exit(1);
         }
+
+        forking = true; // I am forking new thread.
+
+        return tid;
     }
 
-    void OnFork(pthread_t* forked_tid_ptr, bool race) {
+    void OnFork(pthread_t* forked_tid_ptr, bool race, unsigned tid) {
+        if (tid == INVALID_THREAD_ID) {
+            return;
+        }
 #ifdef DEBUG
         printf("OnFork\n");
 #endif
@@ -554,8 +570,9 @@ extern "C" {
             thread_ht[ftid] = thread_ht.size();
         }
 
+        forking = false; // Forking finishes.
+
         if (race) {
-            pthread_t tid = pthread_self();
             flog.logValue(tid);
 
             forkUnlock();

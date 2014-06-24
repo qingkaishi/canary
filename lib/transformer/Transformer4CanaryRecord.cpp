@@ -102,7 +102,7 @@ void Transformer4CanaryRecord::afterTransform(AliasAnalysis& AA) {
                 outs() << "[INFO] Find a global mutex..." << gv << "\n";
                 Constant* mutexstar = ConstantExpr::getBitCast(&gv, MUTEX_PTR_TY(module));
                 ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
-                this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, NULL);
+                this->insertCallInstAtHead(mainFunction, F_mutexinit, mutexstar, tmp, ConstantInt::get(INT_TY(module), 0), NULL);
             }
 
             if (!gv.hasPrivateLinkage() && !gv.getName().startswith("llvm.")) {
@@ -295,30 +295,11 @@ void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis
     int svIdx = this->getSharedValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    /*Value* ci = NULL;
-    if (inst->getOperand(0)->getType()->isPointerTy()) {
-        ci = CastInst::CreatePointerCast(inst->getOperand(0), LONG_TY(module));
-    } else if (!inst->getOperand(0)->getType()->isIntegerTy()) {
-        ci = CastInst::Create(Instruction::FPToUI, inst->getOperand(0), LONG_TY(module));
-    } else if (inst->getOperand(0)->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
-        ci = CastInst::CreateIntegerCast(inst->getOperand(0), LONG_TY(module), false);
-    }
-
-    CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
-    if (ci != NULL) {
-        ((CastInst*) ci)->insertAfter(inst);
-        addci->insertAfter((CastInst*) ci);
-    } else {
-        ci = inst->getOperand(0);
-        addci->insertAfter(inst);
-    }*/
-
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, ConstantInt::get(LONG_TY(module), -1), ConstantInt::get(LONG_TY(module), -1), debug_idx, NULL);
-    // this->insertCallInstAfter(addci, F_store, tmp, call, addci, ci, debug_idx, NULL);
+    this->insertCallInstAfter(inst, F_store, tmp, call, debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst, AliasAnalysis& AA) {
@@ -330,7 +311,7 @@ void Transformer4CanaryRecord::transformAtomicCmpXchgInst(AtomicCmpXchgInst* ins
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, ConstantInt::get(LONG_TY(module), -1), ConstantInt::get(LONG_TY(module), -1), debug_idx, NULL);
+    this->insertCallInstAfter(inst, F_store, tmp, call, debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformAtomicRMWInst(AtomicRMWInst* inst, AliasAnalysis& AA) {
@@ -342,13 +323,13 @@ void Transformer4CanaryRecord::transformAtomicRMWInst(AtomicRMWInst* inst, Alias
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, ConstantInt::get(LONG_TY(module), -1), ConstantInt::get(LONG_TY(module), -1), debug_idx, NULL);
+    this->insertCallInstAfter(inst, F_store, tmp, call, debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
-    this->insertCallInstBefore(ins, F_prefork, tmp, NULL);
-    this->insertCallInstAfter(ins, F_fork, ins->getArgOperand(0), tmp, NULL);
+    CallInst* ci = this->insertCallInstBefore(ins, F_prefork, tmp, NULL);
+    this->insertCallInstAfter(ins, F_fork, ins->getArgOperand(0), tmp, ci, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
@@ -358,8 +339,8 @@ void Transformer4CanaryRecord::transformPthreadJoin(CallInst* ins, AliasAnalysis
 
 void Transformer4CanaryRecord::transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
-    this->insertCallInstBefore(ins, F_premutexinit, tmp, NULL);
-    this->insertCallInstAfter(ins, F_mutexinit, ins->getArgOperand(0), tmp, NULL);
+    CallInst* ci = this->insertCallInstBefore(ins, F_premutexinit, tmp, NULL);
+    this->insertCallInstAfter(ins, F_mutexinit, ins->getArgOperand(0), tmp, ci, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
@@ -404,6 +385,8 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
     // if it may change mem, invalidate cache
     //if (this->isUnsafeExternalLibraryCall(inst, AA))
     //this->insertCallInstAfter(inst, F_invalidate_cache, NULL);
+    CallInst* call = this->insertCallInstBefore(inst, F_preexternal, NULL);
+    CallInst* call2 = this->insertCallInstAfter(inst, F_external, call, NULL);
 
     // extern call, record the returned value
     if (inst->doesNotReturn() || inst->getNumUses() == 0) return;
@@ -451,10 +434,10 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
             ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
         }
         if (ci != NULL) {
-            ci->insertAfter(inst);
+            ci->insertAfter(call2);
             this->insertCallInstAfter(ci, F_local, ci, ConstantInt::get(LONG_TY(module), index), NULL);
         } else {
-            this->insertCallInstAfter(inst, F_local, inst, ConstantInt::get(LONG_TY(module), index), NULL);
+            this->insertCallInstAfter(call2, F_local, inst, ConstantInt::get(LONG_TY(module), index), NULL);
         }
     }
 }
@@ -464,7 +447,7 @@ bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
             || called == F_load
             || called == F_prestore || called == F_store /*|| called == F_store_without_cache*/
             || called == F_lock
-            || called == F_prefork || called == F_fork //|| called == F_join
+            || called == F_prefork || called == F_fork || called == F_preexternal || called == F_external
             || called == F_wait
             || called == F_premutexinit || called == F_mutexinit || called == F_local /*|| called == F_invalidate_cache*/;
 }
@@ -599,28 +582,18 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
 
     F_store = cast<Function>(m->getOrInsertFunction("OnStore",
             VOID_TY(m),
-            INT_TY(m), INT_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m),
+            INT_TY(m), INT_TY(m), INT_TY(m),
             NULL));
 
-    /*F_store_without_cache = cast<Function>(m->getOrInsertFunction("OnStoreNoCache",
-            VOID_TY(m),
-            INT_TY(m), INT_TY(m), INT_TY(m),
-            NULL));*/
-
     F_prefork = cast<Function>(m->getOrInsertFunction("OnPreFork",
-            VOID_TY(m),
+            INT_TY(m),
             BOOL_TY(m),
             NULL));
 
     F_fork = cast<Function>(m->getOrInsertFunction("OnFork",
             VOID_TY(m),
-            THREAD_PTR_TY(m), BOOL_TY(m),
+            THREAD_PTR_TY(m), BOOL_TY(m), INT_TY(m),
             NULL));
-
-    //F_join = cast<Function>(m->getOrInsertFunction("OnJoin",
-    //        VOID_TY(m),
-    //       LONG_TY(m), BOOL_TY(m),
-    //      NULL));
 
     F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
             VOID_TY(m),
@@ -632,9 +605,14 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
             LONG_TY(m), INT_TY(m), // value, index
             NULL));
 
-    /*F_invalidate_cache = cast<Function>(m->getOrInsertFunction("InvalidateCache",
-            VOID_TY(m), // value, index
-            NULL));*/
+    F_preexternal = cast<Function>(m->getOrInsertFunction("OnPreExternalCall",
+            INT_TY(m),
+            NULL));
+
+    F_external = cast<Function>(m->getOrInsertFunction("OnExternalCall",
+            VOID_TY(m),
+            INT_TY(m),
+            NULL));
 
     if (MUTEX_TY(m) != NULL) {
         F_lock = cast<Function>(m->getOrInsertFunction("OnLock",
@@ -643,13 +621,13 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
                 NULL));
 
         F_premutexinit = cast<Function>(m->getOrInsertFunction("OnPreMutexInit",
-                VOID_TY(m),
+                INT_TY(m),
                 BOOL_TY(m),
                 NULL));
 
         F_mutexinit = cast<Function>(m->getOrInsertFunction("OnMutexInit",
                 VOID_TY(m),
-                MUTEX_PTR_TY(m), BOOL_TY(m),
+                MUTEX_PTR_TY(m), BOOL_TY(m), INT_TY(m),
                 NULL));
 
         if (CONDN_TY(m) != NULL) {
