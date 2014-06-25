@@ -154,7 +154,9 @@ namespace {
             return alias(V1, UnknownSize, V2, UnknownSize);
         }
 
-        AliasResult function_alias(Value *calledValue, const Function* function, const CallInst* callInst) {
+        AliasResult function_alias(const Function* function, CallInst* callInst) {
+            Value *calledValue = callInst->getCalledValue();
+
             AliasResult ar = this->alias(calledValue, function);
             if (ar == MayAlias || ar == PartialAlias) {
                 if (calledValue == function) {
@@ -190,6 +192,9 @@ namespace {
                     }
                 }
             }
+
+            if (ar == PartialAlias)
+                ar = NoAlias;
 
             return ar;
         }
@@ -245,6 +250,8 @@ namespace {
     public:
         void getEscapedPointersTo(set<DyckVertex*>* ret, Function * func); // escaped to 'func'
         void getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from); // escaped from 'from'
+
+        void getAliasedFunctions(set<Function*>* ret, set<Function*>* uset, CallInst* call);
     };
 
     RegisterPass<DyckAliasAnalysis> X("dyckaa", "Alias Analysis based on Qirun's PLDI 2013 paper");
@@ -253,7 +260,45 @@ namespace {
     // Register this pass...
     char DyckAliasAnalysis::ID = 0;
 
-    bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex *v2) {
+    void DyckAliasAnalysis::getAliasedFunctions(set<Function*>* ret, set<Function*>* uset, CallInst* callInst) {
+        if (ret == NULL || callInst == NULL) {
+            errs() << "[ERROR] In getAliasedFunctions: ret or value are null!\n";
+            exit(1);
+        }
+
+        Module *module = callInst->getParent()->getParent()->getParent();
+        if (uset == NULL && module != NULL) {
+            for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+                Function* f = iterF;
+                AliasResult ar = this->function_alias(f, callInst);
+                if (ar == MustAlias) {
+                    ret->clear();
+                    ret->insert(f);
+                    return;
+                }
+                if (ar == MayAlias) {
+                    ret->insert(f);
+                }
+            }
+        } else {
+            set<Function*>::iterator usetIt = uset->begin();
+            while (usetIt != uset->end()) {
+                Function* f = *usetIt;
+                AliasResult ar = this->function_alias(f, callInst);
+                if (ar == MustAlias) {
+                    ret->clear();
+                    ret->insert(f);
+                    return;
+                }
+                if (ar == MayAlias) {
+                    ret->insert(f);
+                }
+                usetIt++;
+            }
+        }
+    }
+
+    bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex * v2) {
         if (v1 == NULL || v2 == NULL) return false;
 
         v1 = v1->getRepresentative();
@@ -406,7 +451,7 @@ namespace {
         ret->insert(visited.begin(), visited.end());
     }
 
-    void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function *func) {
+    void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * func) {
         if (ret == NULL || func == NULL) {
             errs() << "Warning in getEscapingPointers: ret or func are null!\n";
             return;
@@ -432,9 +477,8 @@ namespace {
                 for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
                     Instruction *rawInst = iterI;
                     if (isa<CallInst> (rawInst)) {
-                        CallInst *inst = (CallInst*) rawInst; // all invoke is lower to call
-                        Value * cv = inst->getCalledValue();
-                        if (this->function_alias(cv, func, inst)) {
+                        CallInst *inst = (CallInst*) rawInst; // all invokes are lowered to call
+                        if (this->function_alias(func, inst)) {
                             if (func->hasName() && func->getName() == "pthread_create") {
                                 DyckVertex * rt = dyck_graph->retrieveDyckVertex(inst->getArgOperand(3)).first->getRepresentative();
                                 workStack.push(rt);
@@ -478,7 +522,7 @@ namespace {
         ret->insert(visited.begin(), visited.end());
     }
 
-    bool DyckAliasAnalysis::runOnModule(Module &M) {
+    bool DyckAliasAnalysis::runOnModule(Module & M) {
         InitializeAliasAnalysis(this);
 
         AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph, DotCallGraph || CountFP);
@@ -533,13 +577,17 @@ namespace {
         /* instrumentation */
         if (TraceTransformer || LeapTransformer
                 || CanaryRecordTransformer || CanaryReplayTransformer) {
+            outs() << ("Thread escape analysis ...\n");
             set<DyckVertex*> svs;
             set<Value*> llvm_svs;
             this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
             fromDyckVertexToValue(svs, llvm_svs);
+            outs() << "Done!\n\n";
 
             set<DyckVertex*> lvs;
             set<Value *> llvm_lvs;
+            
+            set<Function*> unsafe_ex_functions;
 
             Transformer * robot = NULL;
             if (LeapTransformer) {
@@ -549,56 +597,84 @@ namespace {
                 robot = new Transformer4Trace(&M, &llvm_svs, this->getDataLayout()->getPointerSize());
                 outs() << ("Start transforming using trace-transformer ...\n");
             } else if (CanaryRecordTransformer || CanaryReplayTransformer) {
+                // get unsafe_ex_functions
                 for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
                     Function* f = iterF;
                     if (Transformer4CanaryRecord::isUnsafeExternalLibraryFunction(f)) {
-                        iplist<Argument>& alt = f->getArgumentList();
-                        iplist<Argument>::iterator it = alt.begin();
-                        while (it != alt.end()) {
-                            if (!it->onlyReadsMemory()) {
-                                set<DyckVertex*> tmp_lvs;
-                                this->getEscapedPointersFrom(&tmp_lvs, it);
+                        unsafe_ex_functions.insert(f);
+                    }
+                }
 
-                                set<DyckVertex*>::iterator tlvsIt = tmp_lvs.begin();
-                                while (tlvsIt != tmp_lvs.end()) {
-                                    if (!svs.count(*tlvsIt)) { // not a shared memory
-                                        lvs.insert(*tlvsIt); // not an existed memory (this is a set)
+                for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
+                    Function* f = iterF;
+                    for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
+                        for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
+                            Instruction *rawInst = iterI;
+                            if (isa<CallInst> (rawInst)) {
+                                CallInst *inst = (CallInst*) rawInst; // all invokes are lowered to call
+
+                                if (inst->isInlineAsm()) {
+                                    DEBUG_WITH_TYPE("asm", errs() << "[Inline Asm] " << *inst << "\n");
+                                }
+
+                                set<Function*> mayAliasedFunctions;
+                                this->getAliasedFunctions(&mayAliasedFunctions, &unsafe_ex_functions, inst);
+                                if (mayAliasedFunctions.empty() && !unhandled_calls.count(inst)) {
+                                    continue; // an internal call
+                                }
+
+                                //args escape analysis
+                                for (unsigned x = 0; x < inst->getNumArgOperands(); x++) {
+                                    bool constant = true && !unhandled_calls.count(inst);
+                                    set<Function*>::iterator mafIt = mayAliasedFunctions.begin();
+                                    while (mafIt != mayAliasedFunctions.end()) {
+                                        Function* maf = *mafIt;
+                                        
+                                        iplist<Argument>& alt = maf->getArgumentList();
+                                        iplist<Argument>::iterator altIt = alt.begin();
+                                        unsigned y = 0;
+                                        while (y < x) {
+                                            altIt++;
+                                            if (altIt == alt.end()) {
+                                                break;
+                                            }
+                                            y++;
+                                        }
+
+                                        if (!maf->onlyReadsMemory() && ((altIt != alt.end() &&!altIt->onlyReadsMemory()) || altIt == alt.end())) {
+                                            constant = false;
+                                            break;
+                                        }
+
+                                        mafIt++;
                                     }
 
-                                    tlvsIt++;
+                                    Value *argx = inst->getArgOperand(x);
+                                    
+                                    if (constant || isa<ConstantInt>(argx)) {
+                                        continue;
+                                    }
+                                    
+                                    pair < DyckVertex*, bool> retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (argx));
+                                    DyckVertex * argxV = retpair.first->getRepresentative();
+                                    if (!lvs.count(argxV)) {
+                                        // do escape analysis
+                                        set<DyckVertex*> tmp_lvs;
+                                        this->getEscapedPointersFrom(&tmp_lvs, argx);
+                                        lvs.insert(tmp_lvs.begin(), tmp_lvs.end());
+                                    }
+                                }
+
+                                // return value escape analysis
+                                if (!inst->doesNotReturn()) {
+                                    set<DyckVertex*> tmp_lvs;
+                                    this->getEscapedPointersFrom(&tmp_lvs, inst);
+                                    lvs.insert(tmp_lvs.begin(), tmp_lvs.end());
                                 }
                             }
-                            it++;
                         }
                     }
                 }
-
-                // calls that does not find may-aliased functions
-
-                set<Instruction*>::iterator ucit = unhandled_calls.begin();
-                while (ucit != unhandled_calls.end()) {
-                    CallInst * ci = cast<CallInst>(*ucit);
-                    if (ci->isInlineAsm()) {
-                        DEBUG_WITH_TYPE("asm", errs() << "[Inline Asm] " << *ci << "\n");
-                    }
-
-                    for (unsigned i = 0; i < ci->getNumOperands(); i++) {
-                        Value* it = ci->getArgOperand(i);
-                        set<DyckVertex*> tmp_lvs;
-                        this->getEscapedPointersFrom(&tmp_lvs, it);
-
-                        set<DyckVertex*>::iterator tlvsIt = tmp_lvs.begin();
-                        while (tlvsIt != tmp_lvs.end()) {
-                            if (!svs.count(*tlvsIt)) { // not a shared memory
-                                lvs.insert(*tlvsIt); // not an existed memory (this is a set)
-                            }
-
-                            tlvsIt++;
-                        }
-                    }
-                    ucit++;
-                }
-
                 DEBUG_WITH_TYPE("asm", errs() << "\n");
 
                 this->fromDyckVertexToValue(lvs, llvm_lvs);
@@ -606,7 +682,7 @@ namespace {
                 // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {
                     outs() << ("Start transforming using canary-record-transformer ...\n");
-                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &unhandled_calls, this->getDataLayout()->getPointerSize());
+                    robot = new Transformer4CanaryRecord(&M, &llvm_svs, &llvm_lvs, &unhandled_calls, &unsafe_ex_functions, this->getDataLayout()->getPointerSize());
                 } else {
                     outs() << "[WARINING] The transformer is in progress\n";
                     robot = new Transformer4CanaryReplay(&M, &llvm_svs, this->getDataLayout()->getPointerSize());

@@ -1236,7 +1236,8 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
         set<Function*>::iterator pfit = cands->begin();
         while (pfit != cands->end()) {
-            if (aa->alias(*pfit, cv) == AliasAnalysis::MayAlias) {
+            AliasAnalysis::AliasResult ar = aa->alias(*pfit, cv) ;
+            if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
                 pcall->handled = true;
 

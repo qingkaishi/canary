@@ -27,7 +27,7 @@ private:
 private:
     static int stmt_idx;
 
-    set<Function*> extern_lib_funcs;
+    set<Function*>* extern_lib_funcs;
     set<Instruction*>* unhandled_calls;
     set<Value*>* local_variables;
 
@@ -40,6 +40,7 @@ public:
             set<Value*> * svs,
             set<Value*> * lvs,
             set<Instruction*> * unhandled_calls, // function pointer calls that does not find may-aliased functions
+            set<Function*> * exfuncs,
             unsigned psize);
 
     void transform(AliasAnalysis& AA);
@@ -135,7 +136,8 @@ public:
                 || name == "_ZnajRKSt9nothrow_t" || name == "_Znam"
                 || name == "_ZnamRKSt9nothrow_t" || name == "_Znwj"
                 || name == "_ZnwjRKSt9nothrow_t" || name == "_Znwm"
-                || name == "_ZnwmRKSt9nothrow_t")
+                || name == "_ZnwmRKSt9nothrow_t" 
+                || name == "printf" || name == "fprintf")
             return false;
 
         return true;

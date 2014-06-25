@@ -71,12 +71,13 @@ Transformer4CanaryRecord::Transformer4CanaryRecord(Module* m, set<Value*>* svs, 
     initializeFunctions(m);
 }
 
-Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, set<Instruction*> * ucs, unsigned psize) : Transformer(m, svs, psize) {
+Transformer4CanaryRecord::Transformer4CanaryRecord(Module * m, set<Value*> * svs, set<Value*> * lvs, set<Instruction*> * ucs, set<Function*> * exfuncs, unsigned psize) : Transformer(m, svs, psize) {
     //Transformer4CanaryRecord::Transformer4CanaryRecord(m, svs, psize);
     initializeFunctions(m);
 
     this->local_variables = lvs;
     this->unhandled_calls = ucs;
+    this->extern_lib_funcs = exfuncs;
 }
 
 void Transformer4CanaryRecord::beforeTransform(AliasAnalysis& AA) {
@@ -397,16 +398,16 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
     // record it
     bool record = false;
     Value* cv = inst->getCalledValue();
-    if (isa<Function>(cv) && Transformer4CanaryRecord::isExternalLibraryFunction((Function*) cv)) {
-        record = true;
+    if (isa<Function>(cv)) {
+        record = Transformer4CanaryRecord::isExternalLibraryFunction((Function*) cv);
     } else if (unhandled_calls->count(inst)) {
         record = true;
     } else {
-        set<Function*>::iterator fit = extern_lib_funcs.begin();
-        while (fit != extern_lib_funcs.end()) {
-            Function* f = *fit;
-            if (AA.alias(f, cv) && !f->getReturnType()->isVoidTy()) {
-                cv = f;
+        set<Function*>::iterator fit = extern_lib_funcs->begin();
+        while (fit != extern_lib_funcs->end()) {
+            Function* f = *fit; 
+            if (AA.alias(f, cv) == AliasAnalysis::MayAlias && !f->getReturnType()->isVoidTy()) {
+                cv = f; 
                 record = true;
                 break;
             }
@@ -552,14 +553,6 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
     if (m->getFunction("brk") != NULL || m->getFunction("sbrk") != NULL) {
         errs() << "[ERROR] please handle brk and sbrk\n";
         exit(1);
-    }
-
-    /// extern lib functions
-    for (ilist_iterator<Function> iterF = m->getFunctionList().begin(); iterF != m->getFunctionList().end(); iterF++) {
-        Function* f = iterF;
-        if (Transformer4CanaryRecord::isExternalLibraryFunction(f) /*&& !this->isInstrumentationFunction(f)*/) {
-            extern_lib_funcs.insert(f);
-        }
     }
 
     ///initialize functions
