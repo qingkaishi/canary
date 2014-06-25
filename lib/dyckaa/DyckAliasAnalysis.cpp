@@ -597,6 +597,7 @@ namespace {
                 robot = new Transformer4Trace(&M, &llvm_svs, this->getDataLayout()->getPointerSize());
                 outs() << ("Start transforming using trace-transformer ...\n");
             } else if (CanaryRecordTransformer || CanaryReplayTransformer) {
+                outs () << "External call escape analysis ...\n";
                 // get unsafe_ex_functions
                 for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
                     Function* f = iterF;
@@ -678,6 +679,8 @@ namespace {
                 DEBUG_WITH_TYPE("asm", errs() << "\n");
 
                 this->fromDyckVertexToValue(lvs, llvm_lvs);
+                
+                outs() << "Done!\n\n";
 
                 // outs() << llvm_lvs.size() << "\n";
                 if (CanaryRecordTransformer) {
