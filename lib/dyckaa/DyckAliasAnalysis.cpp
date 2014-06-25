@@ -122,6 +122,12 @@ namespace {
                 }
             }
 
+            if ((isa<Argument>(LocA.Ptr) && ((Argument*) LocA.Ptr)->getParent()->empty())
+                    || (isa<Argument>(LocB.Ptr) && ((Argument*) LocB.Ptr)->getParent()->empty())) {
+                outs() << "[WARNING] Arguments of empty functions are not supported, MAYALIAS is returned!\n";
+                return MayAlias;
+            }
+
             pair < DyckVertex*, bool> retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (LocA.Ptr));
             DyckVertex * VA = retpair.first->getRepresentative();
 
@@ -146,6 +152,46 @@ namespace {
 
         AliasResult alias(const Value *V1, const Value *V2) {
             return alias(V1, UnknownSize, V2, UnknownSize);
+        }
+
+        AliasResult function_alias(Value *calledValue, const Function* function, const CallInst* callInst) {
+            AliasResult ar = this->alias(calledValue, function);
+            if (ar == MayAlias || ar == PartialAlias) {
+                if (calledValue == function) {
+                    return MustAlias;
+                }
+
+                Value * cvcopy = calledValue;
+                if (isa<ConstantExpr>(calledValue)) {
+                    Value * cvcopy = calledValue;
+                    while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
+                        cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
+                    }
+                } else if (isa<GlobalAlias>(calledValue)) {
+                    Value * cvcopy = calledValue;
+                    while (isa<GlobalAlias>(cvcopy)) {
+                        cvcopy = ((GlobalAlias*) cvcopy)->getAliasedGlobal()->stripPointerCastsNoFollowAliases();
+                    }
+                }
+
+                if (isa<Function>(cvcopy)) {
+                    if (cvcopy == function)
+                        return MustAlias;
+                    else
+                        return NoAlias;
+                } else {
+                    bool doesnotret = ((FunctionType*) calledValue->getType()->getPointerElementType())->getReturnType()->isVoidTy();
+                    bool isvar = ((FunctionType*) calledValue->getType()->getPointerElementType())->isVarArg();
+
+                    if (doesnotret == function->getReturnType()->isVoidTy() && isvar == function->isVarArg()) {
+                        return MayAlias;
+                    } else {
+                        return NoAlias;
+                    }
+                }
+            }
+
+            return ar;
         }
 
         virtual ModRefResult getModRefInfo(ImmutableCallSite CS,
@@ -324,8 +370,8 @@ namespace {
     }
 
     void DyckAliasAnalysis::getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from) {
-        if (ret == NULL || from == NULL) {
-            errs() << "Warning in getEscapingPointers: ret or from are null!\n";
+        if (ret == NULL || from == NULL || (isa<Argument>(from) && ((Argument*) from)->getParent()->empty())) {
+            errs() << "[ERROR] In getEscapingPointers: ret or from are null! Or from is an empty function's argument\n";
             return;
         }
 
@@ -373,26 +419,35 @@ namespace {
 
         iplist<GlobalVariable>::iterator git = module->global_begin();
         while (git != module->global_end()) {
-            //if (!git->isConstant()) {
-            DyckVertex * rt = dyck_graph->retrieveDyckVertex(git).first->getRepresentative();
-            workStack.push(rt);
-            //}
+            if (!git->hasPrivateLinkage() && !git->getName().startswith("llvm.")) { // in fact, no such symbols in src codes.
+                DyckVertex * rt = dyck_graph->retrieveDyckVertex(git).first->getRepresentative();
+                workStack.push(rt);
+            }
             git++;
         }
 
-        iplist<Argument>& alt = func->getArgumentList();
-        iplist<Argument>::iterator it = alt.begin();
-        if (func->hasName() && func->getName() == "pthread_create") {
-            it++;
-            it++;
-            it++;
-            DyckVertex * rt = dyck_graph->retrieveDyckVertex(it).first->getRepresentative();
-            workStack.push(rt);
-        } else {
-            while (it != alt.end()) {
-                DyckVertex * rt = dyck_graph->retrieveDyckVertex(it).first->getRepresentative();
-                workStack.push(rt);
-                it++;
+        for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
+            Function* f = iterF;
+            for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
+                for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
+                    Instruction *rawInst = iterI;
+                    if (isa<CallInst> (rawInst)) {
+                        CallInst *inst = (CallInst*) rawInst; // all invoke is lower to call
+                        Value * cv = inst->getCalledValue();
+                        if (this->function_alias(cv, func, inst)) {
+                            if (func->hasName() && func->getName() == "pthread_create") {
+                                DyckVertex * rt = dyck_graph->retrieveDyckVertex(inst->getArgOperand(3)).first->getRepresentative();
+                                workStack.push(rt);
+                            } else {
+                                unsigned num = inst->getNumArgOperands();
+                                for (unsigned i = 0; i < num; i++) {
+                                    DyckVertex * rt = dyck_graph->retrieveDyckVertex(inst->getArgOperand(i)).first->getRepresentative();
+                                    workStack.push(rt);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

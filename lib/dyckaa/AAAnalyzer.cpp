@@ -93,11 +93,11 @@ void AAAnalyzer::end_inter_procedure_analysis() {
                     num++;
                     continue;
                 }
-            } 
+            }
 
             esetIt++;
         }
-        
+
         if (eset->size() == 1 && rep == NULL && !rep->isBridge()) {
             allver.erase(rep);
             reps.erase(rit++);
@@ -108,7 +108,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 
         rit++;
     }
-    outs() << "\n# Unnecessary nodes: " << num << "(" << (num*100/(allver.size() + num)) << "%)";
+    outs() << "\n# Unnecessary nodes: " << num << "(" << (num * 100 / (allver.size() + num)) << "%)";
 }
 
 bool AAAnalyzer::intra_procedure_analysis() {
@@ -1155,7 +1155,9 @@ void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, F
 
             Value * arg = c->args[argIdx];
             Value * par = *pit;
-            makeAlias(wrapValue(par), wrapValue(arg));
+            if (!func->empty()) {
+                makeAlias(wrapValue(par), wrapValue(arg));
+            }
 
             argIdx++;
             pit++;
@@ -1259,6 +1261,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 }
 
 void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Value*>* args, FunctionWrapper* parent) {
+    // args must be the real arguments, not the parameters.
     if (!f->empty() || f->isIntrinsic())
         return;
 

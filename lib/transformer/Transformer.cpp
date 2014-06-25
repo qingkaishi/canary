@@ -230,6 +230,8 @@ void Transformer::transform(AliasAnalysis& AA) {
             }
         }
     }
+    
+    outs() << "                                                            \r";
 
     this->afterTransform(AA);
 }
