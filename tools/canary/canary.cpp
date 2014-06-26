@@ -852,6 +852,8 @@ int main(int argc, char **argv) {
   
   // Canary passes
   Passes.add(createDyckAliasAnalysisPass());
+  
+  Passes.add(createBasicAliasAnalysisPass());
 
   // Check that the module is well formed on completion of optimization
   if (!NoVerify && !VerifyEach)
