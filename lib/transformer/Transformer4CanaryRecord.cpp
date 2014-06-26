@@ -383,6 +383,11 @@ void Transformer4CanaryRecord::transformMemSet(CallInst* inst, AliasAnalysis& AA
 }
 
 void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, AliasAnalysis& AA) {
+    if (inst->getCalledFunction() != NULL
+            && Transformer4CanaryRecord::isUnimportantExternalLibraryFunction(inst->getCalledFunction())) {
+        return;
+    }
+
     // if it may change mem, invalidate cache
     //if (this->isUnsafeExternalLibraryCall(inst, AA))
     //this->insertCallInstAfter(inst, F_invalidate_cache, NULL);

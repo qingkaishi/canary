@@ -119,10 +119,15 @@ public:
                 || name == "_ZnamRKSt9nothrow_t" || name == "_Znwj"
                 || name == "_ZnwjRKSt9nothrow_t" || name == "_Znwm"
                 || name == "_ZnwmRKSt9nothrow_t"
-                || name == "printf" || name == "fprintf")
+                || Transformer4CanaryRecord::isUnimportantExternalLibraryFunction(f))
             return false;
 
         return true;
+    }
+
+    static bool isUnimportantExternalLibraryFunction(Function * f) {
+        std::string name = f->getName().str();
+        return name == "printf" || name == "fprintf" || name == "perror";
     }
 };
 
