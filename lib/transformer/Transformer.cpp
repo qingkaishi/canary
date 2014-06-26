@@ -196,7 +196,7 @@ void Transformer::transform(AliasAnalysis& AA) {
                         handleCalls((CallInst*) & inst, (Function*) calledValue, AA);
                     } else if (calledValue->getType()->isPointerTy()) {
                         set<Function*> may;
-                        this->getAliasFunctions(&inst, calledValue, AA, &may);
+                        ((ExtraAliasAnalysisInterface*) & AA)->get_aliased_functions(&may, NULL, (CallInst*)&inst);
 
                         set<Function*>::iterator it = may.begin();
                         while (it != may.end()) {
@@ -207,7 +207,9 @@ void Transformer::transform(AliasAnalysis& AA) {
                     }
                 }
 
-                if (isa<InvokeInst>(inst)) {
+                /*all invokes have been lowered to calls
+                 * 
+                 * if (isa<InvokeInst>(inst)) {
                     InvokeInst &call = *(InvokeInst*) & inst;
                     Value* calledValue = call.getCalledValue();
 
@@ -217,7 +219,7 @@ void Transformer::transform(AliasAnalysis& AA) {
                         handleInvokes((InvokeInst*) & inst, (Function*) calledValue, AA);
                     } else if (calledValue->getType()->isPointerTy()) {
                         set<Function*> may;
-                        this->getAliasFunctions(&inst, calledValue, AA, &may);
+                        ((ExtraAliasAnalysisInterface*) & AA)->get_aliased_functions(&may, &inst);
 
                         set<Function*>::iterator it = may.begin();
                         while (it != may.end()) {
@@ -226,64 +228,14 @@ void Transformer::transform(AliasAnalysis& AA) {
                             it++;
                         }
                     }
-                }
+                }*/
             }
         }
     }
-    
+
     outs() << "                                                            \r";
 
     this->afterTransform(AA);
-}
-
-set<Function * >* Transformer::getAliasFunctions(Value* callInst, Value* ptr, AliasAnalysis& AA, set<Function*>* ret) {
-    if (ret == NULL)
-        return NULL;
-
-    Value * cv = ptr;
-    if (isa<ConstantExpr>(cv)) {
-        Value * cvcopy = cv;
-        while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
-            cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
-        }
-
-        if (isa<Function>(cvcopy)) {
-            ret->insert((Function*)cvcopy);
-            return ret;
-        }
-    } else if (isa<GlobalAlias>(cv)) {
-        Value * cvcopy = cv;
-        while (isa<GlobalAlias>(cvcopy)) {
-            cvcopy = ((GlobalAlias*) cvcopy)->getAliasedGlobal()->stripPointerCastsNoFollowAliases();
-        }
-
-        if (isa<Function>(cvcopy)) {
-            ret->insert((Function*)cvcopy);
-            return ret;
-        }
-    }
-
-    for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-        if (AA.alias(ptr, iterF) != AliasAnalysis::NoAlias) {
-            if (matchFunctionAndCall(iterF, callInst, AA)) {
-                if (iterF->hasName()) {
-                    const char* name = iterF->getName().str().c_str();
-                    char namecp[1000];
-                    strcpy(namecp, name);
-                    namecp[7] = '\0';
-
-                    ///@FIXME we assume a function only has one posix thread alias
-                    if (strcmp(namecp, "pthread") == 0) {
-                        ret->clear();
-                        ret->insert(iterF);
-                        return ret;
-                    }
-                }
-                ret->insert(iterF);
-            }
-        }
-    }
-    return ret;
 }
 
 bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAnalysis & AA) {
@@ -366,42 +318,4 @@ bool Transformer::handleInvokes(InvokeInst* call, Function* calledFunction, Alia
         return true;
     }
     return false;
-}
-
-bool Transformer::matchFunctionAndCall(Function * callee, Value * callInst, AliasAnalysis & aa) {
-    iplist<Argument>& parameters = callee->getArgumentList();
-
-    unsigned int numOfArgOp = 0;
-    bool isCallInst = false;
-    if (isa<CallInst>(*callInst)) {
-        isCallInst = true;
-        numOfArgOp = ((CallInst*) callInst)->getNumArgOperands();
-    } else {
-        numOfArgOp = ((InvokeInst*) callInst)->getNumArgOperands();
-    }
-
-    if (numOfArgOp < parameters.size()) {
-        return false;
-    } else if (numOfArgOp > parameters.size() && !callee->isVarArg()) {
-        return false;
-    } else {
-        int i = 0;
-        ilist_iterator<Argument> it = parameters.begin();
-        while (it != parameters.end()) {
-            Value *arg = NULL;
-            if (isCallInst) {
-                arg = ((CallInst*) callInst)->getArgOperand(i);
-            } else {
-                arg = ((InvokeInst*) callInst)->getArgOperand(i);
-            }
-
-            Value * par = (Value*) it;
-            if (aa.getTypeStoreSize(arg->getType()) != aa.getTypeStoreSize(par->getType())) {
-                return false;
-            }
-            it++;
-            i++;
-        }
-    }
-    return true;
 }

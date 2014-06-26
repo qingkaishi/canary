@@ -20,7 +20,20 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/IR/InlineAsm.h"
 
+#include <set>
+
+using namespace llvm;
+
+class ExtraAliasAnalysisInterface {
+public:
+    virtual AliasAnalysis::AliasResult function_alias(const Function* function, CallInst* callInst) = 0;
+    
+    /// search aliased functions in uset if uset != NULL
+    /// otherwise, we will search all functions in the module
+    virtual std::set<Function*>* get_aliased_functions(std::set<Function*>* ret, std::set<Function*>* uset, CallInst* call) = 0;
+};
 
 llvm::ModulePass *createDyckAliasAnalysisPass();
 

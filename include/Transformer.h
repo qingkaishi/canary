@@ -25,6 +25,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/DebugInfo.h"
 
+#include "DyckAliasAnalysis.h"
+
 #include <stdarg.h>
 
 #include <vector>
@@ -145,8 +147,6 @@ public:
 private:
     bool handleCalls(CallInst * call, Function* calledFunction, AliasAnalysis& AA);
     bool handleInvokes(InvokeInst * call, Function* calledFunction, AliasAnalysis& AA);
-    set<Function * >* getAliasFunctions(Value * callInst, Value * ptr, AliasAnalysis& AA, set<Function *>* ret);
-    bool matchFunctionAndCall(Function * callee, Value * callInst, AliasAnalysis &aa);
 };
 
 

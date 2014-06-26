@@ -16,9 +16,6 @@
 #include <stdio.h>
 #include <algorithm>
 #include <stack>
-#include <llvm/IR/InlineAsm.h>
-
-using namespace llvm;
 
 // cananry options
 static cl::opt<bool>
@@ -82,7 +79,7 @@ static bool notDifferentParent(const Value *O1, const Value *O2) {
 namespace {
     /// DyckAliasAnalysis - This is the primary alias analysis implementation.
 
-    struct DyckAliasAnalysis : public ModulePass, public AliasAnalysis {
+    struct DyckAliasAnalysis : public ModulePass, public AliasAnalysis, public ExtraAliasAnalysisInterface {
         static char ID; // Class identification, replacement for typeinfo
 
         DyckAliasAnalysis() : ModulePass(ID) {
@@ -154,7 +151,9 @@ namespace {
             return alias(V1, UnknownSize, V2, UnknownSize);
         }
 
-        AliasResult function_alias(const Function* function, CallInst* callInst) {
+        virtual set<Function*>* get_aliased_functions(set<Function*>* ret, set<Function*>* uset, CallInst* call);
+
+        virtual AliasResult function_alias(const Function* function, CallInst* callInst) {
             Value *calledValue = callInst->getCalledValue();
 
             AliasResult ar = this->alias(calledValue, function);
@@ -251,7 +250,6 @@ namespace {
         void getEscapedPointersTo(set<DyckVertex*>* ret, Function * func); // escaped to 'func'
         void getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from); // escaped from 'from'
 
-        void getAliasedFunctions(set<Function*>* ret, set<Function*>* uset, CallInst* call);
     };
 
     RegisterPass<DyckAliasAnalysis> X("dyckaa", "Alias Analysis based on Qirun's PLDI 2013 paper");
@@ -260,7 +258,7 @@ namespace {
     // Register this pass...
     char DyckAliasAnalysis::ID = 0;
 
-    void DyckAliasAnalysis::getAliasedFunctions(set<Function*>* ret, set<Function*>* uset, CallInst* callInst) {
+    set<Function*>* DyckAliasAnalysis::get_aliased_functions(set<Function*>* ret, set<Function*>* uset, CallInst* callInst) {
         if (ret == NULL || callInst == NULL) {
             errs() << "[ERROR] In getAliasedFunctions: ret or value are null!\n";
             exit(1);
@@ -274,7 +272,7 @@ namespace {
                 if (ar == MustAlias) {
                     ret->clear();
                     ret->insert(f);
-                    return;
+                    return ret;
                 }
                 if (ar == MayAlias) {
                     ret->insert(f);
@@ -288,7 +286,7 @@ namespace {
                 if (ar == MustAlias) {
                     ret->clear();
                     ret->insert(f);
-                    return;
+                    return ret;
                 }
                 if (ar == MayAlias) {
                     ret->insert(f);
@@ -296,6 +294,8 @@ namespace {
                 usetIt++;
             }
         }
+
+        return ret;
     }
 
     bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex * v2) {
@@ -586,7 +586,7 @@ namespace {
 
             set<DyckVertex*> lvs;
             set<Value *> llvm_lvs;
-            
+
             set<Function*> unsafe_ex_functions;
 
             Transformer * robot = NULL;
@@ -597,7 +597,7 @@ namespace {
                 robot = new Transformer4Trace(&M, &llvm_svs, this->getDataLayout()->getPointerSize());
                 outs() << ("Start transforming using trace-transformer ...\n");
             } else if (CanaryRecordTransformer || CanaryReplayTransformer) {
-                outs () << "External call escape analysis ...\n";
+                outs() << "External call escape analysis ...\n";
                 // get unsafe_ex_functions
                 for (ilist_iterator<Function> iterF = M.getFunctionList().begin(); iterF != M.getFunctionList().end(); iterF++) {
                     Function* f = iterF;
@@ -619,7 +619,7 @@ namespace {
                                 }
 
                                 set<Function*> mayAliasedFunctions;
-                                this->getAliasedFunctions(&mayAliasedFunctions, &unsafe_ex_functions, inst);
+                                this->get_aliased_functions(&mayAliasedFunctions, &unsafe_ex_functions, inst);
                                 if (mayAliasedFunctions.empty() && !unhandled_calls.count(inst)) {
                                     continue; // an internal call
                                 }
@@ -630,7 +630,7 @@ namespace {
                                     set<Function*>::iterator mafIt = mayAliasedFunctions.begin();
                                     while (mafIt != mayAliasedFunctions.end()) {
                                         Function* maf = *mafIt;
-                                        
+
                                         iplist<Argument>& alt = maf->getArgumentList();
                                         iplist<Argument>::iterator altIt = alt.begin();
                                         unsigned y = 0;
@@ -651,11 +651,11 @@ namespace {
                                     }
 
                                     Value *argx = inst->getArgOperand(x);
-                                    
+
                                     if (constant || isa<ConstantInt>(argx)) {
                                         continue;
                                     }
-                                    
+
                                     pair < DyckVertex*, bool> retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (argx));
                                     DyckVertex * argxV = retpair.first->getRepresentative();
                                     if (!lvs.count(argxV)) {
@@ -679,7 +679,7 @@ namespace {
                 DEBUG_WITH_TYPE("asm", errs() << "\n");
 
                 this->fromDyckVertexToValue(lvs, llvm_lvs);
-                
+
                 outs() << "Done!\n\n";
 
                 // outs() << llvm_lvs.size() << "\n";

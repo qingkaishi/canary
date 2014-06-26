@@ -12,6 +12,7 @@
 
 #define DEREF_LABEL -1
 
+#include "DyckAliasAnalysis.h"
 #include "DyckGraph.h"
 #include "FunctionWrapper.h"
 #include <map>

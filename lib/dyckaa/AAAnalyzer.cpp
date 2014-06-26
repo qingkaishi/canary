@@ -1232,11 +1232,9 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         }
 
         // cv, numOfArguments
-        Value * cv = pcall->calledValue;
-
         set<Function*>::iterator pfit = cands->begin();
         while (pfit != cands->end()) {
-            AliasAnalysis::AliasResult ar = aa->alias(*pfit, cv) ;
+            AliasAnalysis::AliasResult ar = ((ExtraAliasAnalysisInterface*) aa)->function_alias(*pfit, (CallInst*) pcall->ret); // all invokes have been lowered to calls
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
                 pcall->handled = true;
@@ -1250,6 +1248,11 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
                 this->handle_lib_invoke_call_inst(pcall->ret, *pfit, &(pcall->args), caller);
 
                 cands->erase(pfit++);
+
+                if (ar == AliasAnalysis::MustAlias) {
+                    cands->clear();
+                    break;
+                }
             } else {
                 pfit++;
             }
