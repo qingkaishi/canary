@@ -403,10 +403,13 @@ void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, Alia
     } else if (unhandled_calls->count(inst)) {
         record = true;
     } else {
-        set<Function*>::iterator fit = extern_lib_funcs->begin();
-        while (fit != extern_lib_funcs->end()) {
+        set<Function*> aliasedfuncs;
+        ((ExtraAliasAnalysisInterface*)&AA)->get_aliased_functions(&aliasedfuncs, extern_lib_funcs, inst);
+        
+        set<Function*>::iterator fit = aliasedfuncs.begin();
+        while (fit != aliasedfuncs.end()) {
             Function* f = *fit; 
-            if (AA.alias(f, cv) == AliasAnalysis::MayAlias && !f->getReturnType()->isVoidTy()) {
+            if (!f->getReturnType()->isVoidTy()) {
                 cv = f; 
                 record = true;
                 break;
