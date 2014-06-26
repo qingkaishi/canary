@@ -5,7 +5,7 @@ CC=gcc
 all: verifier
 
 verifier: verifier.c
-	@$(CC) -o $@ $<
+	@$(CC) -o $@.exe $<
 
 clean:
-	@rm -f verifier
+	@rm -f verifier.exe

@@ -48,7 +48,7 @@ if [ -n "$DEBUG" ];then
 	#psNo=$!
 	#sleep 2s
 	#kill -2 $psNo <- have been written into Download.c
-	#./reproduce-pkg/verifier
+	#./reproduce-pkg/verifier.exe
 
 #        if [ -f "canary.zip" ]; then
 #		rm -f canary.zip
