@@ -20,14 +20,20 @@ bool main_started = false;
 
 extern "C" {
 
-    void OnInit(unsigned svsNum, unsigned lvsNum) {
-        printf("OnInit-Record (dummy record)\n");
-        
-        main_started = true;
+    void* OnMethodStart(pthread_t self) {
+        return NULL;
+    }
 
+    void OnStartTimer() {
 #ifdef NO_TIME_CMD
         gettimeofday(&tpstart, NULL);
 #endif
+    }
+
+    void OnInit(unsigned svsNum, unsigned lvsNum) {
+        printf("OnInit-Record (dummy record)\n");
+
+        main_started = true;
     }
 
     void OnExit() {
@@ -41,92 +47,83 @@ extern "C" {
         printf("OnExit-Record (dummy record)\n");
     }
 
-    void OnAddressInit(void* value, size_t size, size_t n, int type) {
+    void OnAddressInit(void* value, size_t size, size_t n, int type, void* st) {
 #ifdef DEBUG
         printf("OnAddressInit \n");
 #endif
     }
 
-    void OnLoad(int svId, int address, long value, int debug) {
+    void OnLoad(int svId, int lvId, long value, void* st, int debug) {
 #ifdef DEBUG
         printf("OnLoad %d\n", debug);
 #endif
     }
 
-    unsigned OnPreStore(int svId, int debug) {
+    unsigned OnPreStore(int svId, void* st, int debug) {
 #ifdef DEBUG
         printf("OnPreStore %d\n", debug);
 #endif
         return 0;
     }
 
-    void OnStore(int svId, unsigned version, int debug) {
+    void OnStore(int svId, unsigned version, void* st, int debug) {
 #ifdef DEBUG
         printf("OnStore %d\n", debug);
 #endif
     }
 
-    void OnLock(pthread_mutex_t* mutex_ptr) {
+    void OnLock(pthread_mutex_t* mutex_ptr, void* st) {
 #ifdef DEBUG
         printf("OnLock \n");
 #endif
     }
 
-    void OnWait(pthread_cond_t* cond_ptr, pthread_mutex_t* mutex_ptr) {
+    void OnWait(pthread_cond_t* cond_ptr, pthread_mutex_t* mutex_ptr, void* st) {
 #ifdef DEBUG
         printf("OnWait \n");
 #endif
     }
 
-    unsigned OnPreMutexInit(bool race) {
+    void OnPreMutexInit(bool race, void* st) {
 #ifdef DEBUG
         printf("OnPreMutexInit \n");
 #endif
-        return 0;
     }
 
-    void OnMutexInit(pthread_mutex_t* mutex_ptr, bool race, unsigned) {
+    void OnMutexInit(pthread_mutex_t* mutex_ptr, bool race, void* st) {
 #ifdef DEBUG
         printf("OnMutexInit \n");
 #endif
     }
 
-    unsigned OnPreFork(bool race) {
+    void OnPreFork(bool race, void* st) {
 #ifdef DEBUG
         printf("OnPreFork \n");
 #endif
-        return 0;
     }
 
-    void OnFork(pthread_t* forked_tid_ptr, bool race, unsigned) {
+    void OnFork(pthread_t* forked_tid_ptr, bool race, void* st) {
 #ifdef DEBUG
         printf("OnFork \n");
 #endif
     }
 
-    void OnJoin(pthread_t tid, bool race) {
-#ifdef DEBUG
-        printf("OnJoin \n");
-#endif
-    }
-
-    void OnLocal(long value, int id) {
+    void OnLocal(long value, int id, void* st) {
 #ifdef DEBUG
         printf("OnLoad \n");
 #endif
     }
 
-    unsigned OnPreExternalCall() {
-        if(!main_started)
-            return 0;
+    void OnPreExternalCall(void* st) {
+        if (!main_started)
+            return;
 #ifdef DEBUG
         printf("OnPreExternalCall \n");
 #endif
-        return 0;
     }
 
-    void OnExternalCall(unsigned tid, long value, int lvid) {
-        if(!main_started)
+    void OnExternalCall(long value, int lvid, void* st) {
+        if (!main_started)
             return;
 #ifdef DEBUG
         printf("OnExternalCall \n");

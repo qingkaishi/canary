@@ -54,8 +54,8 @@ public:
     /// the last one must be NULL, otherwise the behavior is not defined.
     CallInst* insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...);
     CallInst* insertCallInstAfter(Instruction* afterInst, Function* tocall, ...);
-    void insertCallInstAtHead(Function* theFunc, Function * tocall, ...);
-    void insertCallInstAtTail(Function* theFunc, Function * tocall, ...);
+    CallInst*  insertCallInstAtHead(Function* theFunc, Function * tocall, ...);
+    CallInst*  insertCallInstAtTail(Function* theFunc, Function * tocall, ...);
 
 public:
 

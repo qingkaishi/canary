@@ -1234,7 +1234,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
         while (pfit != cands->end()) {
-            AliasAnalysis::AliasResult ar = ((ExtraAliasAnalysisInterface*) aa)->function_alias(*pfit, (CallInst*) pcall->ret); // all invokes have been lowered to calls
+            AliasAnalysis::AliasResult ar =  ((DyckAliasAnalysis*) aa)->function_alias(*pfit, (CallInst*) pcall->ret); // all invokes have been lowered to calls
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
                 pcall->handled = true;

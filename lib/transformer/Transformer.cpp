@@ -54,7 +54,7 @@ CallInst* Transformer::insertCallInstAfter(Instruction* afterInst, Function* toc
     return InstCall;
 }
 
-void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...) {
+CallInst* Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...) {
     std::vector<Value *> args;
 
     va_list ap;
@@ -80,7 +80,7 @@ void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...)
                 CallInst *InstCall = CallInst::Create(tocall, args);
                 InstCall->insertBefore(&inst);
 
-                return;
+                return InstCall;
             }
             iterI++;
         }
@@ -88,9 +88,10 @@ void Transformer::insertCallInstAtHead(Function* theFunc, Function* tocall, ...)
     }
     errs() << "Instruction insert failed in insertCallInstAtHead\n";
     errs() << theFunc->getName() << "\n";
+    return NULL;
 }
 
-void Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall, ...) {
+CallInst* Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall, ...) {
     std::vector<Value *> args;
 
     va_list ap;
@@ -113,10 +114,14 @@ void Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall, ...)
             if (isa<ReturnInst>(inst)) {
                 CallInst *InstCall = CallInst::Create(tocall, args);
                 InstCall->insertBefore(&inst);
+
+                return InstCall;
             }
             iterI++;
         }
     }
+
+    return NULL;
 }
 
 void Transformer::transform(AliasAnalysis& AA) {
@@ -143,11 +148,11 @@ void Transformer::transform(AliasAnalysis& AA) {
             }
             for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
                 Instruction &inst = *iterI;
-
+                
                 if (!this->instructionToTransform(&inst)) {
                     continue;
                 }
-
+                
                 DEBUG_WITH_TYPE("transform", errs() << "[Transforming] " << inst << "\n");
 
                 if (isa<AllocaInst>(inst)) {
@@ -196,7 +201,7 @@ void Transformer::transform(AliasAnalysis& AA) {
                         handleCalls((CallInst*) & inst, (Function*) calledValue, AA);
                     } else if (calledValue->getType()->isPointerTy()) {
                         set<Function*> may;
-                        ((ExtraAliasAnalysisInterface*) & AA)->get_aliased_functions(&may, NULL, (CallInst*)&inst);
+                        ((DyckAliasAnalysis*) & AA)->get_aliased_functions(&may, NULL, (CallInst*) & inst);
 
                         set<Function*>::iterator it = may.begin();
                         while (it != may.end()) {

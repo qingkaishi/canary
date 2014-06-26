@@ -24,6 +24,7 @@ private:
     Function *F_wait;
     Function *F_init, *F_exit, *F_address_init;
     Function *F_local, *F_preexternal, *F_external;
+    Function *F_methodstart, *F_starttimer;
 private:
     static int stmt_idx;
 
@@ -78,28 +79,9 @@ private:
 
     void initializeFunctions(Module * m);
 
-    /*bool isUnsafeExternalLibraryCall(CallInst * ci, AliasAnalysis& AA) {
-        Value* cv = ci->getCalledValue();
-        if (isa<Function>(cv)) {
-            Function *f = (Function*) cv;
-            if (Transformer4CanaryRecord::isUnsafeExternalLibraryFunction(f) && !this->isInstrumentationFunction(f)) {
-                return true;
-            }
-        } else {
-            return false;
-        }
-
-        for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-            Function* f = iterF;
-            if (Transformer4CanaryRecord::isUnsafeExternalLibraryFunction(f) && !this->isInstrumentationFunction(f)) {
-                if (AA.alias(f, ci->getCalledValue())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }*/
+    map<Function*, Instruction*> method_start_map;
+    Instruction* getMethodStartCall(Instruction* currentInst);
+    Instruction* getMethodStartCall(Function* currentFunc);
 
 public:
 
@@ -121,7 +103,7 @@ public:
             switch (f->getIntrinsicID()) {
                 case Intrinsic::memmove:
                 case Intrinsic::memcpy:
-                case Intrinsic::memset: 
+                case Intrinsic::memset:
                 case Intrinsic::vacopy: return true;
             }
         }
@@ -136,7 +118,7 @@ public:
                 || name == "_ZnajRKSt9nothrow_t" || name == "_Znam"
                 || name == "_ZnamRKSt9nothrow_t" || name == "_Znwj"
                 || name == "_ZnwjRKSt9nothrow_t" || name == "_Znwm"
-                || name == "_ZnwmRKSt9nothrow_t" 
+                || name == "_ZnwmRKSt9nothrow_t"
                 || name == "printf" || name == "fprintf")
             return false;
 
