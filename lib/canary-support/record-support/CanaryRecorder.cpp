@@ -457,12 +457,6 @@ extern "C" {
         printf("OnPreFork\n");
 #endif
         if (race) forkLock();
-        if (thread_ht.size() >= CANARY_THREADS_MAX) {
-            fprintf(stderr, "[ERROR] Program bug- too many threads!!\n");
-            OnExit();
-            exit(1);
-        }
-
         forking = true; // I am forking new thread.
     }
 

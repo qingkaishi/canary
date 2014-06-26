@@ -386,9 +386,6 @@ public:
 
 };
 
-#define CANARY_THREADS_MAX 32
-#define INVALID_THREAD_ID (CANARY_THREADS_MAX<<2) 
-
 /*
  * Define log types
  * l_ means local log types, each thread has a log

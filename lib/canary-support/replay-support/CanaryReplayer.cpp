@@ -11,7 +11,7 @@
 
 #include "SignalRoutine.h"
 #include "../Log.h"
-
+#define CANARY_THREADS_MAX 32
 /*
  * Define global log variables, each shared var has one
  */
