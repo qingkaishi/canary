@@ -83,7 +83,6 @@ private:
     set<PointerCall*> pointerCalls; // pointer calls
 
     set<CommonCall *> commonCallsForCG;
-    set<PointerCall *> pointerCallsForCG;
 
 private:
     static int global_idx;

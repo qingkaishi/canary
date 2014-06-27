@@ -45,12 +45,6 @@ FunctionWrapper::~FunctionWrapper() {
         it++;
     }
 
-    it = pointerCallsForCG.begin();
-    while (it != pointerCallsForCG.end()) {
-        delete (*it);
-        it++;
-    }
-
     set<CommonCall *>::iterator cit = commonCalls.begin();
     while (cit != commonCalls.end()) {
         delete *cit;
@@ -136,5 +130,5 @@ set<CommonCall *>* FunctionWrapper::getCommonCallsForCG() {
 }
 
 set<PointerCall *>* FunctionWrapper::getPointerCallsForCG() {
-    return &pointerCallsForCG;
+    return &pointerCalls;
 }

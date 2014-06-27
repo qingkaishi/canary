@@ -10,7 +10,7 @@
 #define MAX(a,b) ((a) < (b) ? (b) : (a))
 
 
-int debug;
+//int debug;
 
 
 static void

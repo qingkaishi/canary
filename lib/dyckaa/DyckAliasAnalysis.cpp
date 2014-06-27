@@ -388,7 +388,7 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * f
 
     iplist<GlobalVariable>::iterator git = module->global_begin();
     while (git != module->global_end()) {
-        if (!git->hasPrivateLinkage() && !git->getName().startswith("llvm.")) { // in fact, no such symbols in src codes.
+        if (!git->hasPrivateLinkage() && !git->getName().startswith("llvm.") && git->getName().str() != "stderr" && git->getName().str() != "stdout") { // in fact, no such symbols in src codes.
             DyckVertex * rt = dyck_graph->retrieveDyckVertex(git).first->getRepresentative();
             workStack.push(rt);
         }
