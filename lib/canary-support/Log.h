@@ -330,7 +330,7 @@ typedef struct {
 } mem_t;
 
 typedef struct {
-    std::vector<mem_t *> adds;
+    std::vector<mem_t> adds;
     bool stack_tag;
 } l_addmap_t;
 
