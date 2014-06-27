@@ -37,28 +37,22 @@
 
 
 
-extern char version[];
-
-char *argv0 = "pfscan";
+#define version "1.0"
+#define argv0  "pfscan"
 
 
 int max_depth = 64;
 
-unsigned char *rstr = NULL;
-int rlen = 0;
+//unsigned char *rstr = NULL;
 
-int debug = 0;
-int verbose = 0;
 
-int nworkers = 0;
+#define debug  0
+#define verbose  0
 
-//int aworkers = 0;
-//pthread_mutex_t aworker_lock;
-//pthread_cond_t  aworker_cv;
 
-int line_f  = 0;
-int maxlen  = 64;
-int ignore_case = 0;
+
+#define line_f   0
+#define maxlen   64
 
 int n_matches = 0;
 int n_files = 0;
@@ -386,7 +380,7 @@ scan_file(char *pathname)
 	return -1;
     }
 
-    if (rstr)
+    if (/*rstr*/1)
     {
 	int code;
 
@@ -521,10 +515,10 @@ main(int argc,
     char *arg;
     //pthread_t tid;
     pthread_attr_t pab;
-    
-    
-    argv0 = argv[0];
 
+    int ignore_case = 0;
+    unsigned char *rstr = NULL;
+    
     setlocale(LC_CTYPE, "");
 
     getrlimit(RLIMIT_NOFILE, &rlb);
@@ -533,7 +527,8 @@ main(int argc,
 
     signal(SIGPIPE, SIG_IGN);
 
-    nworkers = 2;
+    int nworkers = 2;
+    int rlen = 0;
 
     pthread_mutex_init(&print_lock, NULL);
     //pthread_mutex_init(&aworker_lock, NULL);
@@ -552,7 +547,7 @@ main(int argc,
 		break;
 
 	      case 'd':
-		++debug;
+		//++debug;
 		break;
 
 	      case 'i':
@@ -560,7 +555,7 @@ main(int argc,
 		break;
 		
 	      case 'v':
-		++verbose;
+		//++verbose;
 		break;
 		
 	      case 'h':
@@ -568,7 +563,7 @@ main(int argc,
 		exit(0);
 		
 	      case 'l':
-		++line_f;
+		//++line_f;
 		break;
 		
 	      case 'L':
@@ -577,12 +572,12 @@ main(int argc,
 		else
 		    arg = argv[++i];
 		
-		if (!arg || sscanf(arg, "%u", &maxlen) != 1)
+		/*if (!arg || sscanf(arg, "%u", &maxlen) != 1)
 		{
 		    fprintf(stderr, "%s: Invalid length specification: %s\n",
 			    argv[0], arg ? arg : "<null>");
 		    exit(1);
-		}
+		}*/
 		j = -2;
 		break;
 		
@@ -621,6 +616,7 @@ main(int argc,
     }
     
     max_depth = rlb.rlim_max - nworkers - 16;
+
 
     if (debug)
 	fprintf(stderr, "max_depth = %d, nworkers = %d\n", max_depth,
