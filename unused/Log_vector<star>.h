@@ -22,7 +22,7 @@ public:
 
 template<typename T> class Log {
 public:
-    std::vector<Item<T> > __log;
+    std::vector<Item<T>* > __log;
     size_t __size;
     bool __complete;
 
@@ -41,8 +41,8 @@ private:
 
         unsigned size = 0;
         for (unsigned i = 0; i < __log.size(); i++) {
-            Item<T>& item = __log[i];
-            size = size + item.counter;
+            Item<T> * item = __log[i];
+            size = size + item->counter;
         }
 
 #ifdef LDEBUG
@@ -51,18 +51,29 @@ private:
         fwrite(&size, sizeof (unsigned), 1, fout); // size
 #endif
         for (unsigned i = 0; i < __log.size(); i++) {
-            Item<T>& item = __log[i];
-            for (unsigned j = 0; j < item.counter; j++) {
+            Item<T> * item = __log[i];
+            for (unsigned j = 0; j < item->counter; j++) {
 #ifdef LDEBUG
                 fprintf(fout, "%ld; ", item->t);
 #else
-                fwrite(&item.t, sizeof (T), 1, fout);
+                fwrite(&item->t, sizeof (T), 1, fout);
 #endif
             }
         }
 #ifdef LDEBUG
         fprintf(fout, "\n");
 #endif
+    }
+
+    void __plain_load(FILE* fin) {
+        unsigned size;
+        fread(&size, sizeof (unsigned), 1, fin); // size
+        T t[size];
+        fread(t, sizeof (T), size, fin);
+
+        for (unsigned i = 0; i < size; i++) {
+            this->logValue(t[i]);
+        }
     }
 
     void __lop_dump(FILE * fout) {
@@ -78,17 +89,29 @@ private:
 #endif
 
         for (unsigned i = 0; i < __log.size(); i++) {
-            Item<T>& item = __log[i];
+            Item<T> * item = __log[i];
 #ifdef LDEBUG
             fprintf(fout, "(%ld, %u); ", item->t, item->counter);
 #else
-            fwrite(&item, sizeof (Item<T>), 1, fout);
+            fwrite(item, sizeof (Item<T>), 1, fout);
 #endif
         }
 
 #ifdef LDEBUG
         fprintf(fout, "\n");
 #endif
+    }
+
+    void __lop_load(FILE* fin) {
+        fread(&__size, sizeof (unsigned), 1, fin); // size
+        Item<T> t[__size];
+        fread(t, sizeof (Item<T>), __size, fin);
+
+        for (unsigned i = 0; i < __size; i++) {
+            Item<T> * elmt = new Item<T>;
+            memcpy(elmt, &t[i], sizeof (Item<T>));
+            this->__log.push_back(elmt);
+        }
     }
 
     void __dlop_dump(FILE * fout) {
@@ -99,9 +122,9 @@ private:
         size_t s3 = 0;
         unsigned lastOne = -1;
         for (unsigned i = 0; i < __log.size(); i++) {
-            if (__log[i].counter != lastOne) {
+            if (__log[i]->counter != lastOne) {
                 s3 = s3 + 2;
-                lastOne = __log[i].counter;
+                lastOne = __log[i]->counter;
             }
         }
 
@@ -113,11 +136,11 @@ private:
         fwrite(&s3, sizeof (unsigned), 1, fout); // counter size
 #endif
         for (unsigned i = 0; i < __log.size(); i++) {
-            Item<T>& item = __log[i];
+            Item<T> * item = __log[i];
 #ifdef LDEBUG
             fprintf(fout, "%ld; ", item->t);
 #else
-            fwrite(&item.t, sizeof (T), 1, fout);
+            fwrite(&item->t, sizeof (T), 1, fout);
 #endif
         }
 #ifdef LDEBUG
@@ -125,16 +148,16 @@ private:
 #endif
 
         unsigned counter = 1;
-        lastOne = __log[0].counter;
+        lastOne = __log[0]->counter;
         for (unsigned i = 1; i < __log.size(); i++) {
-            if (__log[i].counter != lastOne) {
+            if (__log[i]->counter != lastOne) {
 #ifdef LDEBUG
                 fprintf(fout, "(%u, %u); ", lastOne, counter);
 #else
                 fwrite(&lastOne, sizeof (unsigned), 1, fout);
                 fwrite(&counter, sizeof (unsigned), 1, fout);
 #endif
-                lastOne = __log[i].counter;
+                lastOne = __log[i]->counter;
                 counter = 1;
             } else {
                 counter++;
@@ -148,18 +171,81 @@ private:
 #endif
     }
 
+    void __dlop_load(FILE* fin) {
+        unsigned size = 0;
+        unsigned counter_size = 0;
+        fread(&size, sizeof (unsigned), 1, fin); // size
+        fread(&counter_size, sizeof (unsigned), 1, fin); // counter size
+
+        T t[size];
+        fread(t, sizeof (T), size, fin);
+
+        unsigned counter[counter_size];
+        fread(counter, sizeof (unsigned), counter_size, fin);
+
+        unsigned real_counters[size];
+        unsigned idx = 0;
+        for (unsigned i = 0; i < counter_size; i += 2) {
+            for (unsigned j = 0; j < counter[i + 1]; j++) {
+                if (idx >= size) {
+                    printf("[ERROR] load error!\n");
+                    exit(1);
+                }
+                real_counters[idx++] = counter[i];
+            }
+        }
+
+
+        for (unsigned i = 0; i < size; i++) {
+            Item<T>* elmt = new Item<T>;
+            elmt->t = t[i];
+            elmt->counter = real_counters[i];
+
+            __log.push_back(elmt);
+        }
+
+        __size = size;
+    }
+
 public:
 
     Log() : __size(0), __complete(true) {
     }
-    
+
+    Log(size_t size) : __size(0), __complete(true) {
+        __log.resize(size);
+    }
+
     virtual ~Log() {
+        for (unsigned i = 0; i < __log.size(); i++) {
+            delete __log[i];
+        }
+    }
+
+    virtual void load(FILE* fin) {
+        DUMP_TYPE type;
+        fread(&type, sizeof (DUMP_TYPE), 1, fin); // type
+        fread(&__complete, sizeof (bool), 1, fin); // __complete?
+        if (!__complete) {
+            printf("[ERROR] incomplete log is not supported in the version!\n");
+        }
+        switch (type) {
+            case PLAIN:
+                __plain_load(fin);
+                break;
+            case LOP:
+                __lop_load(fin);
+                break;
+            case DLOP:
+                __dlop_load(fin);
+                break;
+        }
     }
 
     virtual DUMP_TYPE evaluate() {
         size_t s1 = 0;
         for (unsigned i = 0; i < __log.size(); i++) {
-            s1 = s1 + __log[i].counter;
+            s1 = s1 + __log[i]->counter;
         }
         s1 = s1 * sizeof (T);
 
@@ -168,9 +254,9 @@ public:
         size_t s3 = __log.size() * sizeof (T);
         unsigned lastOne = -1;
         for (unsigned i = 0; i < __log.size(); i++) {
-            if (__log[i].counter != lastOne) {
+            if (__log[i]->counter != lastOne) {
                 s3 = s3 + 2 * sizeof (unsigned);
-                lastOne = __log[i].counter;
+                lastOne = __log[i]->counter;
             }
         }
 
@@ -223,17 +309,17 @@ private:
             currentIdx = Log<T>::__size;
         }
         Item<T>* x = 0;
-        if (previousIdx >= 0 && (x = &Log<T>::__log[previousIdx]) && memcmp(&(x->t), &val, sizeof (T)) == 0) {
+        if (previousIdx >= 0 && (x = Log<T>::__log[previousIdx]) && memcmp(&(x->t), &val, sizeof (T)) == 0) {
             x->counter = x->counter + 1;
         } else if (Log<T>::__log.size() == MAX_LOG_LEN) {
-            Item<T>& vI = Log<T>::__log[currentIdx];
-            vI.counter = 1;
-            memcpy(&(vI.t), &val, sizeof (T));
+            Item<T> * vI = Log<T>::__log[currentIdx];
+            vI->counter = 1;
+            memcpy(&(vI->t), &val, sizeof (T));
             Log<T>::__size++;
         } else {
-            Item<T> vI;
-            memcpy(&(vI.t), &val, sizeof (T));
-            vI.counter = 1;
+            Item<T> * vI = new Item<T>;
+            memcpy(&(vI->t), &val, sizeof (T));
+            vI->counter = 1;
             Log<T>::__log.push_back(vI);
             Log<T>::__size++;
         }
@@ -242,6 +328,9 @@ private:
 public:
 
     LastOnePredictorLog() : Log<T>() {
+    }
+
+    LastOnePredictorLog(size_t size) : Log<T>(size) {
     }
 
     virtual void logValue(T val) {
@@ -265,18 +354,18 @@ private:
         }
 
         Item<size_t> * x = 0;
-        if (previousIdx >= 0 && (x = &__log[previousIdx]) && x->counter + x->t == val) {
+        if (previousIdx >= 0 && (x = __log[previousIdx]) && x->counter + x->t == val) {
             x->counter = x->counter + 1;
         } else if (__log.size() == MAX_LOG_LEN) {
-            Item<size_t>& vI = __log[currentIdx];
-            vI.counter = 1;
-            vI.t = val;
+            Item<size_t> * vI = __log[currentIdx];
+            vI->counter = 1;
+            vI->t = val;
 
             __size++;
         } else {
-            Item<size_t> vI;
-            vI.t = val;
-            vI.counter = 1;
+            Item<size_t> * vI = new Item<size_t>;
+            vI->t = val;
+            vI->counter = 1;
             __log.push_back(vI);
 
             __size++;
@@ -286,6 +375,9 @@ private:
 public:
 
     VLastOnePredictorLog() : Log<size_t>() {
+    }
+
+    VLastOnePredictorLog(size_t size) : Log<size_t>(size) {
     }
 
     virtual void logValue(size_t val) {
