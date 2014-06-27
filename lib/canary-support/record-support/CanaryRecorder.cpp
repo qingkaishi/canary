@@ -100,11 +100,11 @@ typedef struct canary_thread_t {
         fwrite(&tid, sizeof (unsigned), 1, file_add);
 #endif
         for (unsigned i = 0; i < size; i++) {
-            mem_t * m = addlog->adds.at(i);
+            mem_t& m = addlog->adds.at(i);
 #ifdef LDEBUG
             fprintf(file_add, "(%p, %u, %d); ", m->address, m->range, m->type);
 #else
-            fwrite(m, sizeof (mem_t), 1, file_add);
+            fwrite(&m, sizeof (mem_t), 1, file_add);
 #endif
         }
 #ifdef LDEBUG
@@ -321,10 +321,10 @@ extern "C" {
             }
         }
 
-        mem_t * m = new mem_t;
-        m->address = value;
-        m->range = size*n;
-        m->type = type;
+        mem_t m;
+        m.address = value;
+        m.range = size*n;
+        m.type = type;
         mlog->adds.push_back(m);
     }
 
