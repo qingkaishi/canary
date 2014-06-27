@@ -18,6 +18,9 @@ template<typename T> class Item {
 public:
     T t;
     unsigned counter;
+
+    Item(T tv, unsigned cv) : t(tv), counter(cv) {
+    }
 };
 
 template<typename T> class Log {
@@ -152,7 +155,7 @@ public:
 
     Log() : __size(0), __complete(true) {
     }
-    
+
     virtual ~Log() {
     }
 
@@ -223,17 +226,15 @@ private:
             currentIdx = Log<T>::__size;
         }
         Item<T>* x = 0;
-        if (previousIdx >= 0 && (x = &Log<T>::__log[previousIdx]) && memcmp(&(x->t), &val, sizeof (T)) == 0) {
+        if (previousIdx >= 0 && (x = &Log<T>::__log[previousIdx]) && x->t == val) {
             x->counter = x->counter + 1;
         } else if (Log<T>::__log.size() == MAX_LOG_LEN) {
             Item<T>& vI = Log<T>::__log[currentIdx];
             vI.counter = 1;
-            memcpy(&(vI.t), &val, sizeof (T));
+            vI.t = val;
             Log<T>::__size++;
         } else {
-            Item<T> vI;
-            memcpy(&(vI.t), &val, sizeof (T));
-            vI.counter = 1;
+            Item<T> vI(val, 1);
             Log<T>::__log.push_back(vI);
             Log<T>::__size++;
         }
@@ -274,9 +275,7 @@ private:
 
             __size++;
         } else {
-            Item<size_t> vI;
-            vI.t = val;
-            vI.counter = 1;
+            Item<size_t> vI(val, 1);
             __log.push_back(vI);
 
             __size++;
