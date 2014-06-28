@@ -39,16 +39,16 @@
 #define   PRIME2   103995407
 
 /* simics checkpoints Proc Ids (not used, for reference only) */
-int               Ids_01p[1]  = { 6};
-int               Ids_02p[2]  = { 6,  7};
-int               Ids_04p[4]  = { 0,  1,  4,  5};
-int               Ids_08p[8]  = { 0,  1,  4,  5,  6,  7,  8,  9};
-int               Ids_16p[16] = { 0,  1,  4,  5,  6,  7,  8,  9,
-                                 10, 11, 12, 13, 14, 15, 16, 17};
+//int               Ids_01p[1]  = { 6};
+//int               Ids_02p[2]  = { 6,  7};
+//int               Ids_04p[4]  = { 0,  1,  4,  5};
+//int               Ids_08p[8]  = { 0,  1,  4,  5,  6,  7,  8,  9};
+//int               Ids_16p[16] = { 0,  1,  4,  5,  6,  7,  8,  9,
+//                                 10, 11, 12, 13, 14, 15, 16, 17};
 
 /* Processor IDs are found, on a Sun SMP, through psrinfo,mpstat */
-int               *ProcessorIds = NULL;
-int               NumProcs;
+//int               *ProcessorIds = NULL;
+//int               NumProcs;
 int               startCounter;
 pthread_mutex_t   threadLock;   /* counter mutex */
 
@@ -128,6 +128,8 @@ main(int argc, char* argv[])
   pthread_attr_t attr;
   int            ret;
   int            mix_sig, i;
+  int               *ProcessorIds;
+  int               NumProcs;
 
   /* Parse arguments */
   if(argc < 3) {

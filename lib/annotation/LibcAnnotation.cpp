@@ -34,6 +34,10 @@ bool LibcAnnotation::runOnModule(Module & M) {
             if (name == "setlocale" || name == "setrlimit") {
                 f->addAttribute(2, Attribute::ReadOnly);
             }
+
+            if (name == "getopt") {
+                f->addAttribute(3, Attribute::ReadOnly);
+            }
         }
     }
     return true;
