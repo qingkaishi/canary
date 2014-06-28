@@ -11,13 +11,18 @@
 #define	LOG_H
 
 #include <vector>
+#include <algorithm> 
 
-#define MAX_LOG_LEN 50000
+#define BUFF_NM 100
+#define BUFF_SZ 100
 
 template<typename T> class Item {
 public:
     T t;
     unsigned counter;
+
+    Item() : counter(1) {
+    }
 
     Item(T tv, unsigned cv) : t(tv), counter(cv) {
     }
@@ -28,6 +33,9 @@ public:
     std::vector<Item<T> > __log;
     size_t __size;
     bool __complete;
+
+    std::vector<Item<T> > __buff;
+    size_t __buff_ptr;
 
     enum DUMP_TYPE {
         PLAIN, // do not output idx
@@ -153,7 +161,9 @@ private:
 
 public:
 
-    Log() : __size(0), __complete(true) {
+    Log() : __size(0), __complete(true), __buff_ptr(0) {
+        Item<T> item;
+        __buff.assign(BUFF_SZ, item);
     }
 
     virtual ~Log() {
@@ -216,28 +226,60 @@ template<typename T> class LastOnePredictorLog : public Log<T> {
 private:
 
     void lastOnePredictorStore(T val) {
-        size_t currentIdx = -1;
-        int previousIdx = Log<T>::__size - 1;
-        if (Log<T>::__size == MAX_LOG_LEN) {
-            Log<T>::__complete = false;
-            currentIdx = 0;
-            Log<T>::__size = 0;
+        Item<T>& x = Log<T>::__buff[Log<T>::__buff_ptr];
+        if (x.t == val) {
+            x.counter = x.counter + 1;
+        } else if (Log<T>::__buff_ptr < BUFF_SZ - 1) {
+            Item<T>& n = Log<T>::__buff[++Log<T>::__buff_ptr];
+
+            n.t = val;
+            n.counter = 1;
         } else {
-            currentIdx = Log<T>::__size;
-        }
-        Item<T>* x = 0;
-        if (previousIdx >= 0 && (x = &Log<T>::__log[previousIdx]) && x->t == val) {
-            x->counter = x->counter + 1;
-        } else if (Log<T>::__log.size() == MAX_LOG_LEN) {
-            Item<T>& vI = Log<T>::__log[currentIdx];
-            vI.counter = 1;
-            vI.t = val;
+            // new buffer
+            Log<T>::__buff_ptr = 0;
+
+            Item<T>& n = Log<T>::__buff[0];
+            n.t = val;
+            n.counter = 1;
+
+            // add buffer to __log
+            if (Log<T>::__size == BUFF_NM) {
+                Log<T>::__complete = false;
+                Log<T>::__size = 0;
+            }
+
+            //__log//insert __buff from currentIdx to currentIdx + 100
+            if (Log<T>::__complete) {
+                Log<T>::__log.insert(Log<T>::__log.end(), Log<T>::__buff.begin(), Log<T>::__buff.end());
+            } else {
+                std::copy(Log<T>::__buff.begin(), Log<T>::__buff.end(), &Log<T>::__log[Log<T>::__size * BUFF_SZ]);
+            }
             Log<T>::__size++;
-        } else {
-            Item<T> vI(val, 1);
-            Log<T>::__log.push_back(vI);
-            Log<T>::__size++;
         }
+
+        /*
+                size_t currentIdx = -1;
+                int previousIdx = Log<T>::__size - 1;
+                if (Log<T>::__size == MAX_LOG_LEN) {
+                    Log<T>::__complete = false;
+                    currentIdx = 0;
+                    Log<T>::__size = 0;
+                } else {
+                    currentIdx = Log<T>::__size;
+                }
+                Item<T>* x = 0;
+                if (previousIdx >= 0 && (x = &Log<T>::__log[previousIdx]) && x->t == val) {
+                    x->counter = x->counter + 1;
+                } else if (Log<T>::__log.size() == MAX_LOG_LEN) {
+                    Item<T>& vI = Log<T>::__log[currentIdx];
+                    vI.counter = 1;
+                    vI.t = val;
+                    Log<T>::__size++;
+                } else {
+                    Item<T> vI(val, 1);
+                    Log<T>::__log.push_back(vI);
+                    Log<T>::__size++;
+                }*/
     }
 
 public:
@@ -255,31 +297,62 @@ class VLastOnePredictorLog : public Log<size_t> {
 private:
 
     void vLastOnePredictorStore(size_t val) {
-        size_t currentIdx = -1;
-        int previousIdx = __size - 1;
-        if (__size == MAX_LOG_LEN) {
-            __complete = false;
-            currentIdx = 0;
-            __size = 0;
+        Item<size_t>& x = __buff[__buff_ptr];
+        if (x.counter + x.t == val) {
+            x.counter = x.counter + 1;
+        } else if (__buff_ptr < BUFF_SZ - 1) {
+            Item<size_t>& n = __buff[++__buff_ptr];
+
+            n.t = val;
+            n.counter = 1;
         } else {
-            currentIdx = __size;
+            // new buffer
+            Log<size_t>::__buff_ptr = 0;
+
+            Item<size_t>& n = __buff[0];
+            n.t = val;
+            n.counter = 1;
+
+            // add buffer to __log
+            if (__size == BUFF_NM) {
+                __complete = false;
+                __size = 0;
+            }
+
+            //__log//insert __buff from currentIdx to currentIdx + BUFF_SZ
+            if (__complete) {
+                __log.insert(__log.end(), __buff.begin(), __buff.end());
+            } else {
+                std::copy(__buff.begin(), __buff.end(), &__log[__size * BUFF_SZ]);
+            }
+            __size++;
         }
 
-        Item<size_t> * x = 0;
-        if (previousIdx >= 0 && (x = &__log[previousIdx]) && x->counter + x->t == val) {
-            x->counter = x->counter + 1;
-        } else if (__log.size() == MAX_LOG_LEN) {
-            Item<size_t>& vI = __log[currentIdx];
-            vI.counter = 1;
-            vI.t = val;
+        /*  size_t currentIdx = -1;
+          int previousIdx = __size - 1;
+          if (__size == MAX_LOG_LEN) {
+              __complete = false;
+              currentIdx = 0;
+              __size = 0;
+          } else {
+              currentIdx = __size;
+          }
 
-            __size++;
-        } else {
-            Item<size_t> vI(val, 1);
-            __log.push_back(vI);
+          Item<size_t> * x = 0;
+          if (previousIdx >= 0 && (x = &__log[previousIdx]) && x->counter + x->t == val) {
+              x->counter = x->counter + 1;
+          } else if (__log.size() == MAX_LOG_LEN) {
+              Item<size_t>& vI = __log[currentIdx];
+              vI.counter = 1;
+              vI.t = val;
 
-            __size++;
-        }
+              __size++;
+          } else {
+              Item<size_t> vI(val, 1);
+              __log.push_back(vI);
+
+              __size++;
+          }*/
     }
 
 public:
