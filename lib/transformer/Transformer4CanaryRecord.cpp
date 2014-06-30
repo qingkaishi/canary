@@ -240,55 +240,35 @@ void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& 
     int svIdx = this->getSharedValueIndex(val, AA);
     int lvIdx = this->getLocalValueIndex(val, AA);
 
-    if (svIdx != -1) {
-        // shared memory
-        Instruction* ci = NULL;
-        if (inst->getType()->isPointerTy()) {
-            ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
-        } else if (!inst->getType()->isIntegerTy()) {
-            ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
-        } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
-            ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
-        }
-        if (ci != NULL) {
-            ci->insertAfter(inst);
-        } else {
-            ci = inst;
-        }
-
-        /*CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
-        addci->insertAfter(ci);*/
-
-        ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
-        ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lvIdx);
-
-        ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
-
-        this->insertCallInstAfter(ci, F_load, tmp, tmp2, ci, this->getMethodStartCall(inst), debug_idx, NULL);
-
+    if (svIdx == -1 && lvIdx == -1)
         return;
+
+    Instruction* ci = NULL;
+    if (inst->getType()->isPointerTy()) {
+        ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
+    } else if (!inst->getType()->isIntegerTy()) {
+        ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
+    } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
+        ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+    }
+    if (ci != NULL) {
+        ci->insertAfter(inst);
+    } else {
+        ci = inst;
     }
 
-    if (lvIdx != -1) {
-        // critical local memory
-        Instruction* ci = NULL;
-        if (inst->getType()->isPointerTy()) {
-            ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
-        } else if (!inst->getType()->isIntegerTy()) {
-            ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
-        } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
-            ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
-        }
-        if (ci != NULL) {
-            ci->insertAfter(inst);
-        } else {
-            ci = inst;
-        }
+    /*CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
+    addci->insertAfter(ci);*/
 
-        this->insertCallInstAfter(ci, F_local, ci, ConstantInt::get(INT_TY(module), lvIdx), this->getMethodStartCall(inst), NULL);
+    ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
+    ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lvIdx);
 
-        return;
-    }
+    ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
+
+    this->insertCallInstAfter(ci, F_load, tmp, tmp2, ci, this->getMethodStartCall(inst), debug_idx, NULL);
+
+    return;
+
 }
 
 void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
@@ -460,7 +440,7 @@ bool Transformer4CanaryRecord::isInstrumentationFunction(Function * called) {
             || called == F_lock
             || called == F_prefork || called == F_fork || called == F_preexternal || called == F_external
             || called == F_wait || called == F_address_init
-            || called == F_premutexinit || called == F_mutexinit || called == F_local || called == F_starttimer;
+            || called == F_premutexinit || called == F_mutexinit || called == F_starttimer;
 }
 
 // private functions
@@ -624,11 +604,6 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
     F_address_init = cast<Function>(m->getOrInsertFunction("OnAddressInit",
             VOID_TY(m),
             VOID_PTR_TY(m), LONG_TY(m), LONG_TY(m), INT_TY(m), VOID_PTR_TY(m), // ptr, size, n, type
-            NULL));
-
-    F_local = cast<Function>(m->getOrInsertFunction("OnLocal",
-            VOID_TY(m),
-            LONG_TY(m), INT_TY(m), VOID_PTR_TY(m), // value, index
             NULL));
 
     F_preexternal = cast<Function>(m->getOrInsertFunction("OnPreExternalCall",

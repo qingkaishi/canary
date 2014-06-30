@@ -237,15 +237,13 @@ extern "C" {
     }
 
     void OnLoad(int svId, int lvId, long value, void* st, int debug) {
-        if (!start) {
-            if (lvId != -1) {
-                OnLocal(value, lvId, st);
-            }
-            return;
-        }
-
         if (st == NULL)
             return;
+
+        if ((!start && lvId != -1) || (start && svId == -1)) {
+            ((canary_thread_t*) st)->lrlog[lvId].logValue(value);
+        } else {
+        }
 
 #ifdef DEBUG
         printf("OnLoad === 1\n");

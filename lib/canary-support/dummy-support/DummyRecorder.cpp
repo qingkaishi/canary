@@ -108,12 +108,6 @@ extern "C" {
 #endif
     }
 
-    void OnLocal(long value, int id, void* st) {
-#ifdef DEBUG
-        printf("OnLoad \n");
-#endif
-    }
-
     void OnPreExternalCall(void* st) {
         if (!main_started)
             return;

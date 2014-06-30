@@ -328,33 +328,20 @@ extern "C" {
         mlog->adds.push_back(m);
     }
 
-    void OnLocal(long value, int id, void* st) {
-        if (st == NULL)
-            return;
-
-#ifdef DEBUG
-        printf("OnLocal %d, %d, %ld\n", id, tid, value);
-#endif
-        ((canary_thread_t*) st)->lrlog[id].logValue(value);
-    }
-
     void OnLoad(int svId, int lvId, long value, void* st, int debug) {
-        if (!start) {
-            if (lvId != -1) {
-                OnLocal(value, lvId, st);
-            }
-            return;
-        }
-
         if (st == NULL)
             return;
+
+        if ((!start && lvId != -1) || (start && svId == -1)) {
+            ((canary_thread_t*) st)->lrlog[lvId].logValue(value);
+        } else {
+            ((canary_thread_t*) st)->rlog[svId].VAL_LOG.logValue(value);
+            ((canary_thread_t*) st)->rlog[svId].VER_LOG.logValue(write_versions[svId]);
+        }
 
 #ifdef DEBUG
         printf("OnLoad === 1\n");
 #endif
-
-        ((canary_thread_t*) st)->rlog[svId].VAL_LOG.logValue(value);
-        ((canary_thread_t*) st)->rlog[svId].VER_LOG.logValue(write_versions[svId]);
     }
 
     unsigned OnPreStore(int svId, void* st, int debug) {

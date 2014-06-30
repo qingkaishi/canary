@@ -23,7 +23,7 @@ private:
     Function *F_premutexinit, *F_mutexinit;
     Function *F_wait;
     Function *F_init, *F_exit, *F_address_init;
-    Function *F_local, *F_preexternal, *F_external;
+    Function *F_preexternal, *F_external;
     Function *F_methodstart, *F_starttimer;
 private:
     static int stmt_idx;
