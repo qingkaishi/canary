@@ -293,7 +293,7 @@ void Transformer4CanaryReplay::transformMemSet(CallInst* call, AliasAnalysis& AA
     this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4CanaryReplay::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
+void Transformer4CanaryReplay::transformOtherFunctionCalls(CallInst* call, AliasAnalysis& AA) {
     // How to replay? ///@Thinking
 }
 

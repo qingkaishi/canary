@@ -330,7 +330,7 @@ void Transformer4Trace::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     insertCallInstAfter(call, F_store, c, lnval, getSrcFileNameArg(filename), NULL);
 }
 
-void Transformer4Trace::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Trace::transformOtherFunctionCalls(CallInst* call, AliasAnalysis& AA) {
     MDNode* mdn = call->getMetadata("dbg");
     DILocation LOC(mdn);
     int ln = LOC.getLineNumber();

@@ -53,20 +53,20 @@ extern "C" {
 #endif
     }
 
-    void OnLoad(int svId, int lvId, long value, void* st, int debug) {
+    void OnLoad(int svId, int lvId, long value, void* add, void* st, int debug) {
 #ifdef DEBUG
         printf("OnLoad %d\n", debug);
 #endif
     }
 
-    unsigned OnPreStore(int svId, void* st, int debug) {
+    unsigned OnPreStore(int svId, void* st, long value, void* add, int debug) {
 #ifdef DEBUG
         printf("OnPreStore %d\n", debug);
 #endif
         return 0;
     }
 
-    void OnStore(int svId, unsigned version, void* st, int debug) {
+    void OnStore(int svId, unsigned version, long value, void* add, void* st, int debug) {
 #ifdef DEBUG
         printf("OnStore %d\n", debug);
 #endif

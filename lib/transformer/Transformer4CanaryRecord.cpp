@@ -206,105 +206,166 @@ void Transformer4CanaryRecord::transformAddressInit(CallInst* inst, AliasAnalysi
 }
 
 void Transformer4CanaryRecord::transformVAArgInst(VAArgInst* inst, AliasAnalysis& AA) {
-    Value * val = inst->getPointerOperand();
-    int svIdx = this->getSharedValueIndex(val, AA);
-    int lvIdx = this->getLocalValueIndex(val, AA);
-    if (svIdx != -1) {
-        // shared memory
-        Instruction* ci = NULL;
-        if (inst->getType()->isPointerTy()) {
-            ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
-        } else if (!inst->getType()->isIntegerTy()) {
-            ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
-        } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
-            ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
-        }
-        if (ci != NULL) {
-            ci->insertAfter(inst);
-        } else {
-            ci = inst;
-        }
-
-        ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
-        ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lvIdx);
-        ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
-
-        this->insertCallInstAfter(ci, F_load, tmp, tmp2, ci, this->getMethodStartCall(inst), debug_idx, NULL);
-
-        return;
-    }
-}
-
-void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
-    Value * val = inst->getOperand(0);
-    int svIdx = this->getSharedValueIndex(val, AA);
-    int lvIdx = this->getLocalValueIndex(val, AA);
+    Value * value = inst;
+    Value * address = inst->getPointerOperand();
+    int svIdx = this->getSharedValueIndex(address, AA);
+    int lvIdx = this->getLocalValueIndex(address, AA);
 
     if (svIdx == -1 && lvIdx == -1)
         return;
 
-    Instruction* ci = NULL;
+    Instruction * currentInstruction = inst;
+    Value * currentValue = value;
+    Value * currentAddress = address;
+
     if (inst->getType()->isPointerTy()) {
-        ci = CastInst::CreatePointerCast(inst, LONG_TY(module));
+        currentInstruction = CastInst::CreatePointerCast(currentValue, LONG_TY(module));
     } else if (!inst->getType()->isIntegerTy()) {
-        ci = CastInst::Create(Instruction::FPToUI, inst, LONG_TY(module));
+        currentInstruction = CastInst::Create(Instruction::FPToUI, currentValue, LONG_TY(module));
     } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
-        ci = CastInst::CreateIntegerCast(inst, LONG_TY(module), false);
+        currentInstruction = CastInst::CreateIntegerCast(currentValue, LONG_TY(module), false);
     }
-    if (ci != NULL) {
-        ci->insertAfter(inst);
-    } else {
-        ci = inst;
+    if (currentInstruction != inst) {
+        currentInstruction->insertAfter(inst);
+        currentValue = currentInstruction;
     }
 
-    /*CastInst* addci = CastInst::CreatePointerCast(val, LONG_TY(module));
-    addci->insertAfter(ci);*/
+    if (!address->getType()->getPointerElementType()->isIntegerTy(8)) {
+        Instruction * addci = CastInst::CreatePointerCast(currentAddress, VOID_PTR_TY(module));
+        addci->insertAfter(currentInstruction);
+        currentInstruction = addci;
+        currentAddress = addci;
+    }
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lvIdx);
 
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
-    this->insertCallInstAfter(ci, F_load, tmp, tmp2, ci, this->getMethodStartCall(inst), debug_idx, NULL);
+    this->insertCallInstAfter(currentInstruction, F_load, tmp, tmp2, currentValue, currentAddress, this->getMethodStartCall(inst), debug_idx, NULL);
+
+    return;
+}
+
+void Transformer4CanaryRecord::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
+    Value * value = inst;
+    Value * address = inst->getOperand(0);
+    int svIdx = this->getSharedValueIndex(address, AA);
+    int lvIdx = this->getLocalValueIndex(address, AA);
+
+    if (svIdx == -1 && lvIdx == -1)
+        return;
+
+    Instruction * currentInstruction = inst;
+    Value * currentValue = value;
+    Value * currentAddress = address;
+
+    if (inst->getType()->isPointerTy()) {
+        currentInstruction = CastInst::CreatePointerCast(currentValue, LONG_TY(module));
+    } else if (!inst->getType()->isIntegerTy()) {
+        currentInstruction = CastInst::Create(Instruction::FPToUI, currentValue, LONG_TY(module));
+    } else if (inst->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
+        currentInstruction = CastInst::CreateIntegerCast(currentValue, LONG_TY(module), false);
+    }
+    if (currentInstruction != inst) {
+        currentInstruction->insertAfter(inst);
+        currentValue = currentInstruction;
+    }
+
+    if (!address->getType()->getPointerElementType()->isIntegerTy(8)) {
+        Instruction * addci = CastInst::CreatePointerCast(currentAddress, VOID_PTR_TY(module));
+        addci->insertAfter(currentInstruction);
+        currentInstruction = addci;
+        currentAddress = addci;
+    }
+
+    ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
+    ConstantInt* tmp2 = ConstantInt::get(INT_TY(module), lvIdx);
+
+    ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
+
+    this->insertCallInstAfter(currentInstruction, F_load, tmp, tmp2, currentValue, currentAddress, this->getMethodStartCall(inst), debug_idx, NULL);
 
     return;
 
 }
 
 void Transformer4CanaryRecord::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
-    Value * val = inst->getOperand(1);
-    int svIdx = this->getSharedValueIndex(val, AA);
+    Value * value = inst->getOperand(0);
+    Value * address = inst->getOperand(1);
+    int svIdx = this->getSharedValueIndex(address, AA);
     if (svIdx == -1) return;
+
+    Instruction * currentInstruction = inst;
+    Value * currentValue = value;
+    Value * currentAddress = address;
+
+    if (value->getType()->isPointerTy()) {
+        currentInstruction = CastInst::CreatePointerCast(currentValue, LONG_TY(module));
+    } else if (!value->getType()->isIntegerTy()) {
+        currentInstruction = CastInst::Create(Instruction::FPToUI, currentValue, LONG_TY(module));
+    } else if (value->getType()->getIntegerBitWidth() != POINTER_BIT_SIZE) {
+        currentInstruction = CastInst::CreateIntegerCast(currentValue, LONG_TY(module), false);
+    }
+    if (currentInstruction != inst) {
+        currentInstruction->insertAfter(inst);
+        currentValue = currentInstruction;
+    }
+
+    if (!address->getType()->getPointerElementType()->isIntegerTy(8)) {
+        Instruction * addci = CastInst::CreatePointerCast(currentAddress, VOID_PTR_TY(module));
+        addci->insertAfter(currentInstruction);
+        currentInstruction = addci;
+        currentAddress = addci;
+    }
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, this->getMethodStartCall(inst), debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, this->getMethodStartCall(inst), debug_idx, NULL);
+    this->insertCallInstAfter(currentInstruction, F_store, tmp, call, currentValue, currentAddress, this->getMethodStartCall(inst), debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst, AliasAnalysis& AA) {
-    Value * val = inst->getPointerOperand();
-    int svIdx = this->getSharedValueIndex(val, AA);
+    Value * address = inst->getPointerOperand();
+    int svIdx = this->getSharedValueIndex(address, AA);
     if (svIdx == -1) return;
+
+    Instruction * currentInstruction = inst;
+    Value * currentAddress = address;
+    if (!address->getType()->getPointerElementType()->isIntegerTy(8)) {
+        Instruction * addci = CastInst::CreatePointerCast(currentAddress, VOID_PTR_TY(module));
+        addci->insertAfter(currentInstruction);
+        currentInstruction = addci;
+        currentAddress = addci;
+    }
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, this->getMethodStartCall(inst), debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, this->getMethodStartCall(inst), debug_idx, NULL);
+    this->insertCallInstAfter(currentInstruction, F_store, tmp, call, ConstantInt::get(INT_TY(module), -1), currentAddress, this->getMethodStartCall(inst), debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformAtomicRMWInst(AtomicRMWInst* inst, AliasAnalysis& AA) {
-    Value * val = inst->getPointerOperand();
-    int svIdx = this->getSharedValueIndex(val, AA);
+    Value * address = inst->getPointerOperand();
+    int svIdx = this->getSharedValueIndex(address, AA);
     if (svIdx == -1) return;
+
+    Instruction * currentInstruction = inst;
+    Value * currentAddress = address;
+    if (!address->getType()->getPointerElementType()->isIntegerTy(8)) {
+        Instruction * addci = CastInst::CreatePointerCast(currentAddress, VOID_PTR_TY(module));
+        addci->insertAfter(currentInstruction);
+        currentInstruction = addci;
+        currentAddress = addci;
+    }
 
     ConstantInt* tmp = ConstantInt::get(INT_TY(module), svIdx);
     ConstantInt* debug_idx = ConstantInt::get(INT_TY(module), stmt_idx++);
 
     CallInst * call = this->insertCallInstBefore(inst, F_prestore, tmp, this->getMethodStartCall(inst), debug_idx, NULL);
-    this->insertCallInstAfter(inst, F_store, tmp, call, this->getMethodStartCall(inst), debug_idx, NULL);
+    this->insertCallInstAfter(currentInstruction, F_store, tmp, call, ConstantInt::get(INT_TY(module), -1), currentAddress, this->getMethodStartCall(inst), debug_idx, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
@@ -314,8 +375,6 @@ void Transformer4CanaryRecord::transformPthreadCreate(CallInst* ins, AliasAnalys
 }
 
 void Transformer4CanaryRecord::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
-    //ConstantInt* tmp = ConstantInt::get(BOOL_TY(module), 0);
-    //this->insertCallInstAfter(ins, F_join, ins->getArgOperand(0), tmp, NULL);
 }
 
 void Transformer4CanaryRecord::transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) {
@@ -355,14 +414,14 @@ void Transformer4CanaryRecord::transformSystemExit(CallInst* ins, AliasAnalysis&
 }
 
 void Transformer4CanaryRecord::transformMemCpyMov(CallInst* inst, AliasAnalysis& AA) {
-    //this->insertCallInstAfter(inst, F_invalidate_cache, NULL);
+    // considered as a special external function call, do nothing
 }
 
 void Transformer4CanaryRecord::transformMemSet(CallInst* inst, AliasAnalysis& AA) {
-    //this->insertCallInstAfter(inst, F_invalidate_cache, NULL);
+    // considered as a special external function call, do nothing
 }
 
-void Transformer4CanaryRecord::transformSpecialFunctionCall(CallInst* inst, AliasAnalysis& AA) {
+void Transformer4CanaryRecord::transformOtherFunctionCalls(CallInst* inst, AliasAnalysis& AA) {
     if (inst->getCalledFunction() != NULL
             && Transformer4CanaryRecord::isUnimportantExternalLibraryFunction(inst->getCalledFunction())) {
         return;
@@ -578,7 +637,7 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
 
     F_load = cast<Function>(m->getOrInsertFunction("OnLoad",
             VOID_TY(m),
-            INT_TY(m), INT_TY(m), LONG_TY(m), VOID_PTR_TY(m), INT_TY(m),
+            INT_TY(m), INT_TY(m), LONG_TY(m), VOID_PTR_TY(m), VOID_PTR_TY(m), INT_TY(m),
             NULL));
 
     F_prestore = cast<Function>(m->getOrInsertFunction("OnPreStore",
@@ -588,7 +647,7 @@ void Transformer4CanaryRecord::initializeFunctions(Module * m) {
 
     F_store = cast<Function>(m->getOrInsertFunction("OnStore",
             VOID_TY(m),
-            INT_TY(m), INT_TY(m), VOID_PTR_TY(m), INT_TY(m),
+            INT_TY(m), INT_TY(m), LONG_TY(m), VOID_PTR_TY(m), VOID_PTR_TY(m), INT_TY(m),
             NULL));
 
     F_prefork = cast<Function>(m->getOrInsertFunction("OnPreFork",

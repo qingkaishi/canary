@@ -236,7 +236,7 @@ extern "C" {
         ((canary_thread_t*) st)->lrlog[id].logValue(value);
     }
 
-    void OnLoad(int svId, int lvId, long value, void* st, int debug) {
+    void OnLoad(int svId, int lvId, long value, void* add, void* st, int debug) {
         if (st == NULL)
             return;
 
@@ -257,7 +257,7 @@ extern "C" {
         return 0;
     }
 
-    void OnStore(int svId, unsigned version, void* st, int debug) {
+    void OnStore(int svId, unsigned version, long value, void* add, void* st, int debug) {
 #ifdef DEBUG
         printf("OnStore\n");
 #endif

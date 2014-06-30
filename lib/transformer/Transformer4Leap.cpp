@@ -260,7 +260,7 @@ void Transformer4Leap::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4Leap::transformSpecialFunctionCall(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformOtherFunctionCalls(CallInst* call, AliasAnalysis& AA) {
     vector<int> svIndices;
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);

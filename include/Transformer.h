@@ -54,8 +54,8 @@ public:
     /// the last one must be NULL, otherwise the behavior is not defined.
     CallInst* insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...);
     CallInst* insertCallInstAfter(Instruction* afterInst, Function* tocall, ...);
-    CallInst*  insertCallInstAtHead(Function* theFunc, Function * tocall, ...);
-    CallInst*  insertCallInstAtTail(Function* theFunc, Function * tocall, ...);
+    CallInst* insertCallInstAtHead(Function* theFunc, Function * tocall, ...);
+    CallInst* insertCallInstAtTail(Function* theFunc, Function * tocall, ...);
 
 public:
 
@@ -110,6 +110,9 @@ public:
     virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
     }
 
+    virtual void transformOtherPthreadFunctions(CallInst* ins, AliasAnalysis& AA) {
+    }
+
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
     }
 
@@ -119,7 +122,10 @@ public:
     virtual void transformMemSet(CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformSpecialFunctionCall(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformOtherFunctionCalls(CallInst* ins, AliasAnalysis& AA) {
+    }
+
+    virtual void transformOtherIntrinsics(CallInst* ins, AliasAnalysis& AA) {
     }
 
     virtual void transformSpecialFunctionInvoke(InvokeInst* ins, AliasAnalysis& AA) {
@@ -130,14 +136,17 @@ public:
 
     virtual void transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
     }
-    
-    virtual void transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst,  AliasAnalysis& AA) {
+
+    virtual void transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst, AliasAnalysis& AA) {
     }
-    
-    virtual void transformAtomicRMWInst(AtomicRMWInst* inst,  AliasAnalysis& AA) {
+
+    virtual void transformAtomicRMWInst(AtomicRMWInst* inst, AliasAnalysis& AA) {
     }
-    
+
     virtual void transformVAArgInst(VAArgInst* inst, AliasAnalysis& AA) {
+    }
+
+    virtual void transformVACpy(CallInst* inst, AliasAnalysis& AA) {
     }
 
     virtual bool isInstrumentationFunction(Function *f) {

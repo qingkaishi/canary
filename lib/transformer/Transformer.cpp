@@ -148,11 +148,11 @@ void Transformer::transform(AliasAnalysis& AA) {
             }
             for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
                 Instruction &inst = *iterI;
-                
+
                 if (!this->instructionToTransform(&inst)) {
                     continue;
                 }
-                
+
                 DEBUG_WITH_TYPE("transform", errs() << "[Transforming] " << inst << "\n");
 
                 if (isa<AllocaInst>(inst)) {
@@ -273,6 +273,9 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
     } else if (cf.getName().str() == "pthread_mutex_init") {
         transformPthreadMutexInit(call, AA);
         return true;
+    } else if (cf.getName().str().find("pthread") == 0) {
+        transformOtherPthreadFunctions(call, AA);
+        return true;
     } else if (cf.getName().str() == "exit") {
         // system exit
         transformSystemExit(call, AA);
@@ -292,6 +295,11 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
         return true;
     } else if (cf.isIntrinsic()) {
         switch (cf.getIntrinsicID()) {
+            case Intrinsic::vacopy:
+            {
+                transformVACpy(call, AA);
+            }
+                break;
             case Intrinsic::memmove:
             case Intrinsic::memcpy:
             {
@@ -304,12 +312,13 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
             }
                 break;
             default:
+                transformOtherIntrinsics(call, AA);
                 break;
         }
         return true;
     } else if (!this->functionToTransform(&cf) && !this->isInstrumentationFunction(&cf)) {
         // other empty functions
-        transformSpecialFunctionCall(call, AA);
+        transformOtherFunctionCalls(call, AA);
         return true;
     }
     //*/

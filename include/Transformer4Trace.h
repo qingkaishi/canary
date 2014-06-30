@@ -45,7 +45,7 @@ public:
     virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformMemCpyMov(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformMemSet(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformSpecialFunctionCall(CallInst* ins, AliasAnalysis& AA) ;
+    virtual void transformOtherFunctionCalls(CallInst* ins, AliasAnalysis& AA) ;
     virtual void transformSpecialFunctionInvoke(InvokeInst* ins, AliasAnalysis& AA);
     virtual bool isInstrumentationFunction(Function *f);
     

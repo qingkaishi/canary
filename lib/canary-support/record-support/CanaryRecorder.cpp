@@ -328,7 +328,7 @@ extern "C" {
         mlog->adds.push_back(m);
     }
 
-    void OnLoad(int svId, int lvId, long value, void* st, int debug) {
+    void OnLoad(int svId, int lvId, long value, void* address, void* st, int debug) {
         if (st == NULL)
             return;
 
@@ -359,7 +359,7 @@ extern "C" {
         return version;
     }
 
-    void OnStore(int svId, unsigned version, void* st, int debug) {
+    void OnStore(int svId, unsigned version, long value, void* address,  void* st, int debug) {
         if (!start || st == NULL) {
             return;
         }
