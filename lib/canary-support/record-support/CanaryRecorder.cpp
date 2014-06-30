@@ -17,6 +17,9 @@
 
 #include "SignalRoutine.h"
 #include "../Log.h"
+#ifdef CACHE_ENABLED
+#include "../Cache.h"
+#endif
 
 /*
  * Define global log variables, each shared var has one
@@ -59,7 +62,20 @@ typedef struct canary_thread_t {
     unsigned tid;
     // others
 
+#ifdef CACHE_ENABLED
+    Cache* cache;
+
+    canary_thread_t() {
+        cache = new Cache;
+    }
+#endif
+
     void dump(FILE* file_read, FILE * file_lread, FILE * file_write, FILE* file_add) {
+        // ==============================================================
+#ifdef CACHE_ENABLED
+        cache->info();
+#endif       
+
         // ==============================================================
 #ifdef LDEBUG
         fprintf(file_read, "Thread %u \n", tid);
@@ -332,12 +348,25 @@ extern "C" {
         if (st == NULL)
             return;
 
+        bool success = false;
+
+#ifdef CACHE_ENABLED
+        success = ((canary_thread_t*) st)->cache->query(address, value);
+#endif
+
         if ((!start && lvId != -1) || (start && svId == -1)) {
-            ((canary_thread_t*) st)->lrlog[lvId].logValue(value);
+            if (!success)
+                ((canary_thread_t*) st)->lrlog[lvId].logValue(value);
         } else {
-            ((canary_thread_t*) st)->rlog[svId].VAL_LOG.logValue(value);
+            if (!success)
+                ((canary_thread_t*) st)->rlog[svId].VAL_LOG.logValue(value);
             ((canary_thread_t*) st)->rlog[svId].VER_LOG.logValue(write_versions[svId]);
         }
+
+#ifdef CACHE_ENABLED
+        if (!success)
+            ((canary_thread_t*) st)->cache->add(address, value);
+#endif
 
 #ifdef DEBUG
         printf("OnLoad === 1\n");
@@ -359,7 +388,7 @@ extern "C" {
         return version;
     }
 
-    void OnStore(int svId, unsigned version, long value, void* address,  void* st, int debug) {
+    void OnStore(int svId, unsigned version, long value, void* address, void* st, int debug) {
         if (!start || st == NULL) {
             return;
         }
@@ -368,6 +397,10 @@ extern "C" {
 #endif
         unlock(svId);
         ((canary_thread_t*) st)->wlog[svId].logValue(version);
+
+#ifdef CACHE_ENABLED
+        ((canary_thread_t*) st)->cache->add(address, value);
+#endif
     }
 
     void OnLock(pthread_mutex_t* mutex_ptr, void* st) {

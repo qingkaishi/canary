@@ -16,13 +16,13 @@
 
 class CacheNode {
 public:
-    size_t address;
-    size_t value;
+    void* address;
+    long value;
 
     CacheNode() {
     }
 
-    CacheNode(size_t a, size_t v) : address(a), value(v) {
+    CacheNode(void* a, long v) : address(a), value(v) {
     }
 };
 
@@ -38,7 +38,7 @@ private:
     unsigned __hit;
     unsigned __miss;
 
-    boost::unordered_map<size_t, int> __map;
+    boost::unordered_map<void*, int> __map;
     CacheNode* __cache_lines;
 
 public:
@@ -56,7 +56,7 @@ public:
         delete [] __cache_lines;
     }
 
-    void add(size_t address, size_t value) {
+    void add(void* address, long value) {
         if (__map.count(address)) {
             // the same thread may write the same address
             CacheNode& cn = __cache_lines[__map[address]];
@@ -90,7 +90,7 @@ public:
         }
     }
 
-    bool query(size_t address, size_t value) {
+    bool query(void* address, long value) {
         if (__map.count(address) && __cache_lines[__map[address]].value == value) {
             __hit++;
             return true;

@@ -28,3 +28,9 @@ ifeq (${LDEBUG}, 1)
     CFLAGS += -DLDEBUG
     CXXFLAGS += -DLDEBUG
 endif
+
+
+ifeq (${CACHE}, 1)
+    CFLAGS += -DCACHE_ENABLED
+    CXXFLAGS += -DCACHE_ENABLED
+endif
