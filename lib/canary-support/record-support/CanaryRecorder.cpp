@@ -352,6 +352,8 @@ extern "C" {
 
 #ifdef CACHE_ENABLED
         success = ((canary_thread_t*) st)->cache->query(address, value);
+        if (!success)
+            ((canary_thread_t*) st)->cache->add(address, value);
 #endif
 
         if ((!start && lvId != -1) || (start && svId == -1)) {
@@ -362,11 +364,6 @@ extern "C" {
                 ((canary_thread_t*) st)->rlog[svId].VAL_LOG.logValue(value);
             ((canary_thread_t*) st)->rlog[svId].VER_LOG.logValue(write_versions[svId]);
         }
-
-#ifdef CACHE_ENABLED
-        if (!success)
-            ((canary_thread_t*) st)->cache->add(address, value);
-#endif
 
 #ifdef DEBUG
         printf("OnLoad === 1\n");
