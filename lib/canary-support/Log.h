@@ -65,7 +65,7 @@ private:
             Item<T>& item = __log[i];
             for (unsigned j = 0; j < item.counter; j++) {
 #ifdef LDEBUG
-                fprintf(fout, "%ld; ", item->t);
+                fprintf(fout, "%ld; ", item.t);
 #else
                 fwrite(&item.t, sizeof (T), 1, fout);
 #endif
@@ -91,7 +91,7 @@ private:
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T>& item = __log[i];
 #ifdef LDEBUG
-            fprintf(fout, "(%ld, %u); ", item->t, item->counter);
+            fprintf(fout, "(%ld, %u); ", item.t, item.counter);
 #else
             fwrite(&item, sizeof (Item<T>), 1, fout);
 #endif
@@ -126,7 +126,7 @@ private:
         for (unsigned i = 0; i < __log.size(); i++) {
             Item<T>& item = __log[i];
 #ifdef LDEBUG
-            fprintf(fout, "%ld; ", item->t);
+            fprintf(fout, "%ld; ", item.t);
 #else
             fwrite(&item.t, sizeof (T), 1, fout);
 #endif

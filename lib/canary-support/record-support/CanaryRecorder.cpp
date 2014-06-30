@@ -16,10 +16,7 @@
 #include <boost/unordered_map.hpp>
 
 #include "SignalRoutine.h"
-#include "../Log.h"
-#ifdef CACHE_ENABLED
-#include "../Cache.h"
-#endif
+#include "../CanaryThread.h"
 
 /*
  * Define global log variables, each shared var has one
@@ -52,84 +49,6 @@ static pthread_mutex_t mutex_init_lock = PTHREAD_MUTEX_INITIALIZER;
  */
 static unsigned mutex_id = 0;
 static boost::unordered_map<pthread_mutex_t *, unsigned> mutex_ht;
-
-typedef struct canary_thread_t {
-    l_rlog_t* rlog;
-    l_lrlog_t* lrlog;
-    l_wlog_t* wlog;
-    l_addmap_t* addlog;
-    unsigned onexternal;
-    unsigned tid;
-    // others
-
-#ifdef CACHE_ENABLED
-    Cache* cache;
-
-    canary_thread_t() {
-        cache = new Cache;
-    }
-#endif
-
-    void dump(FILE* file_read, FILE * file_lread, FILE * file_write, FILE* file_add) {
-        // ==============================================================
-#ifdef CACHE_ENABLED
-        cache->info();
-#endif       
-
-        // ==============================================================
-#ifdef LDEBUG
-        fprintf(file_read, "Thread %u \n", tid);
-#else
-        fwrite(&tid, sizeof (unsigned), 1, file_read);
-#endif
-        for (unsigned i = 0; i < num_shared_vars; i++) {
-            rlog[i].VAL_LOG.dump(file_read);
-            rlog[i].VER_LOG.dump(file_read);
-        }
-
-        // ==============================================================
-#ifdef LDEBUG
-        fprintf(file_lread, "Thread %u \n", tid);
-#else
-        fwrite(&tid, sizeof (unsigned), 1, file_lread);
-#endif
-        for (unsigned i = 0; i < num_local_vars; i++) {
-            lrlog[i].dump(file_lread);
-        }
-
-        // ==============================================================
-#ifdef LDEBUG
-        fprintf(file_write, "Thread %u \n", tid);
-#else
-        fwrite(&tid, sizeof (unsigned), 1, file_write);
-#endif
-        for (unsigned i = 0; i < num_shared_vars; i++) {
-            wlog[i].dump(file_write);
-        }
-
-        // ==============================================================
-        unsigned size = addlog->adds.size();
-#ifdef LDEBUG
-        fprintf(file_add, "Size = %u, Thread = %u\n", size, tid);
-#else
-        fwrite(&size, sizeof (unsigned), 1, file_add);
-        fwrite(&tid, sizeof (unsigned), 1, file_add);
-#endif
-        for (unsigned i = 0; i < size; i++) {
-            mem_t& m = addlog->adds.at(i);
-#ifdef LDEBUG
-            fprintf(file_add, "(%p, %u, %d); ", m->address, m->range, m->type);
-#else
-            fwrite(&m, sizeof (mem_t), 1, file_add);
-#endif
-        }
-#ifdef LDEBUG
-        fprintf(file_add, "\n");
-#endif
-    }
-
-}
-canary_thread_t;
 
 static boost::unordered_map<pthread_t, canary_thread_t*> thread_ht;
 
@@ -216,15 +135,8 @@ extern "C" {
         }
 
         // main thread.
-        pthread_t tid = pthread_self();
-        canary_thread_t* st = new canary_thread_t;
-        st->tid = thread_ht.size();
-        st->onexternal = 0;
-        st->addlog = new l_addmap_t;
-        st->lrlog = new l_lrlog_t[num_local_vars];
-        st->rlog = new l_rlog_t[num_shared_vars];
-        st->wlog = new l_wlog_t[num_shared_vars];
-        thread_ht[tid] = st;
+        canary_thread_t* st = new canary_thread_t(num_shared_vars, num_local_vars, thread_ht.size());
+        thread_ht[pthread_self()] = st;
 
         main_started = true;
         start = false;
@@ -284,6 +196,8 @@ extern "C" {
                 canary_thread_t* st = lit->second;
                 st->dump(file_read, file_lread, file_write, file_add);
 
+                delete st;
+
                 lit++;
             }
 
@@ -294,6 +208,7 @@ extern "C" {
         }
 
         printf("[INFO] Threads num: %d\n", thread_ht.size());
+        thread_ht.clear();
 
         // zip
         system("if [ -f canary.zip ]; then rm canary.zip; fi");
@@ -491,15 +406,7 @@ extern "C" {
 
         pthread_t ftid = *(forked_tid_ptr);
         if (!thread_ht.count(ftid)) {
-            canary_thread_t* st = new canary_thread_t;
-            st->tid = thread_ht.size();
-            st->onexternal = 0;
-
-            st->addlog = new l_addmap_t;
-            st->lrlog = new l_lrlog_t[num_local_vars];
-            st->rlog = new l_rlog_t[num_shared_vars];
-            st->wlog = new l_wlog_t[num_shared_vars];
-
+            canary_thread_t* st = new canary_thread_t(num_shared_vars, num_local_vars, thread_ht.size());
             thread_ht[ftid] = st;
         }
 
