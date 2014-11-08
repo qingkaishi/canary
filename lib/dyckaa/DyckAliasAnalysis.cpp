@@ -119,7 +119,7 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
 
     retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (LocB.Ptr));
     DyckVertex * VB = retpair.first->getRepresentative();
-
+    
     if (VA == VB) {
         return MayAlias;
     } else {
@@ -159,14 +159,14 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function*
             else
                 return NoAlias;
         } else {
-            bool doesnotret = ((FunctionType*) calledValue->getType()->getPointerElementType())->getReturnType()->isVoidTy();
-            bool isvar = ((FunctionType*) calledValue->getType()->getPointerElementType())->isVarArg();
-
-            if (doesnotret == function->getReturnType()->isVoidTy() && isvar == function->isVarArg()) {
-                return MayAlias;
-            } else {
-                return NoAlias;
-            }
+            //            bool doesnotret = ((FunctionType*) calledValue->getType()->getPointerElementType())->getReturnType()->isVoidTy();
+            //            bool isvar = ((FunctionType*) calledValue->getType()->getPointerElementType())->isVarArg();
+            //
+            //            if (doesnotret == function->getReturnType()->isVoidTy() && isvar == function->isVarArg()) {
+            return MayAlias;
+            //            } else {
+            //                return NoAlias;
+            //            }
         }
     }
 
@@ -463,15 +463,11 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     outs() << "Start inter-procedure analysis...\n";
     int itTimes = 0;
     while (1) {
-        bool finished = dyck_graph->qirunAlgorithm();
-
-        if (itTimes != 0 && finished) {
-            break;
-        }
+        dyck_graph->qirunAlgorithm();
 
         outs() << "Iterating... " << ++itTimes << "             \r";
 
-        finished = aaa->inter_procedure_analysis();
+        bool finished = aaa->inter_procedure_analysis();
 
         if (finished) {
             break;

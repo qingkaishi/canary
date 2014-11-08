@@ -75,8 +75,11 @@ private:
 private:
     int isCompatible(FunctionType * t1, FunctionType * t2);
     set<Function*>* getCompatibleFunctions(FunctionType * fty);
+    
+    FunctionTypeNode* initFunctionGroup(FunctionType* fty);
     void initFunctionGroups();
     void destroyFunctionGroups();
+    void combineFunctionGroups(FunctionType * ft1, FunctionType* ft2);
 
 private:
     DyckVertex* addField(DyckVertex* val, long fieldIndex, DyckVertex* field);

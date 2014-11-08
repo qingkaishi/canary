@@ -384,6 +384,37 @@ int AAAnalyzer::isCompatible(FunctionType * t1, FunctionType * t2) {
     }
 }
 
+FunctionTypeNode* AAAnalyzer::initFunctionGroup(FunctionType* fty) {
+    if (functionTyNodeMap.count(fty)) {
+        return functionTyNodeMap[fty]->root;
+    }
+
+    // iterate all roots to check whether compatible
+    // if so, add it to its set
+    // otherwise, new a root
+    set<FunctionTypeNode *>::iterator rit = tyroots.begin();
+    while (rit != tyroots.end()) {
+        if (isCompatible((*rit)->type, fty)) {
+            FunctionTypeNode * tn = new FunctionTypeNode;
+            tn->type = fty;
+            tn->root = (*rit);
+
+            functionTyNodeMap.insert(pair<Type*, FunctionTypeNode*>(fty, tn));
+            return *rit;
+        }
+        rit++;
+    }
+
+    // not found compatible ones, create a new one
+    FunctionTypeNode * tn = new FunctionTypeNode;
+    tn->type = fty;
+    tn->root = tn;
+
+    tyroots.insert(tn);
+    functionTyNodeMap.insert(pair<Type*, FunctionTypeNode*>(fty, tn));
+    return tn;
+}
+
 void AAAnalyzer::initFunctionGroups() {
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function* f = iterF;
@@ -391,43 +422,39 @@ void AAAnalyzer::initFunctionGroups() {
             continue;
         }
 
+        for (Value::use_iterator I = f->use_begin(), E = f->use_end(); I != E; ++I) {
+            User *U = *I;
+            Type* origTy = NULL, *castTy = NULL;
+            if (isa<Instruction>(U)) {
+                if (((Instruction*) U)->isCast()) {
+                    Value* v1 = (Value*) U;
+                    Value *v2 = ((Instruction*) U)->getOperand(0);
+
+                    origTy = v2->getType();
+                    castTy = v1->getType();
+                }
+            } else if (isa<ConstantExpr>(U)) {
+                if (((ConstantExpr*) U)->isCast()) {
+                    Value* v1 = (Value*) U;
+                    Value *v2 = ((ConstantExpr*) U)->getOperand(0);
+
+                    origTy = v2->getType();
+                    castTy = v1->getType();
+                }
+            } else {
+                errs() << "Warning: unknown user of a function" << *U << "\n";
+            }
+
+            if (origTy != NULL && origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
+                    && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
+                combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
+            }
+        }
+
         FunctionType * fty = (FunctionType *) ((PointerType*) f->getType())->getPointerElementType();
 
-        // the type has been handled
-        if (functionTyNodeMap.count(fty)) {
-            functionTyNodeMap[fty]->root->compatibleFuncs.insert(f);
-            continue;
-        }
-
-        // iterate all roots to check whether compatible
-        // if so, add it to its set
-        // otherwise, new a root
-        bool found = false;
-        set<FunctionTypeNode *>::iterator rit = tyroots.begin();
-        while (rit != tyroots.end()) {
-            if (isCompatible((*rit)->type, fty)) {
-                found = true;
-                (*rit)->compatibleFuncs.insert(f);
-
-                FunctionTypeNode * tn = new FunctionTypeNode;
-                tn->type = fty;
-                tn->root = (*rit);
-
-                functionTyNodeMap.insert(pair<Type*, FunctionTypeNode*>(fty, tn));
-                break;
-            }
-            rit++;
-        }
-
-        if (!found) {
-            FunctionTypeNode * tn = new FunctionTypeNode;
-            tn->type = fty;
-            tn->root = tn;
-            tn->compatibleFuncs.insert(f);
-
-            tyroots.insert(tn);
-            functionTyNodeMap.insert(pair<Type*, FunctionTypeNode*>(fty, tn));
-        }
+        FunctionTypeNode * root = this->initFunctionGroup(fty);
+        root->compatibleFuncs.insert(f);
     }
 }
 
@@ -440,6 +467,41 @@ void AAAnalyzer::destroyFunctionGroups() {
     }
     functionTyNodeMap.clear();
     tyroots.clear();
+}
+
+void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
+    if (!this->isCompatible(ft1, ft2)) {
+
+        outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n";
+
+        FunctionTypeNode * ftn1 = this->initFunctionGroup(ft1);
+        FunctionTypeNode * ftn2 = this->initFunctionGroup(ft2);
+
+        if (ftn1->root->compatibleFuncs.size() > ftn2->root->compatibleFuncs.size()) {
+            FunctionTypeNode * temp = ftn1;
+            ftn1 = ftn2;
+            ftn2 = temp;
+        }
+
+        ftn1->root = ftn2->root; // 1->2
+        set<Function*>::iterator ftnIt = ftn1->compatibleFuncs.begin();
+        while (ftnIt != ftn1->compatibleFuncs.end()) {
+            FunctionType* f = (*ftnIt)->getFunctionType();
+
+            if (!functionTyNodeMap.count(f)) {
+                errs() << "Error in combination of function groups!" << "\n";
+                exit(-1);
+            }
+
+            FunctionTypeNode * ftn = functionTyNodeMap[f];
+            ftn->root = ftn2->root;
+
+            ftnIt++;
+        }
+
+        ftn2->compatibleFuncs.insert(ftn1->compatibleFuncs.begin(), ftn1->compatibleFuncs.end());
+        ftn1->compatibleFuncs.clear();
+    }
 }
 
 #ifndef ARRAY_SIMPLIFIED
@@ -609,6 +671,18 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
             // errs() << *v << "\n";
             DyckVertex * got = wrapValue(((ConstantExpr*) v)->getOperand(0));
             makeAlias(vdv, got);
+
+            // combine function groups
+            if (!isa<Function>(((ConstantExpr*) v)->getOperand(0))) {
+                Type* origTy = ((ConstantExpr*) v)->getOperand(0)->getType();
+                Type* castTy = v->getType();
+                if (origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
+                        && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
+                    combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
+                }
+            } else {
+                // This case has been handled in initFunctionGroup
+            }
         } else {
             unsigned opcode = ((ConstantExpr*) v)->getOpcode();
             switch (opcode) {
@@ -994,6 +1068,19 @@ void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
         {
             Value * itpv = inst->getOperand(0);
             makeAlias(wrapValue(inst), wrapValue(itpv));
+
+            ///  function pointer cast
+            Type* origTy = itpv->getType();
+            Type* castTy = inst->getType();
+
+            if (!isa<Function>(itpv)) {
+                if (origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
+                        && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
+                    combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
+                }
+            } else {
+                // this case has been handled in initFunctionGroups
+            }
         }
             break;
 
@@ -1234,7 +1321,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
         while (pfit != cands->end()) {
-            AliasAnalysis::AliasResult ar =  ((DyckAliasAnalysis*) aa)->function_alias(*pfit, (CallInst*) pcall->ret); // all invokes have been lowered to calls
+            AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, (CallInst*) pcall->ret); // all invokes have been lowered to calls
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
                 pcall->handled = true;
