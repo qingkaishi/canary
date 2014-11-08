@@ -7,6 +7,10 @@
 
 #define ARRAY_SIMPLIFIED
 
+static cl::opt<bool>
+WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
+        cl::desc("Determine whether there are edge lables in the cg."));
+
 AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG) {
     module = m;
     aa = a;
@@ -191,25 +195,29 @@ void AAAnalyzer::printCallGraph(const string& mIdentifier) {
             Function * callee = (Function*) cc->calledValue;
 
             if (wrapped_functions_map.count(callee)) {
-                Value * ci = cc->ret;
-                std::string s;
-                raw_string_ostream rso(s);
-                if (ci != NULL) {
-                    rso << *(ci);
-                } else {
-                    rso << "Hidden";
-                }
-                string& edgelabel = rso.str();
-                for (unsigned int i = 0; i < edgelabel.length(); i++) {
-                    if (edgelabel[i] == '\"') {
-                        edgelabel[i] = '`';
+                if (WithEdgeLabels) {
+                    Value * ci = cc->ret;
+                    std::string s;
+                    raw_string_ostream rso(s);
+                    if (ci != NULL) {
+                        rso << *(ci);
+                    } else {
+                        rso << "Hidden";
                     }
+                    string& edgelabel = rso.str();
+                    for (unsigned int i = 0; i < edgelabel.length(); i++) {
+                        if (edgelabel[i] == '\"') {
+                            edgelabel[i] = '`';
+                        }
 
-                    if (edgelabel[i] == '\n') {
-                        edgelabel[i] = ' ';
+                        if (edgelabel[i] == '\n') {
+                            edgelabel[i] = ' ';
+                        }
                     }
+                    fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex(), edgelabel.data());
+                } else {
+                    fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex());
                 }
-                fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex(), edgelabel.data());
             } else {
                 errs() << "ERROR in printCG when print common function calls.\n";
                 exit(-1);
@@ -225,31 +233,39 @@ void AAAnalyzer::printCallGraph(const string& mIdentifier) {
             set<Function*>* mayCalled = &((*fpIt)->handledCallees);
             Value* calledValue = pcall->calledValue;
 
-            std::string s;
-            raw_string_ostream rso(s);
-            if (pcall->ret != NULL) {
-                rso << *(pcall->ret);
-            } else {
-                rso << "Hidden";
-            }
-            string& edgelabel = rso.str(); // edge label is the call inst
-            for (unsigned int i = 0; i < edgelabel.length(); i++) {
-                if (edgelabel[i] == '\"') {
-                    edgelabel[i] = '`';
+            char * edgeLabelData = NULL;
+            if (WithEdgeLabels) {
+                std::string s;
+                raw_string_ostream rso(s);
+                if (pcall->ret != NULL) {
+                    rso << *(pcall->ret);
+                } else {
+                    rso << "Hidden";
                 }
+                string& edgelabel = rso.str(); // edge label is the call inst
+                for (unsigned int i = 0; i < edgelabel.length(); i++) {
+                    if (edgelabel[i] == '\"') {
+                        edgelabel[i] = '`';
+                    }
 
-                if (edgelabel[i] == '\n') {
-                    edgelabel[i] = ' ';
+                    if (edgelabel[i] == '\n') {
+                        edgelabel[i] = ' ';
+                    }
                 }
+                edgeLabelData = const_cast<char*>(edgelabel.data());
             }
-
             set<Function*>::iterator mcIt = mayCalled->begin();
             while (mcIt != mayCalled->end()) {
                 Function * mcf = *mcIt;
                 if (wrapped_functions_map.count(mcf)) {
 
                     int clevel = this->isCompatible((FunctionType*) (mcf->getType()->getPointerElementType()), (FunctionType*) (calledValue->getType()->getPointerElementType()));
-                    fprintf(fout, "\tf%d->f%d[label=\"%s\"] // confidence-level = %d\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex(), edgelabel.data(), clevel);
+
+                    if (WithEdgeLabels) {
+                        fprintf(fout, "\tf%d->f%d[label=\"%s\"] // confidence-level = %d\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex(), edgeLabelData, clevel);
+                    } else {
+                        fprintf(fout, "\tf%d->f%d // confidence-level = %d\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex(), clevel);
+                    }
                 } else {
                     errs() << "ERROR in printCG when print fp calls.\n";
                     exit(-1);
