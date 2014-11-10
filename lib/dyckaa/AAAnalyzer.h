@@ -14,7 +14,7 @@
 
 #include "DyckAliasAnalysis.h"
 #include "DyckGraph.h"
-#include "FunctionWrapper.h"
+#include "CallGraph.h"
 #include <map>
 #include <tr1/unordered_map>
 
@@ -37,8 +37,7 @@ private:
     set<FunctionTypeNode *> tyroots;
 
 private:
-    map<Function*, FunctionWrapper *> wrapped_functions_map;
-    set<FunctionWrapper*> wrapped_functions;
+    CallGraph callgraph;
     set<Instruction*> unhandled_call_insts; // canary will change all invoke to call, TODO invoke
     
 private:
@@ -56,11 +55,12 @@ public:
 
     bool intra_procedure_analysis();
     bool inter_procedure_analysis();
-
-    void printCallGraph(const string& mIdentifier);
-    void printFunctionPointersInformation(const string& mIdentifier);
     
     void getUnhandledCallInstructions(set<Instruction*>* ret);
+    
+    CallGraph* getCallGraph(){
+        return &callgraph;
+    }
 
 private:
     void handle_inst(Instruction *inst, FunctionWrapper * parent);

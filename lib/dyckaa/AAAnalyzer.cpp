@@ -7,10 +7,6 @@
 
 #define ARRAY_SIMPLIFIED
 
-static cl::opt<bool>
-WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
-        cl::desc("Determine whether there are edge lables in the cg."));
-
 AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG) {
     module = m;
     aa = a;
@@ -20,13 +16,6 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG) {
 }
 
 AAAnalyzer::~AAAnalyzer() {
-    set<FunctionWrapper*>::iterator it = wrapped_functions.begin();
-    while (it != wrapped_functions.end()) {
-        delete (*it);
-        it++;
-    }
-    wrapped_functions.clear();
-    wrapped_functions_map.clear();
 }
 
 void AAAnalyzer::start_intra_procedure_analysis() {
@@ -56,8 +45,8 @@ void AAAnalyzer::start_inter_procedure_analysis() {
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
-    set<FunctionWrapper *>::iterator dfit = wrapped_functions.begin();
-    while (dfit != wrapped_functions.end()) {
+    set<FunctionWrapper *>::iterator dfit = callgraph.begin();
+    while (dfit != callgraph.end()) {
         FunctionWrapper * df = *dfit;
         set<PointerCall*>& unhandled = df->getPointerCalls();
 
@@ -119,15 +108,7 @@ bool AAAnalyzer::intra_procedure_analysis() {
     long instNum = 0;
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function* f = iterF;
-        FunctionWrapper* df = NULL;
-
-        if (!wrapped_functions_map.count(f)) {
-            df = new FunctionWrapper(f);
-            wrapped_functions_map.insert(pair<Function*, FunctionWrapper *>(f, df));
-            wrapped_functions.insert(df);
-        } else {
-            df = wrapped_functions_map[f];
-        }
+        FunctionWrapper* df = callgraph.getFunctionWrapper(f);
         for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
             for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
                 Instruction *inst = iterI;
@@ -144,8 +125,8 @@ bool AAAnalyzer::intra_procedure_analysis() {
 
 bool AAAnalyzer::inter_procedure_analysis() {
     bool finished = true;
-    set<FunctionWrapper *>::iterator dfit = wrapped_functions.begin();
-    while (dfit != wrapped_functions.end()) {
+    set<FunctionWrapper *>::iterator dfit = callgraph.begin();
+    while (dfit != callgraph.end()) {
         FunctionWrapper * df = *dfit;
         if (handle_functions(df)) {
             finished = false;
@@ -158,187 +139,6 @@ bool AAAnalyzer::inter_procedure_analysis() {
 
 void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
     ret->insert(unhandled_call_insts.begin(), unhandled_call_insts.end());
-}
-
-//// call graph printer
-
-void AAAnalyzer::printCallGraph(const string& mIdentifier) {
-    string dotfilename("");
-    dotfilename.append(mIdentifier);
-    dotfilename.append(".maycg.dot");
-
-    FILE * fout = fopen(dotfilename.data(), "w+");
-    fprintf(fout, "digraph maycg {\n");
-
-    for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-        Function* f = iterF;
-        if (f->isIntrinsic()) {
-            continue;
-        }
-
-        if (wrapped_functions_map.count(f)) {
-            FunctionWrapper * fw = wrapped_functions_map[f];
-            fprintf(fout, "\tf%d[label=\"%s\"]\n", fw->getIndex(), f->getName().data());
-        } else {
-            errs() << "ERROR in printCG when declare functions.\n";
-            exit(-1);
-        }
-    }
-
-    set<FunctionWrapper*>::iterator fwIt = wrapped_functions.begin();
-    while (fwIt != wrapped_functions.end()) {
-        FunctionWrapper* fw = *fwIt;
-        set<CommonCall*>* commonCalls = fw->getCommonCallsForCG();
-        set<CommonCall*>::iterator comIt = commonCalls->begin();
-        while (comIt != commonCalls->end()) {
-            CommonCall* cc = *comIt;
-            Function * callee = (Function*) cc->calledValue;
-
-            if (wrapped_functions_map.count(callee)) {
-                if (WithEdgeLabels) {
-                    Value * ci = cc->ret;
-                    std::string s;
-                    raw_string_ostream rso(s);
-                    if (ci != NULL) {
-                        rso << *(ci);
-                    } else {
-                        rso << "Hidden";
-                    }
-                    string& edgelabel = rso.str();
-                    for (unsigned int i = 0; i < edgelabel.length(); i++) {
-                        if (edgelabel[i] == '\"') {
-                            edgelabel[i] = '`';
-                        }
-
-                        if (edgelabel[i] == '\n') {
-                            edgelabel[i] = ' ';
-                        }
-                    }
-                    fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex(), edgelabel.data());
-                } else {
-                    fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex());
-                }
-            } else {
-                errs() << "ERROR in printCG when print common function calls.\n";
-                exit(-1);
-            }
-            comIt++;
-        }
-
-        set<PointerCall*>* fpCallsMap = fw->getPointerCallsForCG();
-        set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
-        while (fpIt != fpCallsMap->end()) {
-            PointerCall* pcall = *fpIt;
-            //Value * callInst = fpIt->first;
-            set<Function*>* mayCalled = &((*fpIt)->handledCallees);
-            Value* calledValue = pcall->calledValue;
-
-            char * edgeLabelData = NULL;
-            if (WithEdgeLabels) {
-                std::string s;
-                raw_string_ostream rso(s);
-                if (pcall->ret != NULL) {
-                    rso << *(pcall->ret);
-                } else {
-                    rso << "Hidden";
-                }
-                string& edgelabel = rso.str(); // edge label is the call inst
-                for (unsigned int i = 0; i < edgelabel.length(); i++) {
-                    if (edgelabel[i] == '\"') {
-                        edgelabel[i] = '`';
-                    }
-
-                    if (edgelabel[i] == '\n') {
-                        edgelabel[i] = ' ';
-                    }
-                }
-                edgeLabelData = const_cast<char*>(edgelabel.data());
-            }
-            set<Function*>::iterator mcIt = mayCalled->begin();
-            while (mcIt != mayCalled->end()) {
-                Function * mcf = *mcIt;
-                if (wrapped_functions_map.count(mcf)) {
-
-                    int clevel = this->isCompatible((FunctionType*) (mcf->getType()->getPointerElementType()), (FunctionType*) (calledValue->getType()->getPointerElementType()));
-
-                    if (WithEdgeLabels) {
-                        fprintf(fout, "\tf%d->f%d[label=\"%s\"] // confidence-level = %d\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex(), edgeLabelData, clevel);
-                    } else {
-                        fprintf(fout, "\tf%d->f%d // confidence-level = %d\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex(), clevel);
-                    }
-                } else {
-                    errs() << "ERROR in printCG when print fp calls.\n";
-                    exit(-1);
-                }
-
-                mcIt++;
-            }
-
-            fpIt++;
-        }
-
-
-        fwIt++;
-    }
-
-    fprintf(fout, "}\n");
-    fclose(fout);
-}
-
-// fp info
-
-void AAAnalyzer::printFunctionPointersInformation(const string& mIdentifier) {
-    string dotfilename("");
-    dotfilename.append(mIdentifier);
-    dotfilename.append(".fp.txt");
-
-    FILE * fout = fopen(dotfilename.data(), "w+");
-
-    set<FunctionWrapper*>::iterator fwIt = wrapped_functions.begin();
-    while (fwIt != wrapped_functions.end()) {
-        FunctionWrapper* fw = *fwIt;
-
-        set<PointerCall*>* fpCallsMap = fw->getPointerCallsForCG();
-        set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
-        while (fpIt != fpCallsMap->end()) {
-            /*Value * callInst = fpIt->first;
-            std::string s;
-            raw_string_ostream rso(s);
-            rso << *(callInst);
-            string& edgelabel = rso.str();
-            for (unsigned int i = 0; i < edgelabel.length(); i++) {
-                if (edgelabel[i] == '\"') {
-                    edgelabel[i] = '`';
-                }
-
-                if (edgelabel[i] == '\n') {
-                    edgelabel[i] = ' ';
-                }
-            }
-            fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
-             */
-            set<Function*>* mayCalled = &((*(fpIt))->handledCallees);
-            fprintf(fout, "%zd\n", mayCalled->size()); //number of functions
-
-            // what functions?
-            set<Function*>::iterator mcIt = mayCalled->begin();
-            while (mcIt != mayCalled->end()) {
-                // Function * mcf = *mcIt;
-                //fprintf(fout, "%s\n", mcf->getName().data());
-
-                mcIt++;
-            }
-
-            //fprintf(fout, "\n");
-
-            fpIt++;
-        }
-
-
-        fwIt++;
-    }
-
-    fclose(fout);
 }
 
 //// The followings are private functions
@@ -1277,7 +1077,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         if (isa<Function>(cv)) {
             ret = true;
             //(*cit)->ret is the return value, it is also the call inst
-            handle_common_function_call((*cit), caller, (wrapped_functions_map)[(Function*) cv]);
+            handle_common_function_call((*cit), caller, callgraph.getFunctionWrapper((Function*)cv));
 
             if (recordCGInfo) {
                 commonCalls->insert(*cit);
@@ -1315,7 +1115,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
                 ret = true;
                 pcall->handled = true;
 
-                handle_common_function_call(pcall, caller, (wrapped_functions_map)[*pfit]);
+                handle_common_function_call(pcall, caller, callgraph.getFunctionWrapper(*pfit));
 
                 if (recordCGInfo) {
                     maycallfuncs->insert(*pfit);
@@ -1413,16 +1213,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
                 Value * ret = NULL;
                 vector<Value*> xargs;
                 xargs.push_back(args->at(3));
-                FunctionWrapper* parent = NULL;
-
-                if (!wrapped_functions_map.count(f)) {
-                    parent = new FunctionWrapper(f);
-                    wrapped_functions_map.insert(pair<Function*, FunctionWrapper *>(f, parent));
-                    wrapped_functions.insert(parent);
-                } else {
-                    parent = wrapped_functions_map[f];
-                }
-
+                FunctionWrapper* parent = callgraph.getFunctionWrapper(f);
                 this->handle_invoke_call_inst(ret, args->at(2), &xargs, parent);
             }
         }

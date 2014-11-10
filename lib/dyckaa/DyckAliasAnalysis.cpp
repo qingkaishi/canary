@@ -11,6 +11,7 @@
 #include "Transformer4CanaryReplay.h"
 
 #include "DyckAliasAnalysis.h"
+#include "CallGraph.h"
 
 #include <stdio.h>
 #include <algorithm>
@@ -477,15 +478,17 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     outs() << "\nDone!\n\n";
 
     /* call graph */
+    CallGraph *cg = aaa->getCallGraph();
+    
     if (DotCallGraph) {
         outs() << "Printing call graph...\n";
-        aaa->printCallGraph(M.getModuleIdentifier());
+        cg->dotCallGraph(M.getModuleIdentifier());
         outs() << "Done!\n\n";
     }
 
     if (CountFP) {
         outs() << "Printing function pointer information...\n";
-        aaa->printFunctionPointersInformation(M.getModuleIdentifier());
+        cg->printFunctionPointersInformation(M.getModuleIdentifier());
         outs() << "Done!\n\n";
     }
 
