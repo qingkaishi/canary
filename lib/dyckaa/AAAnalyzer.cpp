@@ -853,35 +853,8 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 }
 
 set<Function*>* AAAnalyzer::getCompatibleFunctions(FunctionType * fty) {
-    if (functionTyNodeMap.count(fty)) {
-        return &functionTyNodeMap[fty]->root->compatibleFuncs;
-    } else {
-        // unknown function pointer types (not detected when init)
-        // find compatible types from root
-        bool found = false;
-        set<FunctionTypeNode *>::iterator rit = tyroots.begin();
-        while (rit != tyroots.end()) {
-            if (isCompatible((*rit)->type, fty)) {
-                found = true;
-
-                FunctionTypeNode * tn = new FunctionTypeNode;
-                tn->type = fty;
-                tn->root = (*rit);
-
-                functionTyNodeMap.insert(pair<Type*, FunctionTypeNode*>(fty, tn));
-
-                return &((*rit)->compatibleFuncs);
-            }
-            rit++;
-        }
-
-        if (!found) {
-            errs() << "No functions can be aliased with the pointer.\n";
-            errs() << *fty << "\n";
-            exit(-1);
-        }
-    }
-    return NULL;
+    FunctionTypeNode * ftn = this->initFunctionGroup(fty);
+    return &(ftn->root->compatibleFuncs);
 }
 
 void AAAnalyzer::handle_inst(Instruction *inst, FunctionWrapper * parent_func) {
