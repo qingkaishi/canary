@@ -48,7 +48,7 @@ public:
 class PointerCall : public Call{
 public:
     set<Function*> calleeCands;
-    set<Function*> handledCallees;
+    set<Function*> mayAliasedCallees;
     
     bool handled;
 

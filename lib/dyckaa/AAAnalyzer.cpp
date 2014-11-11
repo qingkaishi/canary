@@ -1104,7 +1104,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
         set<Function*>* maycallfuncs = NULL;
         if (recordCGInfo) {
-            maycallfuncs = &(pcall->handledCallees);
+            maycallfuncs = &(pcall->mayAliasedCallees);
         }
 
         // cv, numOfArguments

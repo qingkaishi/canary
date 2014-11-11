@@ -105,6 +105,13 @@ private:
 private:
     bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
     void fromDyckVertexToValue(set<DyckVertex*>& from, set<Value*>& to);
+    
+    /// Three kinds of information will be printed.
+    /// 1. Alias Sets will be printed to the console
+    /// 2. The relation of Alias Sets will be output into "alias_rel.dot"
+    /// 3. The evaluation results will be output into "distribution.log"
+    ///     The summary of the evaluation will be printed to the console
+    void printAliasSetInformation(Module& M);
 
 public:
     void getEscapedPointersTo(set<DyckVertex*>* ret, Function * func); // escaped to 'func'

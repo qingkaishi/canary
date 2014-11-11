@@ -43,24 +43,17 @@ clang -c -emit-llvm -O2 -g -fno-vectorize -fno-slp-vectorize <src_file> -o <bitc
 opt -load dyckaa.so -lowerinvoke  -dyckaa -basicaa  <bitcode_file> -o <output_file>
 ```
 
-* -inter-aa-eval
-This is a modified version of -aa-eval. -aa-eval only can be used to evaluate 
-intra-procedure alias analysis. 
+* -print-alias-set-info
+This will print the evaluation of alias sets and outputs all alias sets, and their 
+relations (dot style).
 
 * -count-fp
 Count how many functions that a function pointer may point to.
 
 * -dot-may-callgraph
 This option is used to print a call graph based on the alias analysis.
-
 You can use it with -with-labels option, which will add lables (call insts)
 to the edges in the call graphs.
-
-* -alias-sets
-Outputs all alias sets.
-
-* -dot-alias-sets
-Print the relatoins between alias sets (dot style).
 
 * -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 

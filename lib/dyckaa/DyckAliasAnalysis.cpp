@@ -31,12 +31,8 @@ static cl::opt<std::string> LockSmithDumpFile("locksmith-dump-file",
         cl::Hidden);
 
 static cl::opt<bool>
-OutputAliasSet("alias-sets", cl::init(false), cl::Hidden,
-        cl::desc("Output all alias sets."));
-
-static cl::opt<bool>
-DotAliasSet("dot-alias-sets", cl::init(false), cl::Hidden,
-        cl::desc("Output all alias sets relations."));
+PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
+        cl::desc("Output all alias sets, their relations and the evaluation results."));
 
 static cl::opt<bool>
 LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
@@ -49,10 +45,6 @@ TraceTransformer("trace-transformer", cl::init(false), cl::Hidden,
 static cl::opt<bool>
 DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
         cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
-
-static cl::opt<bool>
-InterAAEval("inter-aa-eval", cl::init(false), cl::Hidden,
-        cl::desc("Inter-procedure alias analysis evaluator."));
 
 static cl::opt<bool>
 CountFP("count-fp", cl::init(false), cl::Hidden,
@@ -120,7 +112,7 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
 
     retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (LocB.Ptr));
     DyckVertex * VB = retpair.first->getRepresentative();
-    
+
     if (VA == VB) {
         return MayAlias;
     } else {
@@ -479,7 +471,7 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
 
     /* call graph */
     CallGraph *cg = aaa->getCallGraph();
-    
+
     if (DotCallGraph) {
         outs() << "Printing call graph...\n";
         cg->dotCallGraph(M.getModuleIdentifier());
@@ -496,6 +488,12 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     aaa->getUnhandledCallInstructions(&unhandled_calls);
 
     delete aaa;
+
+    if (PrintAliasSetInformation) {
+        outs() << "Printing alias set information...\n";
+        this->printAliasSetInformation(M);
+        outs() << "Done!\n\n";
+    }
 
     /* instrumentation */
     if (TraceTransformer || LeapTransformer
@@ -635,8 +633,12 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
 
         return true;
     }
+    return false;
+}
 
-    if (InterAAEval) {
+void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
+    /*if (InterAAEval)*/
+    {
         set<DyckVertex*>& allreps = dyck_graph->getRepresentatives();
 
         FILE * log = fopen("distribution.log", "w+");
@@ -687,7 +689,8 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
         outs() << "   " << noAliasNum << " no alias responses (" << (unsigned long) percentOfNoAlias << "%)\n\n";
     }
 
-    if (DotAliasSet) {
+    /*if (DotAliasSet) */
+    {
         FILE * aliasRel = fopen("alias_rel.dot", "w");
         fprintf(aliasRel, "digraph rel{\n");
 
@@ -744,7 +747,8 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
         fclose(aliasRel);
     }
 
-    if (OutputAliasSet) {
+    /*if (OutputAliasSet)*/
+    {
         set<DyckVertex*> svs;
         this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
 
@@ -780,8 +784,6 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
             outs() << "------------------------------\n";
         }
     }
-
-    return false;
 }
 
 ModulePass *createDyckAliasAnalysisPass() {

@@ -68,7 +68,7 @@ void CallGraph::dotCallGraph(const string& mIdentifier) {
         set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
             PointerCall* pcall = *fpIt;
-            set<Function*>* mayCalled = &((*fpIt)->handledCallees);
+            set<Function*>* mayCalled = &((*fpIt)->mayAliasedCallees);
 
             char * edgeLabelData = NULL;
             if (WithEdgeLabels) {
@@ -149,7 +149,7 @@ void CallGraph::printFunctionPointersInformation(const string& mIdentifier) {
             }
             fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
              */
-            set<Function*>* mayCalled = &((*(fpIt))->handledCallees);
+            set<Function*>* mayCalled = &((*(fpIt))->mayAliasedCallees);
             fprintf(fout, "%zd\n", mayCalled->size()); //number of functions
 
             // what functions?
