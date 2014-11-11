@@ -53,7 +53,7 @@ Count how many functions that a function pointer may point to.
 * -dot-may-callgraph
 This option is used to print a call graph based on the alias analysis.
 You can use it with -with-labels option, which will add lables (call insts)
-to the edges in the call graphs.
+to the edges in call graphs.
 
 * -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 

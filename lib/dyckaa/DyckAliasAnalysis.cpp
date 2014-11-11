@@ -26,9 +26,9 @@ static cl::opt<bool>
 CanaryReplayTransformer("canary-replay-transformer", cl::init(false), cl::Hidden,
         cl::desc("Transform programs using canary replay transformer."));
 
-static cl::opt<std::string> LockSmithDumpFile("locksmith-dump-file",
+/*static cl::opt<std::string> LockSmithDumpFile("locksmith-dump-file",
         cl::desc("The Locksmith dump file using \"cilly --merge --list-shared --list-guardedby\""),
-        cl::Hidden);
+        cl::Hidden);*/
 
 static cl::opt<bool>
 PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
@@ -48,7 +48,7 @@ DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
 
 static cl::opt<bool>
 CountFP("count-fp", cl::init(false), cl::Hidden,
-        cl::desc("Calculate how many function pointers point to."));
+        cl::desc("Calculate how many functions a function pointer may point to."));
 
 static const Function *getParent(const Value *V) {
     if (const Instruction * inst = dyn_cast<Instruction>(V))
@@ -470,15 +470,15 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     outs() << "\nDone!\n\n";
 
     /* call graph */
-    CallGraph *cg = aaa->getCallGraph();
-
     if (DotCallGraph) {
+        CallGraph *cg = aaa->getCallGraph();
         outs() << "Printing call graph...\n";
         cg->dotCallGraph(M.getModuleIdentifier());
         outs() << "Done!\n\n";
     }
 
     if (CountFP) {
+        CallGraph *cg = aaa->getCallGraph();
         outs() << "Printing function pointer information...\n";
         cg->printFunctionPointersInformation(M.getModuleIdentifier());
         outs() << "Done!\n\n";
