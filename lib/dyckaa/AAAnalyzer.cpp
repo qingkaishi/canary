@@ -501,23 +501,15 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
             }
         } else {
             unsigned opcode = ((ConstantExpr*) v)->getOpcode();
-            switch (opcode) {
-                case 23: // BinaryConstantExpr "and"
-                case 24: // BinaryConstantExpr "or"
-                {
-                    // do nothing
-                }
-                    break;
-                default:
-                {
-                    errs() << "ERROR when handle the following constant expression\n";
-                    errs() << *v << "\n";
-                    errs() << ((ConstantExpr*) v)->getOpcode() << "\n";
-                    errs() << ((ConstantExpr*) v)->getOpcodeName() << "\n";
-                    errs().flush();
-                    exit(-1);
-                }
-                    break;
+            if (opcode >= Instruction::BinaryOpsBegin && opcode <= Instruction::BinaryOpsEnd) {
+                // do nothing
+            } else {
+                errs() << "ERROR when handle the following constant expression\n";
+                errs() << *v << "\n";
+                errs() << ((ConstantExpr*) v)->getOpcode() << "\n";
+                errs() << ((ConstantExpr*) v)->getOpcodeName() << "\n";
+                errs().flush();
+                exit(-1);
             }
         }
     } else if (isa<ConstantArray>(v)) {
@@ -1077,7 +1069,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         if (isa<Function>(cv)) {
             ret = true;
             //(*cit)->ret is the return value, it is also the call inst
-            handle_common_function_call((*cit), caller, callgraph.getFunctionWrapper((Function*)cv));
+            handle_common_function_call((*cit), caller, callgraph.getFunctionWrapper((Function*) cv));
 
             if (recordCGInfo) {
                 commonCalls->insert(*cit);
