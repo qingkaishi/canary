@@ -1,5 +1,84 @@
 import os
+import sys
+import string
 
+#--------------------- configure -------------------
+
+LLVM_VERSION_MAJOR = 3
+LLVM_VERSION_MINOR = 4
+
+def check_file(file, msg):
+    print "Checking for " + file + "."
+    if os.path.exists(file) is not True:
+        print msg + "\n"
+        sys.exit(-1)
+
+def check_file_with_optional_dirs(file_name, dirs, msg):
+    print "Checking for " + file_name + "."
+    for dir in dirs:
+        if os.path.exists(dir + "/" + file_name):
+            return
+
+    print msg
+    sys.exit(-1)
+
+def check_tool(tool, msg):
+    print "Checking for " + tool + "."
+    p = os.popen("which " + tool + " 2>/dev/null | head -1") 
+    x=p.read() 
+    tool_file = x.strip()
+    check_file(tool_file, msg)
+
+def check_rough_version(cmd, tool, err_msg, version_major, version_minor):
+    print "Checking the version of " + tool + "." 
+    p = os.popen(cmd + " 2>/dev/null | head -1") 
+    x=p.read() 
+    version_string = x.strip()
+    ver_str_split = version_string.split(".")
+    vmajor = string.atoi(ver_str_split[0].strip())
+    vminor = string.atoi(ver_str_split[1].strip())
+
+    if vmajor < version_major:
+        print err_msg
+        sys.exit(-1)
+    elif vmajor == version_major and vminor < version_minor:
+        print err_msg
+        sys.exit(-1)
+
+def check_precise_version(cmd, tool, err_msg, version_major, version_minor):
+    print "Checking the version of " + tool + "." 
+    p = os.popen(cmd + " 2>/dev/null | head -1") 
+    x=p.read() 
+    version_string = x.strip()
+    ver_str_split = version_string.split(".")
+    vmajor = string.atoi(ver_str_split[0].strip())
+    vminor = string.atoi(ver_str_split[1].strip())
+
+    if vmajor != version_major or vminor != version_minor:
+        print err_msg
+        sys.exit(-1)
+    
+
+check_tool("llvm-config", "Error: llvm-config does not exist! Termination.")
+check_tool("zip",         "Error: zip does not exist! Termination.")
+check_tool("g++",         "Error: g++ does not exist! Termination.")
+check_tool("gcc",         "Error: gcc does not exist! Termination.")
+check_tool("clang++",     "Error: clang++ does not exist! Termination.")
+check_tool("clang",       "Error: clang does not exist! Termination.")
+
+check_precise_version("llvm-config --version", "llvm",
+                      "Error: llvm's version should be " + str(LLVM_VERSION_MAJOR) + "." + str(LLVM_VERSION_MINOR) + "! Termination.",
+                      LLVM_VERSION_MAJOR, LLVM_VERSION_MINOR)
+
+check_rough_version("gcc -dumpversion", "gcc",
+                    "Error: gcc's version should be >= 4.8! Termination.",
+                    4, 8)
+
+check_file_with_optional_dirs("boost/foreach.hpp", 
+                              ["/usr/include", "/usr/local/include"], 
+                              "Error: boost library is needed for support. Termination.")
+
+#--------------------- build -----------------------
 
 def llvm_config(option):
     p = os.popen("llvm-config " + option) 
@@ -7,7 +86,7 @@ def llvm_config(option):
     return x.strip()
 
 
-DIRS = ["lib", "tools", "bench"]
+DIRS = ["lib", "tools"]
 EXTRA_DIST = "include"
 
 LLVM_LIBS = []
