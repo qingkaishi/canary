@@ -19,7 +19,7 @@ Building Canary
 ```bash
 git clone https://github.com/qingkaishi/canary.git
 cd canary
-scons
+scons # >= 2.3.0
 sudo scons install
 ```
 
