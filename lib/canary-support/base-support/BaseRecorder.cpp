@@ -15,6 +15,11 @@
 
 #include <boost/unordered_map.hpp>
 
+//#define DEBUG
+//#define NO_TIME_CMD
+//#define LDEBUG
+//#define CACHE_ENABLED
+
 #include "SignalRoutine.h"
 #include "../CanaryThread.h"
 

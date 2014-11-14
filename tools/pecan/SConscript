@@ -1,0 +1,12 @@
+Import('env')
+
+TOOLNAME="pecan"
+TOOLNAME=env['BIN']+"/"+TOOLNAME
+
+
+env = env.Clone()
+env['CXXFLAGS'] += " -frtti -fexceptions"
+
+pecan = env.Program(TOOLNAME, Glob('*.cpp'))
+
+env.Alias('install', env.Install('/usr/local/bin/', pecan))

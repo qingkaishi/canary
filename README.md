@@ -17,11 +17,10 @@ Building Canary
 ------
 
 ```bash
-cd <llvm_src_code_dir>/<projects>/
 git clone https://github.com/qingkaishi/canary.git
 cd canary
-./configure
-sudo make install
+scons
+sudo scons install
 ```
 
 

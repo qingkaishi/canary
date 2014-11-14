@@ -1,0 +1,6 @@
+Import('env')
+
+LIBRARYNAME="CanaryAnnotation"
+LIBRARYNAME=env['BIN']+"/"+LIBRARYNAME
+
+env.Library(LIBRARYNAME, Glob('*.cpp'))

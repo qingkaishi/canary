@@ -1,0 +1,11 @@
+Import('env')
+
+
+LIBRARYNAME="CanaryTSXLeapRecorder"
+LIBRARYNAME=env['BIN']+"/"+LIBRARYNAME
+
+
+env = env.Clone()
+env["CXXFLAGS"]+=" -march=native -mrtm"
+
+env.Library(LIBRARYNAME, Glob('*.cpp'))

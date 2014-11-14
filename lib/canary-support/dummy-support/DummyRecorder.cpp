@@ -12,6 +12,11 @@
 #include <pthread.h>
 #include <sys/time.h>
 
+//#define DEBUG
+//#define NO_TIME_CMD
+//#define LDEBUG
+//#define CACHE_ENABLED
+
 #ifdef NO_TIME_CMD
 static struct timeval tpstart, tpend;
 #endif

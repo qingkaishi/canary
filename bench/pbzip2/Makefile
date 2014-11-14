@@ -5,20 +5,12 @@
 #
 LEVEL=../..
 
-#
-# List all of the subdirectories that we will compile.
-#
-NO_INSTALL=1
+all: pbzip.bc
 
-include $(LEVEL)/Makefile.common
-
-
-all:: pbzip2.cpp
-	@if [ -f "pbzip2.o" ]; then l=`cat pbzip2.o`; else l="0"; fi; \
-	n=`stat -c %Y pbzip2.cpp`; \
-	if [ "$$l" != "$$n" ]; then clang -c -emit-llvm -g -O2 -fno-vectorize pbzip2.cpp; stat -c %Y pbzip2.cpp > pbzip2.o; fi
+pbzip.bc: pbzip2.cpp
+	@clang -c -emit-llvm -g -O2 -fno-vectorize pbzip2.cpp
 	
 
-clean-local::
+clean:
 	@$(RM) -f *.bc *.o *.ll *.exe canary.zip
 

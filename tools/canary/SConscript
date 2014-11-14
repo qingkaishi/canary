@@ -1,0 +1,19 @@
+Import('llvm_config')
+Import('env')
+
+TOOLNAME="canary"
+TOOLNAME=env['BIN']+"/"+TOOLNAME
+
+USEDLIBS = ["CanaryDyckAA", "CanaryDyckGraph", "CanaryTransformer", "CanaryCallGraph", "CanaryAnnotation"]
+LINK_COMPONENTS = ["bitreader", "bitWriter", "asmparser", "irreader", "instrumentation", "scalaropts", "objcarcopts", "ipo", "vectorize", "all-targets"]
+
+usedlibs_split = llvm_config("--libs " + " ".join(LINK_COMPONENTS)).split("-l")
+for lib in usedlibs_split:
+     USEDLIBS.append(lib.strip())
+
+env=env.Clone()
+env['LIBS'] = USEDLIBS + env['LIBS']
+canary = env.Program(TOOLNAME, Glob('*.cpp'))
+
+env.Alias('install', env.Install('/usr/local/bin/', canary))
+

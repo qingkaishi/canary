@@ -1,0 +1,11 @@
+Import('env')
+Import('llvm_config')
+
+DIRS = ["pecan", "canary"]
+
+SCONSCRIPTS = []
+for DIR in DIRS:
+    SCRIPT = DIR + "/SConscript"
+    SCONSCRIPTS.append(SCRIPT)
+
+SConscript(SCONSCRIPTS, exports=['env', 'llvm_config'])

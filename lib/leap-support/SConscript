@@ -1,0 +1,10 @@
+Import('env')
+
+DIRS = ["leap-support", "replay-support", "tsxleap-support"]
+
+SCONSCRIPTS = []
+for DIR in DIRS:
+    SCRIPT = DIR + "/SConscript"
+    SCONSCRIPTS.append(SCRIPT)
+
+SConscript(SCONSCRIPTS, exports='env')

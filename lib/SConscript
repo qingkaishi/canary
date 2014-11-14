@@ -1,0 +1,10 @@
+Import('env')
+
+DIRS = ["annotation", "dyckgraph", "callgraph", "transformer", "dyckaa", "trace-support", "leap-support", "canary-support"]
+
+SCONSCRIPTS = []
+for DIR in DIRS:
+    SCRIPT = DIR + "/SConscript"
+    SCONSCRIPTS.append(SCRIPT)
+
+SConscript(SCONSCRIPTS, exports='env')

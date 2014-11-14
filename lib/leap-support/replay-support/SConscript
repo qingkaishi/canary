@@ -1,0 +1,8 @@
+Import('env')
+
+LIBRARYNAME="CanaryLeapReplayer"
+LIBRARYNAME=env['BIN']+"/"+LIBRARYNAME
+
+
+
+env.Library(LIBRARYNAME, Glob('*.cpp'))
