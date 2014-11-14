@@ -14,3 +14,4 @@ Makefile.llvm.config
 *.swp
 canary.zip
 .sconsign.dblite
+bin
