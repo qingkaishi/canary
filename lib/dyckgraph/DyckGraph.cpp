@@ -267,16 +267,16 @@ pair<DyckVertex*, bool> DyckGraph::retrieveDyckVertex(void* value, const char* n
     if (value == NULL) {
         DyckVertex* ver = new DyckVertex(NULL);
         this->addVertex(ver);
-        return std::make_pair < DyckVertex*, bool>(ver, false);
+        return std::make_pair(ver, false);
     }
 
     if (val_ver_map.count(value)) {
-        return std::make_pair < DyckVertex*, bool>(val_ver_map[value], true);
+        return std::make_pair(val_ver_map[value], true);
     } else {
         DyckVertex* ver = new DyckVertex(value, name);
         this->addVertex(ver);
         val_ver_map.insert(pair<void *, DyckVertex*>(value, ver));
-        return std::make_pair < DyckVertex*, bool>(ver, false);
+        return std::make_pair(ver, false);
     }
 }
 

@@ -239,7 +239,7 @@ void AAAnalyzer::initFunctionGroups() {
         }
 
         for (Value::use_iterator I = f->use_begin(), E = f->use_end(); I != E; ++I) {
-            User *U = *I;
+            Use *U = &(*I);
             Type* origTy = NULL, *castTy = NULL;
             if (isa<Instruction>(U)) {
                 if (((Instruction*) U)->isCast()) {
@@ -257,8 +257,10 @@ void AAAnalyzer::initFunctionGroups() {
                     origTy = v2->getType();
                     castTy = v1->getType();
                 }
-            } else {
-                errs() << "Warning: unknown user of a function" << *U << "\n";
+            } else if(*U==f){}else{
+                errs() << *f <<"\n";
+                errs() << "Warning: unknown user of a function: " << **U << "\n";
+                errs() << "-----------------------------------------\n";
             }
 
             if (origTy != NULL && origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
@@ -288,10 +290,12 @@ void AAAnalyzer::destroyFunctionGroups() {
 void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
     if (!this->isCompatible(ft1, ft2)) {
 
-        outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n";
-
         FunctionTypeNode * ftn1 = this->initFunctionGroup(ft1);
         FunctionTypeNode * ftn2 = this->initFunctionGroup(ft2);
+
+        if(ftn1->root == ftn2->root) return;
+
+        outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n";
 
         if (ftn1->root->compatibleFuncs.size() > ftn2->root->compatibleFuncs.size()) {
             FunctionTypeNode * temp = ftn1;
@@ -961,7 +965,7 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
         } else if (isa<GlobalAlias>(cv)) {
             Value * cvcopy = cv;
             while (isa<GlobalAlias>(cvcopy)) {
-                cvcopy = ((GlobalAlias*) cvcopy)->getAliasedGlobal()->stripPointerCastsNoFollowAliases();
+                cvcopy = ((GlobalAlias*) cvcopy)->getAliasee()->stripPointerCastsNoFollowAliases();
             }
 
             if (isa<Function>(cvcopy)) {

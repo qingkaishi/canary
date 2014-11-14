@@ -12,6 +12,18 @@
 #define FUNCTION_TID_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
 #define FUNCTION_2MEM_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
 
+
+static std::string tempret("");
+
+static int getInstructionLineNumber(Instruction * inst){
+    return 0;
+}
+
+static std::string& getInstructionFileName(Instruction* inst) {
+    return tempret;
+}
+
+
 Transformer4Trace::Transformer4Trace(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
     ///initialize functions
     // do not remove context, it is used in the macro FUNCTION_ARG_TYPE
@@ -64,9 +76,7 @@ void Transformer4Trace::beforeTransform(AliasAnalysis& AA) {
             BasicBlock &b = *iterB;
             for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
                 Instruction &inst = *iterI;
-                MDNode* mdn = inst.getMetadata("dbg");
-                DILocation LOC(mdn);
-                std::string filename = LOC.getFilename().str();
+                std::string &filename=getInstructionFileName(&inst) ;
 //                unsigned ln = LOC.getLineNumber();
 //                errs() << inst << "\n";
 //                errs() << f.getName() << "\n";
@@ -108,10 +118,8 @@ void Transformer4Trace::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    MDNode* mdn = inst->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(inst);
+    std::string& filename = getInstructionFileName(inst);
 
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(inst);
@@ -126,10 +134,8 @@ void Transformer4Trace::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    MDNode* mdn = inst->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(inst);
+    std::string& filename = getInstructionFileName(inst);
 
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(inst);
@@ -141,10 +147,8 @@ void Transformer4Trace::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
 }
 
 void Transformer4Trace::transformPthreadCreate(CallInst* call, AliasAnalysis& AA) {
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
 
     ConstantInt * lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
@@ -153,10 +157,8 @@ void Transformer4Trace::transformPthreadCreate(CallInst* call, AliasAnalysis& AA
 }
 
 void Transformer4Trace::transformPthreadJoin(CallInst* call, AliasAnalysis& AA) {
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
 
     ConstantInt * lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
@@ -170,10 +172,9 @@ void Transformer4Trace::transformPthreadMutexLock(CallInst* call, AliasAnalysis&
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
+
 
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
@@ -189,10 +190,8 @@ void Transformer4Trace::transformPthreadMutexUnlock(CallInst* call, AliasAnalysi
     int svIdx = this->getValueIndex(val, AA);
     if (svIdx == -1) return;
 
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
 
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
@@ -211,10 +210,8 @@ void Transformer4Trace::transformPthreadCondWait(CallInst* call, AliasAnalysis& 
     int svIdx1 = this->getValueIndex(val1, AA);
     if (svIdx0 == -1 && svIdx1 == -1) return;
 
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
 
     CastInst* cond = CastInst::CreatePointerCast(val0, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     cond->insertBefore(call);
@@ -240,10 +237,8 @@ void Transformer4Trace::transformPthreadCondSignal(CallInst* call, AliasAnalysis
     int svIdx1 = this->getValueIndex(val1, AA);
     if (svIdx0 == -1 && svIdx1 == -1) return;
 
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
 
     CastInst* cond = CastInst::CreatePointerCast(val0, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     cond->insertBefore(call);
@@ -262,10 +257,8 @@ void Transformer4Trace::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
 }
 
 void Transformer4Trace::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
 
     ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
@@ -312,10 +305,8 @@ void Transformer4Trace::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
 }
 
 void Transformer4Trace::transformMemSet(CallInst* call, AliasAnalysis& AA) {
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
 
     ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
@@ -331,10 +322,9 @@ void Transformer4Trace::transformMemSet(CallInst* call, AliasAnalysis& AA) {
 }
 
 void Transformer4Trace::transformOtherFunctionCalls(CallInst* call, AliasAnalysis& AA) {
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
+   
     ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
@@ -357,10 +347,9 @@ void Transformer4Trace::transformOtherFunctionCalls(CallInst* call, AliasAnalysi
 }
 
 void Transformer4Trace::transformSpecialFunctionInvoke(InvokeInst* call, AliasAnalysis& AA) {
-    MDNode* mdn = call->getMetadata("dbg");
-    DILocation LOC(mdn);
-    int ln = LOC.getLineNumber();
-    std::string filename = LOC.getFilename().str();
+    int ln = getInstructionLineNumber(call);
+    std::string& filename = getInstructionFileName(call);
+
     ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
@@ -391,9 +380,8 @@ bool Transformer4Trace::blockToTransform(BasicBlock* bb) {
 }
 
 bool Transformer4Trace::instructionToTransform(Instruction* inst) {
-    MDNode* mdn = inst->getMetadata("dbg");
-    DILocation LOC(mdn);
-    std::string filename = LOC.getFilename().str();
+    std::string& filename = getInstructionFileName(inst); 
+
     if (filename == ""
             || filename.find(".h") != filename.npos
             || filename.find(".tcc") != filename.npos) {

@@ -81,7 +81,7 @@ DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<AliasAnalysis>();
     AU.addRequired<TargetLibraryInfo>();
-    AU.addRequired<DataLayout>();
+    AU.addRequired<DataLayoutPass>();
 }
 
 DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
@@ -142,7 +142,7 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function*
         } else if (isa<GlobalAlias>(calledValue)) {
             Value * cvcopy = calledValue;
             while (isa<GlobalAlias>(cvcopy)) {
-                cvcopy = ((GlobalAlias*) cvcopy)->getAliasedGlobal()->stripPointerCastsNoFollowAliases();
+                cvcopy = ((GlobalAlias*) cvcopy)->getAliasee()->stripPointerCastsNoFollowAliases();
             }
         }
 

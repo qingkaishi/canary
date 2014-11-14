@@ -5,7 +5,7 @@ import string
 #--------------------- configure -------------------
 
 LLVM_VERSION_MAJOR = 3
-LLVM_VERSION_MINOR = 4
+LLVM_VERSION_MINOR = 6
 
 def check_file(file, msg):
     print "Checking for " + file + "."
@@ -102,6 +102,8 @@ for ld in ldflags_split:
 
 
 env=Environment(
+                CXX        = "clang++",
+                CC         = "clang",
                 CXXFLAGS   = llvm_config("--cxxflags"),
                 CFLAGS     = llvm_config("--cflags"),
                 CPPFLAGS   = llvm_config("--cppflags"),
@@ -109,7 +111,7 @@ env=Environment(
                 CPPPATH    = ["./", "#include/", llvm_config("--includedir")], 
                 BIN        = "#bin", 
                 LIBPATH    = ['#bin', llvm_config("--libdir")] + LLVM_LIB_PATHS,
-                LIBS       = LLVM_LIBS
+                LIBS       = LLVM_LIBS + ["m", "dl", "pthread", "z"]
                )
 
 

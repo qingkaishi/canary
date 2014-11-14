@@ -13,8 +13,6 @@ LibcAnnotation::LibcAnnotation() : ModulePass(ID) {
 }
 
 void LibcAnnotation::getAnalysisUsage(AnalysisUsage &AU) const {
-    AU.addRequired<TargetLibraryInfo>();
-    AU.addRequired<DataLayout>();
 }
 
 RegisterPass<LibcAnnotation> Z("libca", "Annotate library c libs for optimization!");
