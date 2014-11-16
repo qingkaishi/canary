@@ -201,7 +201,7 @@ void Transformer::transform(AliasAnalysis& AA) {
                         handleCalls((CallInst*) & inst, (Function*) calledValue, AA);
                     } else if (calledValue->getType()->isPointerTy()) {
                         set<Function*> may;
-                        ((DyckAliasAnalysis*) & AA)->get_aliased_functions(&may, NULL, (CallInst*) & inst);
+                        ((DyckAliasAnalysis*) & AA)->get_aliased_functions(&may, NULL, (CallInst*) & calledValue, module);
 
                         set<Function*>::iterator it = may.begin();
                         while (it != may.end()) {

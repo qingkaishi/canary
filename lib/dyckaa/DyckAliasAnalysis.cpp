@@ -124,10 +124,9 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
     }
 }
 
-DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function* function, CallInst* callInst) {
-    Value *calledValue = callInst->getCalledValue();
-
+DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function* function, Value* calledValue) {
     AliasResult ar = this->alias(calledValue, function);
+
     if (ar == MayAlias || ar == PartialAlias) {
         if (calledValue == function) {
             return MustAlias;
@@ -147,10 +146,11 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function*
         }
 
         if (isa<Function>(cvcopy)) {
-            if (cvcopy == function)
+            if (cvcopy == function){
                 return MustAlias;
-            else
+            }else{
                 return NoAlias;
+            }
         } else {
             //            bool doesnotret = ((FunctionType*) calledValue->getType()->getPointerElementType())->getReturnType()->isVoidTy();
             //            bool isvar = ((FunctionType*) calledValue->getType()->getPointerElementType())->isVarArg();
@@ -175,17 +175,16 @@ RegisterAnalysisGroup<AliasAnalysis> Y(X);
 // Register this pass...
 char DyckAliasAnalysis::ID = 0;
 
-set<Function*>* DyckAliasAnalysis::get_aliased_functions(set<Function*>* ret, set<Function*>* uset, CallInst* callInst) {
-    if (ret == NULL || callInst == NULL) {
+set<Function*>* DyckAliasAnalysis::get_aliased_functions(set<Function*>* ret, set<Function*>* uset, Value* calledValue, Module * module) {
+    if (ret == NULL || calledValue == NULL) {
         errs() << "[ERROR] In getAliasedFunctions: ret or value are null!\n";
         exit(1);
     }
 
-    Module *module = callInst->getParent()->getParent()->getParent();
     if (uset == NULL && module != NULL) {
         for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
             Function* f = iterF;
-            AliasResult ar = this->function_alias(f, callInst);
+            AliasResult ar = this->function_alias(f, calledValue);
             if (ar == MustAlias) {
                 ret->clear();
                 ret->insert(f);
@@ -199,7 +198,7 @@ set<Function*>* DyckAliasAnalysis::get_aliased_functions(set<Function*>* ret, se
         set<Function*>::iterator usetIt = uset->begin();
         while (usetIt != uset->end()) {
             Function* f = *usetIt;
-            AliasResult ar = this->function_alias(f, callInst);
+            AliasResult ar = this->function_alias(f, calledValue);
             if (ar == MustAlias) {
                 ret->clear();
                 ret->insert(f);
@@ -395,7 +394,7 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * f
                 Instruction *rawInst = iterI;
                 if (isa<CallInst> (rawInst)) {
                     CallInst *inst = (CallInst*) rawInst; // all invokes are lowered to call
-                    if (this->function_alias(func, inst)) {
+                    if (this->function_alias(func, inst->getCalledValue())) {
                         if (func->hasName() && func->getName() == "pthread_create") {
                             DyckVertex * rt = dyck_graph->retrieveDyckVertex(inst->getArgOperand(3)).first->getRepresentative();
                             workStack.push(rt);
@@ -540,7 +539,7 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
                             }
 
                             set<Function*> mayAliasedFunctions;
-                            this->get_aliased_functions(&mayAliasedFunctions, &unsafe_ex_functions, inst);
+                            this->get_aliased_functions(&mayAliasedFunctions, &unsafe_ex_functions, inst->getCalledValue(), &M);
                             if (mayAliasedFunctions.empty() && !unhandled_calls.count(inst)) {
                                 continue; // an internal call
                             }

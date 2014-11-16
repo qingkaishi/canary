@@ -448,7 +448,7 @@ void Transformer4CanaryRecord::transformOtherFunctionCalls(CallInst* inst, Alias
         record = true;
     } else {
         set<Function*> aliasedfuncs;
-        ((DyckAliasAnalysis*) & AA)->get_aliased_functions(&aliasedfuncs, extern_lib_funcs, inst);
+        ((DyckAliasAnalysis*) & AA)->get_aliased_functions(&aliasedfuncs, extern_lib_funcs, cv, module);
 
         set<Function*>::iterator fit = aliasedfuncs.begin();
         while (fit != aliasedfuncs.end()) {

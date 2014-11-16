@@ -53,7 +53,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         set<PointerCall*>::iterator pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
             PointerCall* pc = *pcit;
-            if (!pc->handled) // if it is handled, we assume there exists one function definitely aliases with the function pointer
+            if (!pc->handled && pc->ret!=NULL) // if it is handled, we assume there exists one function definitely aliases with the function pointer
                 unhandled_call_insts.insert((Instruction*) pc->ret);
 
             pcit++;
@@ -477,7 +477,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 DyckVertex* AAAnalyzer::wrapValue(Value * v) {
     // if the vertex of v exists, return it, otherwise create one
     pair < DyckVertex*, bool> retpair = dgraph->retrieveDyckVertex(v);
-    if (retpair.second) {
+    if (retpair.second || v == NULL) {
         return retpair.first;
     }
     DyckVertex* vdv = retpair.first;
@@ -592,6 +592,7 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 }
 
 void AAAnalyzer::handle_instrinsic(Instruction *inst) {
+    if(inst == NULL) return;
     IntrinsicInst * call = (IntrinsicInst*) inst;
     switch (call->getIntrinsicID()) {
             // Variable Argument Handling Intrinsics
@@ -1021,7 +1022,10 @@ void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, F
             if (numOfArgOp <= argIdx) {
                 errs() << "Warning the number of args is less than that of parameters\n";
                 errs() << func->getName() << "\n";
-                errs() << *(c->ret) << "\n";
+                if(c->ret!=NULL)
+                    errs() << *(c->ret) << "\n";
+                else
+                    errs() << "No call inst\n";
                 break; //exit(-1);
             }
 
@@ -1072,7 +1076,6 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
         if (isa<Function>(cv)) {
             ret = true;
-            //(*cit)->ret is the return value, it is also the call inst
             handle_common_function_call((*cit), caller, callgraph.getFunctionWrapper((Function*) cv));
 
             if (recordCGInfo) {
@@ -1083,7 +1086,6 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
             callInsts.erase(cit);
         } else {
-            // errs
             errs() << "WARNING in handle_function(...):\n";
             errs() << *cv << " should be handled.\n";
             exit(-1);
@@ -1106,7 +1108,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
         while (pfit != cands->end()) {
-            AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, (CallInst*) pcall->ret); // all invokes have been lowered to calls
+            AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, pcall->calledValue);
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
                 pcall->handled = true;
@@ -1206,7 +1208,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
         case 4:
         {
             if (functionName == "pthread_create") {
-                Value * ret = NULL;
+                Value * ret = NULL; //TODO change the field ret to inst in Call Structure.
                 vector<Value*> xargs;
                 xargs.push_back(args->at(3));
                 FunctionWrapper* parent = callgraph.getFunctionWrapper(f);
