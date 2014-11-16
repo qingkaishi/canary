@@ -453,12 +453,8 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     /// step 2: inter-procedure analysis 
     aaa->start_inter_procedure_analysis();
     outs() << "Start inter-procedure analysis...\n";
-    int itTimes = 0;
     while (1) {
         dyck_graph->qirunAlgorithm();
-
-        outs() << "Iterating... " << ++itTimes << "             \r";
-
         bool finished = aaa->inter_procedure_analysis();
 
         if (finished) {

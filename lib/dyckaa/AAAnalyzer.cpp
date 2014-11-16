@@ -121,11 +121,26 @@ bool AAAnalyzer::intra_procedure_analysis() {
     return true; // finished
 }
 
+static int INTERT = 0; // how many times inter_procedure_analysis() is called
+
 bool AAAnalyzer::inter_procedure_analysis() {
+    INTERT++;
+    int LAST_NAME_LEN = -1;
+    
     bool finished = true;
     set<FunctionWrapper *>::iterator dfit = callgraph.begin();
     while (dfit != callgraph.end()) {
         FunctionWrapper * df = *dfit;
+        
+        // print in console
+        const StringRef& functionName = df->getLLVMFunction()->getName();
+        outs() << "Iteration " << INTERT << "... Handling " << functionName << "...";
+        int NAME_LEN_DELTA = LAST_NAME_LEN - functionName.size();
+        for(int i = 0 ; LAST_NAME_LEN !=-1 && i < NAME_LEN_DELTA; i++) outs() << " ";
+        outs() << "\r";
+        LAST_NAME_LEN = functionName.size();
+        // end print in console
+        
         if (handle_functions(df)) {
             finished = false;
         }
