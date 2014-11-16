@@ -35,7 +35,7 @@ void CallGraph::dotCallGraph(const string& mIdentifier) {
 
             if (wrapped_functions_map.count(callee)) {
                 if (WithEdgeLabels) {
-                    Value * ci = cc->ret;
+                    Value * ci = cc->instruction;
                     std::string s;
                     raw_string_ostream rso(s);
                     if (ci != NULL) {
@@ -74,8 +74,8 @@ void CallGraph::dotCallGraph(const string& mIdentifier) {
             if (WithEdgeLabels) {
                 std::string s;
                 raw_string_ostream rso(s);
-                if (pcall->ret != NULL) {
-                    rso << *(pcall->ret);
+                if (pcall->instruction != NULL) {
+                    rso << *(pcall->instruction);
                 } else {
                     rso << "Hidden";
                 }

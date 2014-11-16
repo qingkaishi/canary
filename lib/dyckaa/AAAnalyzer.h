@@ -44,7 +44,7 @@ private:
     bool recordCGInfo;
     
 public:
-    AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG = false);
+    AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d);
     ~AAAnalyzer();
 
     void start_intra_procedure_analysis();

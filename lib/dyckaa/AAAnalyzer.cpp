@@ -7,12 +7,10 @@
 
 #define ARRAY_SIMPLIFIED
 
-AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, bool CG) {
+AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d) {
     module = m;
     aa = a;
     dgraph = d;
-
-    recordCGInfo = CG;
 }
 
 AAAnalyzer::~AAAnalyzer() {
@@ -53,8 +51,8 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         set<PointerCall*>::iterator pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
             PointerCall* pc = *pcit;
-            if (!pc->handled && pc->ret!=NULL) // if it is handled, we assume there exists one function definitely aliases with the function pointer
-                unhandled_call_insts.insert((Instruction*) pc->ret);
+            if (!pc->mayAliasedCallees.empty() && pc->instruction!=NULL) // if it is handled, we assume there exists one function definitely aliases with the function pointer
+                unhandled_call_insts.insert((Instruction*) pc->instruction);
 
             pcit++;
         }
@@ -987,8 +985,8 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
 
 void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, FunctionWrapper* callee) {
     //landingpad<->resume
-    if (c->ret != NULL) {
-        Value* lpd = caller->getLandingPad(c->ret);
+    if (c->instruction != NULL) {
+        Value* lpd = caller->getLandingPad(c->instruction);
         if (lpd != NULL) {
             DyckVertex* lpdVertex = wrapValue(lpd);
             set<Value*>& res = callee->getResumes();
@@ -1002,10 +1000,10 @@ void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, F
 
     //return<->call
     set<Value*>& rets = callee->getReturns();
-    if (c->ret != NULL) {
+    if (c->instruction != NULL) {
         set<Value*>::iterator retIt = rets.begin();
         while (retIt != rets.end()) {
-            makeAlias(wrapValue(*retIt), wrapValue(c->ret));
+            makeAlias(wrapValue(*retIt), wrapValue(c->instruction));
             retIt++;
         }
     }
@@ -1022,8 +1020,8 @@ void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, F
             if (numOfArgOp <= argIdx) {
                 errs() << "Warning the number of args is less than that of parameters\n";
                 errs() << func->getName() << "\n";
-                if(c->ret!=NULL)
-                    errs() << *(c->ret) << "\n";
+                if(c->instruction!=NULL)
+                    errs() << *(c->instruction) << "\n";
                 else
                     errs() << "No call inst\n";
                 break; //exit(-1);
@@ -1065,10 +1063,8 @@ void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, F
 bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
     bool ret = false;
 
-    set<CommonCall*>* commonCalls = NULL;
-    if (recordCGInfo) {
-        commonCalls = caller->getCommonCallsForCG();
-    }
+    set<CommonCall*>* commonCalls = caller->getCommonCallsForCG();
+
     set<CommonCall*>& callInsts = caller->getCommonCalls();
     set<CommonCall*>::iterator cit = callInsts.begin();
     while (cit != callInsts.end()) {
@@ -1078,11 +1074,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
             ret = true;
             handle_common_function_call((*cit), caller, callgraph.getFunctionWrapper((Function*) cv));
 
-            if (recordCGInfo) {
-                commonCalls->insert(*cit);
-            } else {
-                delete *cit;
-            }
+            commonCalls->insert(*cit);
 
             callInsts.erase(cit);
         } else {
@@ -1100,10 +1092,7 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
         PointerCall * pcall = *mit;
         set<Function*>* cands = &(pcall->calleeCands);
 
-        set<Function*>* maycallfuncs = NULL;
-        if (recordCGInfo) {
-            maycallfuncs = &(pcall->mayAliasedCallees);
-        }
+        set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
 
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
@@ -1111,15 +1100,12 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
             AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, pcall->calledValue);
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
-                pcall->handled = true;
 
                 handle_common_function_call(pcall, caller, callgraph.getFunctionWrapper(*pfit));
 
-                if (recordCGInfo) {
-                    maycallfuncs->insert(*pfit);
-                }
+                maycallfuncs->insert(*pfit);
 
-                this->handle_lib_invoke_call_inst(pcall->ret, *pfit, &(pcall->args), caller);
+                this->handle_lib_invoke_call_inst(pcall->instruction, *pfit, &(pcall->args), caller);
 
                 cands->erase(pfit++);
 
@@ -1208,7 +1194,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
         case 4:
         {
             if (functionName == "pthread_create") {
-                Value * ret = NULL; //TODO change the field ret to inst in Call Structure.
+                Value * ret = NULL; 
                 vector<Value*> xargs;
                 xargs.push_back(args->at(3));
                 FunctionWrapper* parent = callgraph.getFunctionWrapper(f);

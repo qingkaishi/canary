@@ -33,7 +33,11 @@ using namespace std;
 
 class Call {
 public:
-    Value* ret;
+    // if it has a return value, this is the return value; 
+    // it may be null, because there exists some implicit calls, like those in pthread_create
+    // it may be a callinst or invoke inst, currently only call inst because all invokes are lowered to call
+    Value* instruction; 
+    
     Value* calledValue;
     vector<Value*> args;
     
@@ -49,8 +53,6 @@ class PointerCall : public Call{
 public:
     set<Function*> calleeCands;
     set<Function*> mayAliasedCallees;
-    
-    bool handled;
 
     PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args);
 };

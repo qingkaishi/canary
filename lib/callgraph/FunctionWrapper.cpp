@@ -7,7 +7,7 @@
 
 Call::Call(Value* ret, Value * cv, vector<Value*>* args){
     this->calledValue = cv;
-    this->ret = ret;
+    this->instruction = ret;
     vector<Value*>::iterator aIt = args->begin();
     while(aIt!=args->end()){
         this->args.push_back(*aIt);
@@ -20,7 +20,6 @@ CommonCall::CommonCall(Value* ret, Function * f, vector<Value*>* args) : Call(re
 
 PointerCall::PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args) : Call(ret, cv, args) {
     this->calleeCands.insert(fs->begin(), fs->end());
-    this->handled = false;
 }
 
 int FunctionWrapper::global_idx = 0;

@@ -441,7 +441,7 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * f
 bool DyckAliasAnalysis::runOnModule(Module & M) {
     InitializeAliasAnalysis(this);
 
-    AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph, DotCallGraph || CountFP);
+    AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph);
 
     /// step 1: intra-procedure analysis
     aaa->start_intra_procedure_analysis();
