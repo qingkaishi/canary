@@ -66,7 +66,8 @@ public:
 private:
     int getValueIndex(Module* module, Value * v, AliasAnalysis& AA);
 
-    Value* getSrcFileNameArg(Module* module, Instruction* inst);
+    Value* getOrInsertSrcFileNameValue(Module* module, Instruction* inst);
+    Value* getOtInsertLineNumberValue(Module* module, Instruction * inst);
 };
 
 #endif	/* TRANSFORMER4TRACE_H */

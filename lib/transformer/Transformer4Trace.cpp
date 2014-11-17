@@ -12,12 +12,6 @@
 #define FUNCTION_TID_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
 #define FUNCTION_2MEM_LN_ARG_TYPE Type::getVoidTy(context),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNPtrTy(context,POINTER_BIT_SIZE),Type::getIntNTy(context,POINTER_BIT_SIZE),Type::getInt8PtrTy(context,0),(Type*)0
 
-static int getInstructionLineNumber(Instruction * inst){
-    MDNode* md = inst->getMDNode("dbg");
-    DILocation DI(md);
-    return DI.getLineNumber();
-}
-
 char Transformer4Trace::ID = 0;
 
 Transformer4Trace::Transformer4Trace() : ModulePass(ID)  { 
@@ -119,14 +113,12 @@ void Transformer4Trace::transformLoadInst(Module* module, LoadInst* inst, AliasA
     int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
-    int ln = getInstructionLineNumber(inst);
-
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(inst);
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, inst);
 
-    this->insertCallInstBefore(inst, F_preload, c, lnval, getSrcFileNameArg(module, inst), NULL);
-    this->insertCallInstAfter(inst, F_load, c, lnval, getSrcFileNameArg(module, inst), NULL);
+    this->insertCallInstBefore(inst, F_preload, c, lnval, getOrInsertSrcFileNameValue(module, inst), NULL);
+    this->insertCallInstAfter(inst, F_load, c, lnval, getOrInsertSrcFileNameValue(module, inst), NULL);
 }
 
 void Transformer4Trace::transformStoreInst(Module* module, StoreInst* inst, AliasAnalysis& AA) {
@@ -134,32 +126,27 @@ void Transformer4Trace::transformStoreInst(Module* module, StoreInst* inst, Alia
     int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
-    int ln = getInstructionLineNumber(inst);
-
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(inst);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, inst);
 
-    this->insertCallInstBefore(inst, F_prestore, c, lnval, getSrcFileNameArg(module, inst), NULL);
-    this->insertCallInstAfter(inst, F_store, c, lnval, getSrcFileNameArg(module, inst), NULL);
+    this->insertCallInstBefore(inst, F_prestore, c, lnval, getOrInsertSrcFileNameValue(module, inst), NULL);
+    this->insertCallInstAfter(inst, F_store, c, lnval, getOrInsertSrcFileNameValue(module, inst), NULL);
 }
 
 void Transformer4Trace::transformPthreadCreate(Module* module, CallInst* call, AliasAnalysis& AA) {
-    int ln = getInstructionLineNumber(call);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
-    ConstantInt * lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
-
-    this->insertCallInstBefore(call, F_prefork, call->getArgOperand(0), lnval, getSrcFileNameArg(module, call), NULL);
-    this->insertCallInstAfter(call, F_fork, call->getArgOperand(0), lnval, getSrcFileNameArg(module, call), NULL);
+    this->insertCallInstBefore(call, F_prefork, call->getArgOperand(0), lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+    this->insertCallInstAfter(call, F_fork, call->getArgOperand(0), lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 }
 
 void Transformer4Trace::transformPthreadJoin(Module* module, CallInst* call, AliasAnalysis& AA) {
-    int ln = getInstructionLineNumber(call);
-    ConstantInt * lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
-    this->insertCallInstBefore(call, F_prejoin, call->getArgOperand(0), lnval, getSrcFileNameArg(module, call), NULL);
-    this->insertCallInstAfter(call, F_join, call->getArgOperand(0), lnval, getSrcFileNameArg(module, call), NULL);
+    this->insertCallInstBefore(call, F_prejoin, call->getArgOperand(0), lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+    this->insertCallInstAfter(call, F_join, call->getArgOperand(0), lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 
 }
 
@@ -168,15 +155,13 @@ void Transformer4Trace::transformPthreadMutexLock(Module* module, CallInst* call
     int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
-    int ln = getInstructionLineNumber(call);
-
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
-    this->insertCallInstBefore(call, F_prelock, c, lnval, getSrcFileNameArg(module, call), NULL);
-    this->insertCallInstAfter(call, F_lock, c, lnval, getSrcFileNameArg(module, call), NULL);
+    this->insertCallInstBefore(call, F_prelock, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+    this->insertCallInstAfter(call, F_lock, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 }
 
 void Transformer4Trace::transformPthreadMutexUnlock(Module* module, CallInst* call, AliasAnalysis& AA) {
@@ -184,15 +169,13 @@ void Transformer4Trace::transformPthreadMutexUnlock(Module* module, CallInst* ca
     int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
-    int ln = getInstructionLineNumber(call);
-
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
-    this->insertCallInstBefore(call, F_preunlock, c, lnval, getSrcFileNameArg(module, call), NULL);
-    this->insertCallInstAfter(call, F_unlock, c, lnval, getSrcFileNameArg(module, call), NULL);
+    this->insertCallInstBefore(call, F_preunlock, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+    this->insertCallInstAfter(call, F_unlock, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 
 }
 
@@ -203,18 +186,16 @@ void Transformer4Trace::transformPthreadCondWait(Module* module, CallInst* call,
     int svIdx1 = this->getValueIndex(module, val1, AA);
     if (svIdx0 == -1 && svIdx1 == -1) return;
 
-    int ln = getInstructionLineNumber(call);
-
     CastInst* cond = CastInst::CreatePointerCast(val0, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     cond->insertBefore(call);
 
     CastInst* mut = CastInst::CreatePointerCast(val1, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     mut->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
-    this->insertCallInstBefore(call, F_prewait, cond, mut, lnval, getSrcFileNameArg(module, call), NULL);
-    this->insertCallInstAfter(call, F_wait, cond, mut, lnval, getSrcFileNameArg(module, call), NULL);
+    this->insertCallInstBefore(call, F_prewait, cond, mut, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+    this->insertCallInstAfter(call, F_wait, cond, mut, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 
 }
 
@@ -229,18 +210,16 @@ void Transformer4Trace::transformPthreadCondSignal(Module* module, CallInst* cal
     int svIdx1 = this->getValueIndex(module, val1, AA);
     if (svIdx0 == -1 && svIdx1 == -1) return;
 
-    int ln = getInstructionLineNumber(call);
-
     CastInst* cond = CastInst::CreatePointerCast(val0, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     cond->insertBefore(call);
 
     CastInst* mut = CastInst::CreatePointerCast(val1, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     mut->insertBefore(call);
 
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
-    this->insertCallInstBefore(call, F_prenotify, cond, mut, lnval, getSrcFileNameArg(module, call), NULL);
-    this->insertCallInstAfter(call, F_notify, cond, mut, lnval, getSrcFileNameArg(module, call), NULL);
+    this->insertCallInstBefore(call, F_prenotify, cond, mut, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+    this->insertCallInstAfter(call, F_notify, cond, mut, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 }
 
 void Transformer4Trace::transformSystemExit(Module* module, CallInst* ins, AliasAnalysis& AA) {
@@ -248,9 +227,7 @@ void Transformer4Trace::transformSystemExit(Module* module, CallInst* ins, Alias
 }
 
 void Transformer4Trace::transformMemCpyMov(Module* module, CallInst* call, AliasAnalysis& AA) {
-    int ln = getInstructionLineNumber(call);
-
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
     Value * dst = call->getArgOperand(0);
     Value * src = call->getArgOperand(1);
@@ -268,36 +245,34 @@ void Transformer4Trace::transformMemCpyMov(Module* module, CallInst* call, Alias
         if (svIdx_dst != svIdx_src) {
 
 
-            insertCallInstBefore(call, F_prestore, d, lnval, getSrcFileNameArg(module, call), NULL);
-            insertCallInstAfter(call, F_store, d, lnval, getSrcFileNameArg(module, call), NULL);
+            insertCallInstBefore(call, F_prestore, d, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+            insertCallInstAfter(call, F_store, d, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 
-            insertCallInstBefore(call, F_preload, s, lnval, getSrcFileNameArg(module, call), NULL);
-            insertCallInstAfter(call, F_load, s, lnval, getSrcFileNameArg(module, call), NULL);
+            insertCallInstBefore(call, F_preload, s, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+            insertCallInstAfter(call, F_load, s, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 
         } else {
-            insertCallInstBefore(call, F_prestore, d, lnval, getSrcFileNameArg(module, call), NULL);
-            insertCallInstAfter(call, F_store, d, lnval, getSrcFileNameArg(module, call), NULL);
+            insertCallInstBefore(call, F_prestore, d, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+            insertCallInstAfter(call, F_store, d, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
         }
 
     } else if (svIdx_dst != -1) {
         CastInst* d = CastInst::CreatePointerCast(dst, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
         d->insertBefore(call);
 
-        insertCallInstBefore(call, F_prestore, d, lnval, getSrcFileNameArg(module, call), NULL);
-        insertCallInstAfter(call, F_store, d, lnval, getSrcFileNameArg(module, call), NULL);
+        insertCallInstBefore(call, F_prestore, d, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+        insertCallInstAfter(call, F_store, d, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
     } else {
         CastInst* s = CastInst::CreatePointerCast(src, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
         s->insertBefore(call);
 
-        insertCallInstBefore(call, F_preload, s, lnval, getSrcFileNameArg(module, call), NULL);
-        insertCallInstAfter(call, F_load, s, lnval, getSrcFileNameArg(module, call), NULL);
+        insertCallInstBefore(call, F_preload, s, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+        insertCallInstAfter(call, F_load, s, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
     }
 }
 
 void Transformer4Trace::transformMemSet(Module* module, CallInst* call, AliasAnalysis& AA) {
-    int ln = getInstructionLineNumber(call);
-
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
     Value * val = call->getArgOperand(0);
     int svIdx = this->getValueIndex(module, val, AA);
@@ -306,14 +281,12 @@ void Transformer4Trace::transformMemSet(Module* module, CallInst* call, AliasAna
     CastInst* c = CastInst::CreatePointerCast(val, Type::getIntNPtrTy(module->getContext(),POINTER_BIT_SIZE));
     c->insertBefore(call);
 
-    insertCallInstBefore(call, F_prestore, c, lnval, getSrcFileNameArg(module, call), NULL);
-    insertCallInstAfter(call, F_store, c, lnval, getSrcFileNameArg(module, call), NULL);
+    insertCallInstBefore(call, F_prestore, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+    insertCallInstAfter(call, F_store, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
 }
 
 void Transformer4Trace::transformOtherFunctionCalls(Module* module, CallInst* call, AliasAnalysis& AA) {
-    int ln = getInstructionLineNumber(call);
-   
-    ConstantInt* lnval = ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
+    Value* lnval = getOtInsertLineNumberValue(module, call);
 
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
@@ -328,8 +301,8 @@ void Transformer4Trace::transformOtherFunctionCalls(Module* module, CallInst* ca
 
         int svIdx = this->getValueIndex(module, arg, AA);
         if (svIdx != -1) {
-            insertCallInstBefore(call, F_prestore, c, lnval, getSrcFileNameArg(module, call), NULL);
-            insertCallInstBefore(call, F_store, c, lnval, getSrcFileNameArg(module, call), NULL);
+            insertCallInstBefore(call, F_prestore, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
+            insertCallInstBefore(call, F_store, c, lnval, getOrInsertSrcFileNameValue(module, call), NULL);
         }
     }
 }
@@ -389,8 +362,8 @@ int Transformer4Trace::getValueIndex(Module* module, Value* v, AliasAnalysis & A
     return -1;
 }
 
-Value* Transformer4Trace::getSrcFileNameArg(Module* module, Instruction* inst) {
-    MDNode* md = inst->getMDNode("dbg");
+Value* Transformer4Trace::getOrInsertSrcFileNameValue(Module* module, Instruction* inst) {
+    MDNode* md = inst->getMetadata("dbg");
     DILocation DI(md);
     const std::string& filename = DI.getFilename();
     
@@ -409,6 +382,13 @@ Value* Transformer4Trace::getSrcFileNameArg(Module* module, Instruction* inst) {
     indices.push_back(ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), 0));
     indices.push_back(ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), 0));
     return ConstantExpr::getGetElementPtr(global_srcfile, indices, true);
+}
+
+Value* Transformer4Trace::getOtInsertLineNumberValue(Module* module, Instruction * inst){
+    MDNode* md = inst->getMetadata("dbg");
+    DILocation DI(md);
+    unsigned ln = DI.getLineNumber();
+    return ConstantInt::get(Type::getIntNTy(module->getContext(), POINTER_BIT_SIZE), ln);
 }
 
 bool Transformer4Trace::runOnModule(Module& M){
