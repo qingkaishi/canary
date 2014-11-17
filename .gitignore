@@ -1,10 +1,9 @@
 *.a
 *.o
 *.bc
-*.ll
+bench/*.ll
 *.log
 *+Asserts
-pecan_log_analyzer
 nbproject
 alias-Makefile.mk
 config.status
