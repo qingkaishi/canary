@@ -2,6 +2,9 @@
 *.o
 *.bc
 bench/*.ll
+bench/*/*.ll
+bench/*/*/*.ll
+bench/*/*/*/*.ll
 *.log
 *+Asserts
 nbproject
