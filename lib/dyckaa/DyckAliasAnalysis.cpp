@@ -718,7 +718,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
             map<void*, set<DyckVertex*>*>::iterator ovIt = outVs.begin();
 
             while (ovIt != outVs.end()) {
-                int label = (int) ovIt->first;
+                int label = *((int*) (ovIt->first));
                 set<DyckVertex*>* oVs = ovIt->second;
 
                 set<DyckVertex*>::iterator olIt = oVs->begin();
