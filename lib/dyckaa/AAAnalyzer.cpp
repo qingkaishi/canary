@@ -51,7 +51,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         set<PointerCall*>::iterator pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
             PointerCall* pc = *pcit;
-            if (!pc->mayAliasedCallees.empty() && pc->instruction!=NULL) // if it is handled, we assume there exists one function definitely aliases with the function pointer
+            if (!pc->mayAliasedCallees.empty() && pc->instruction != NULL) // if it is handled, we assume there exists one function definitely aliases with the function pointer
                 unhandled_call_insts.insert((Instruction*) pc->instruction);
 
             pcit++;
@@ -122,25 +122,17 @@ bool AAAnalyzer::intra_procedure_analysis() {
 }
 
 static int INTERT = 0; // how many times inter_procedure_analysis() is called
+static int FUNCTION_COUNT = 0;
 
 bool AAAnalyzer::inter_procedure_analysis() {
     INTERT++;
-    int LAST_NAME_LEN = -1;
-    
+    FUNCTION_COUNT = 0;
+
     bool finished = true;
     set<FunctionWrapper *>::iterator dfit = callgraph.begin();
     while (dfit != callgraph.end()) {
         FunctionWrapper * df = *dfit;
-        
-        // print in console
-        const StringRef& functionName = df->getLLVMFunction()->getName();
-        outs() << "Iteration " << INTERT << "... Handling " << functionName << "...";
-        int NAME_LEN_DELTA = LAST_NAME_LEN - functionName.size();
-        for(int i = 0 ; LAST_NAME_LEN !=-1 && i < NAME_LEN_DELTA; i++) outs() << " ";
-        outs() << "\r";
-        LAST_NAME_LEN = functionName.size();
-        // end print in console
-        
+
         if (handle_functions(df)) {
             finished = false;
         }
@@ -270,8 +262,9 @@ void AAAnalyzer::initFunctionGroups() {
                     origTy = v2->getType();
                     castTy = v1->getType();
                 }
-            } else if(*U==f){}else{
-                errs() << *f <<"\n";
+            } else if (*U == f) {
+            } else {
+                errs() << *f << "\n";
                 errs() << "Warning: unknown user of a function: " << **U << "\n";
                 errs() << "-----------------------------------------\n";
             }
@@ -306,7 +299,7 @@ void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
         FunctionTypeNode * ftn1 = this->initFunctionGroup(ft1);
         FunctionTypeNode * ftn2 = this->initFunctionGroup(ft2);
 
-        if(ftn1->root == ftn2->root) return;
+        if (ftn1->root == ftn2->root) return;
 
         outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n";
 
@@ -605,7 +598,7 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 }
 
 void AAAnalyzer::handle_instrinsic(Instruction *inst) {
-    if(inst == NULL) return;
+    if (inst == NULL) return;
     IntrinsicInst * call = (IntrinsicInst*) inst;
     switch (call->getIntrinsicID()) {
             // Variable Argument Handling Intrinsics
@@ -1035,7 +1028,7 @@ void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, F
             if (numOfArgOp <= argIdx) {
                 errs() << "Warning the number of args is less than that of parameters\n";
                 errs() << func->getName() << "\n";
-                if(c->instruction!=NULL)
+                if (c->instruction != NULL)
                     errs() << *(c->instruction) << "\n";
                 else
                     errs() << "No call inst\n";
@@ -1076,13 +1069,23 @@ void AAAnalyzer::handle_common_function_call(Call* c, FunctionWrapper* caller, F
 }
 
 bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
+    FUNCTION_COUNT++;
+
     bool ret = false;
 
     set<CommonCall*>* commonCalls = caller->getCommonCallsForCG();
-
     set<CommonCall*>& callInsts = caller->getCommonCalls();
     set<CommonCall*>::iterator cit = callInsts.begin();
+
+    // print in console
+    int COMCALL_TOTAL = callInsts.size();
+    int COMCALL_COUNT = 0;
+    if (COMCALL_TOTAL == 0) outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... " << "100%,                      \r";
+
     while (cit != callInsts.end()) {
+        // print in console
+        outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... " << ((++COMCALL_COUNT)*100 / COMCALL_TOTAL) << "%,                      \r";
+
         Value * cv = (*cit)->calledValue;
 
         if (isa<Function>(cv)) {
@@ -1102,16 +1105,33 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
     set<PointerCall*>& pointercalls = caller->getPointerCalls();
     set<PointerCall*>::iterator mit = pointercalls.begin();
+
+    // print in console
+    int PTCALL_TOTAL = pointercalls.size();
+    int PTCALL_COUNT = 0;
+    if (PTCALL_TOTAL == 0) outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << "100%, 100%.                     \r";
+
     while (mit != pointercalls.end()) {
+        // print in console
+        int percentage = ((++PTCALL_COUNT)*100 / PTCALL_TOTAL) ;
+        outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << percentage << "%, \r";
+
         //Value * inst = mit->first;
         PointerCall * pcall = *mit;
         set<Function*>* cands = &(pcall->calleeCands);
-
         set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
+
+        // print in console
+        int CAND_TOTAL = cands->size();
+        int CAND_COUNT = 0;
+        if (CAND_TOTAL == 0) outs() << "100%.                     \r";
 
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
         while (pfit != cands->end()) {
+            // print in console
+            outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%                                 \r";
+
             AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, pcall->calledValue);
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
@@ -1126,6 +1146,9 @@ bool AAAnalyzer::handle_functions(FunctionWrapper* caller) {
 
                 if (ar == AliasAnalysis::MustAlias) {
                     cands->clear();
+
+                    // print in console
+                    outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << "100%, 100%.                                        \r";
                     break;
                 }
             } else {
@@ -1209,7 +1232,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
         case 4:
         {
             if (functionName == "pthread_create") {
-                Value * ret = NULL; 
+                Value * ret = NULL;
                 vector<Value*> xargs;
                 xargs.push_back(args->at(3));
                 FunctionWrapper* parent = callgraph.getFunctionWrapper(f);
