@@ -25,11 +25,6 @@ static cl::opt<bool>
 PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
         cl::desc("Output all alias sets, their relations and the evaluation results."));
 
-//static cl::opt<bool>
-//LeapTransformer("leap-transformer", cl::init(false), cl::Hidden,
-//        cl::desc("Transform programs using Leap transformer."));
-
-
 static cl::opt<bool>
 DotCallGraph("dot-may-callgraph", cl::init(false), cl::Hidden,
         cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
@@ -718,7 +713,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
             map<void*, set<DyckVertex*>*>::iterator ovIt = outVs.begin();
 
             while (ovIt != outVs.end()) {
-                int label = (int) ovIt->first;
+                void* label = ovIt->first;
                 set<DyckVertex*>* oVs = ovIt->second;
 
                 set<DyckVertex*>::iterator olIt = oVs->begin();
@@ -730,7 +725,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
                     int idx1 = theMap[dv->getRepresentative()];
                     int idx2 = theMap[(*olIt)->getRepresentative()];
 
-                    fprintf(aliasRel, "a%d->a%d[label=%d];\n", idx1, idx2, label);
+                    fprintf(aliasRel, "a%d->a%d[label=%p];\n", idx1, idx2, label);
 
                     olIt++;
                 }
