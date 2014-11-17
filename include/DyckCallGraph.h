@@ -7,8 +7,8 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#ifndef CALLGRAPH_H
-#define	CALLGRAPH_H
+#ifndef DYCKCALLGRAPH_H
+#define	DYCKCALLGRAPH_H
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Pass.h"
@@ -24,7 +24,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
 
-#include "FunctionWrapper.h"
+#include "DyckCallGraphNode.h"
 
 #include <set>
 #include <map>
@@ -35,41 +35,39 @@
 using namespace llvm;
 using namespace std;
 
-class CallGraph {
+class DyckCallGraph {
 private:
-    map<Function*, FunctionWrapper *> wrapped_functions_map;
-    set<FunctionWrapper*> callgraph_nodes;
+     typedef std::map<Function *, DyckCallGraphNode *> FunctionMapTy;
+    FunctionMapTy FunctionMap;
 
 public:
 
-    ~CallGraph() {
-        set<FunctionWrapper*>::iterator it = callgraph_nodes.begin();
-        while (it != callgraph_nodes.end()) {
-            delete (*it);
+    ~DyckCallGraph() {
+        FunctionMapTy::iterator it = FunctionMap.begin();
+        while (it != FunctionMap.end()) {
+            delete (it->second);
             it++;
         }
-        callgraph_nodes.clear();
-        wrapped_functions_map.clear();
+        FunctionMap.clear();
     }
 
 public:
     
-    set<FunctionWrapper *>::iterator begin(){
-        return callgraph_nodes.begin();
+   FunctionMapTy::iterator begin(){
+        return FunctionMap.begin();
     }
     
-    set<FunctionWrapper *>::iterator end(){
-        return callgraph_nodes.end();
+    FunctionMapTy::iterator end(){
+        return FunctionMap.end();
     }
 
-    FunctionWrapper * getFunctionWrapper(Function * f) {
-        FunctionWrapper * parent = NULL;
-        if (!wrapped_functions_map.count(f)) {
-            parent = new FunctionWrapper(f);
-            wrapped_functions_map.insert(pair<Function*, FunctionWrapper *>(f, parent));
-            callgraph_nodes.insert(parent);
+    DyckCallGraphNode * getOrInsertFunction(Function * f) {
+        DyckCallGraphNode * parent = NULL;
+        if (!FunctionMap.count(f)) {
+            parent = new DyckCallGraphNode(f);
+            FunctionMap.insert(pair<Function*, DyckCallGraphNode *>(f, parent));
         } else {
-            parent = wrapped_functions_map[f];
+            parent = FunctionMap[f];
         }
         return parent;
     }
@@ -80,5 +78,5 @@ public:
 };
 
 
-#endif	/* CALLGRAPH_H */
+#endif	/* DYCKCALLGRAPH_H */
 

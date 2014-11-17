@@ -3,13 +3,13 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "CallGraph.h"
+#include "DyckCallGraph.h"
 
 static cl::opt<bool>
 WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
         cl::desc("Determine whether there are edge lables in the cg."));
 
-void CallGraph::dotCallGraph(const string& mIdentifier) {
+void DyckCallGraph::dotCallGraph(const string& mIdentifier) {
     string dotfilename("");
     dotfilename.append(mIdentifier);
     dotfilename.append(".maycg.dot");
@@ -17,23 +17,23 @@ void CallGraph::dotCallGraph(const string& mIdentifier) {
     FILE * fout = fopen(dotfilename.data(), "w+");
     fprintf(fout, "digraph maycg {\n");
     
-    set<FunctionWrapper*>::iterator fwIt = callgraph_nodes.begin();
-    while (fwIt != callgraph_nodes.end()) {
-        FunctionWrapper* fw = *fwIt;
+    auto fwIt = FunctionMap.begin();
+    while (fwIt != FunctionMap.end()) {
+        DyckCallGraphNode* fw = fwIt->second;
         fprintf(fout, "\tf%d[label=\"%s\"]\n", fw->getIndex(), fw->getLLVMFunction()->getName().data());
         fwIt++;
     }
 
-    fwIt = callgraph_nodes.begin();
-    while (fwIt != callgraph_nodes.end()) {
-        FunctionWrapper* fw = *fwIt;
+    fwIt = FunctionMap.begin();
+    while (fwIt != FunctionMap.end()) {
+        DyckCallGraphNode* fw = fwIt->second;
         set<CommonCall*>* commonCalls = fw->getCommonCallsForCG();
         set<CommonCall*>::iterator comIt = commonCalls->begin();
         while (comIt != commonCalls->end()) {
             CommonCall* cc = *comIt;
             Function * callee = (Function*) cc->calledValue;
 
-            if (wrapped_functions_map.count(callee)) {
+            if (FunctionMap.count(callee)) {
                 if (WithEdgeLabels) {
                     Value * ci = cc->instruction;
                     std::string s;
@@ -53,9 +53,9 @@ void CallGraph::dotCallGraph(const string& mIdentifier) {
                             edgelabel[i] = ' ';
                         }
                     }
-                    fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex(), edgelabel.data());
+                    fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[callee]->getIndex(), edgelabel.data());
                 } else {
-                    fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), wrapped_functions_map[callee]->getIndex());
+                    fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), FunctionMap[callee]->getIndex());
                 }
             } else {
                 errs() << "ERROR in printCG when print common function calls.\n";
@@ -94,11 +94,11 @@ void CallGraph::dotCallGraph(const string& mIdentifier) {
             set<Function*>::iterator mcIt = mayCalled->begin();
             while (mcIt != mayCalled->end()) {
                 Function * mcf = *mcIt;
-                if (wrapped_functions_map.count(mcf)) {
+                if (FunctionMap.count(mcf)) {
                     if (WithEdgeLabels) {
-                        fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex(), edgeLabelData);
+                        fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[mcf]->getIndex(), edgeLabelData);
                     } else {
-                        fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), wrapped_functions_map[mcf]->getIndex());
+                        fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), FunctionMap[mcf]->getIndex());
                     }
                 } else {
                     errs() << "ERROR in printCG when print fp calls.\n";
@@ -119,16 +119,16 @@ void CallGraph::dotCallGraph(const string& mIdentifier) {
     fclose(fout);
 }
 
-void CallGraph::printFunctionPointersInformation(const string& mIdentifier) {
+void DyckCallGraph::printFunctionPointersInformation(const string& mIdentifier) {
     string dotfilename("");
     dotfilename.append(mIdentifier);
     dotfilename.append(".fp.txt");
 
     FILE * fout = fopen(dotfilename.data(), "w+");
 
-    set<FunctionWrapper*>::iterator fwIt = this->begin();
+    auto fwIt = this->begin();
     while (fwIt != this->end()) {
-        FunctionWrapper* fw = *fwIt;
+        DyckCallGraphNode* fw = fwIt->second;
 
         set<PointerCall*>* fpCallsMap = fw->getPointerCallsForCG();
         set<PointerCall*>::iterator fpIt = fpCallsMap->begin();

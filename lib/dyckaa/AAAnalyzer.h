@@ -13,8 +13,6 @@
 #define DEREF_LABEL -1
 
 #include "DyckAliasAnalysis.h"
-#include "DyckGraph.h"
-#include "CallGraph.h"
 #include <map>
 #include <tr1/unordered_map>
 
@@ -37,14 +35,11 @@ private:
     set<FunctionTypeNode *> tyroots;
 
 private:
-    CallGraph callgraph;
+    DyckCallGraph* callgraph;
     set<Instruction*> unhandled_call_insts; // canary will change all invoke to call, TODO invoke
     
-private:
-    bool recordCGInfo;
-    
 public:
-    AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d);
+    AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg);
     ~AAAnalyzer();
 
     void start_intra_procedure_analysis();
@@ -58,19 +53,19 @@ public:
     
     void getUnhandledCallInstructions(set<Instruction*>* ret);
     
-    CallGraph* getCallGraph(){
-        return &callgraph;
+    DyckCallGraph* getCallGraph(){
+        return callgraph;
     }
 
 private:
-    void handle_inst(Instruction *inst, FunctionWrapper * parent);
+    void handle_inst(Instruction *inst, DyckCallGraphNode * parent);
     void handle_instrinsic(Instruction *inst);
-    void handle_invoke_call_inst(Value * ret, Value* cv, vector<Value*>* args, FunctionWrapper* parent);
-    void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, FunctionWrapper* parent);
+    void handle_invoke_call_inst(Value * ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent);
+    void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, DyckCallGraphNode* parent);
 
 private:
-    bool handle_functions(FunctionWrapper* caller);
-    void handle_common_function_call(Call* c, FunctionWrapper* caller, FunctionWrapper* callee);
+    bool handle_functions(DyckCallGraphNode* caller);
+    void handle_common_function_call(Call* c, DyckCallGraphNode* caller, DyckCallGraphNode* callee);
     
 private:
     int isCompatible(FunctionType * t1, FunctionType * t2);

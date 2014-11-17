@@ -49,10 +49,14 @@ relations (dot style).
 * -count-fp
 Count how many functions that a function pointer may point to.
 
-* -dot-may-callgraph
+* -dot-dyck-callgraph
 This option is used to print a call graph based on the alias analysis.
 You can use it with -with-labels option, which will add lables (call insts)
 to the edges in call graphs.
+
+* -preserve-dyck-callgraph
+Preserve the call graph for later usage. Only using  -dot-dyck-callgraph
+will not preserve the call graph.
 
 * -leap-transformer
 A transformer for LEAP. Please read ``LEAP: lightweight deterministic 
@@ -95,5 +99,4 @@ Email: qingkaishi@gmail.com
 TODO
 ------
 1. Do not really combine function groups, check function type precisely.
-2. Seperate call graph from AAAnalyzer.
-3. Recover canary record/replay transform pass.
+2. Recover canary record/replay transform pass.

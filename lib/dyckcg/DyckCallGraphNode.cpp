@@ -3,7 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "FunctionWrapper.h"
+#include "DyckCallGraphNode.h"
 
 Call::Call(Value* ret, Value * cv, vector<Value*>* args){
     this->calledValue = cv;
@@ -22,9 +22,9 @@ PointerCall::PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Valu
     this->calleeCands.insert(fs->begin(), fs->end());
 }
 
-int FunctionWrapper::global_idx = 0;
+int DyckCallGraphNode::global_idx = 0;
 
-FunctionWrapper::FunctionWrapper(Function *f) {
+DyckCallGraphNode::DyckCallGraphNode(Function *f) {
     llvm_function = f;
     idx = global_idx++;
 
@@ -37,7 +37,7 @@ FunctionWrapper::FunctionWrapper(Function *f) {
     }
 }
 
-FunctionWrapper::~FunctionWrapper() {
+DyckCallGraphNode::~DyckCallGraphNode() {
     set<PointerCall *>::iterator it = pointerCalls.begin();
     while (it != pointerCalls.end()) {
         delete (*it);
@@ -57,77 +57,77 @@ FunctionWrapper::~FunctionWrapper() {
     }
 }
 
-int FunctionWrapper::getIndex() {
+int DyckCallGraphNode::getIndex() {
     return idx;
 }
 
-set<PointerCall *>& FunctionWrapper::getPointerCalls() {
+set<PointerCall *>& DyckCallGraphNode::getPointerCalls() {
     return pointerCalls;
 }
 
-void FunctionWrapper::addPointerCall(PointerCall* call){
+void DyckCallGraphNode::addPointerCall(PointerCall* call){
     pointerCalls.insert(call);
 }
 
-Function* FunctionWrapper::getLLVMFunction() {
+Function* DyckCallGraphNode::getLLVMFunction() {
     return llvm_function;
 }
 
-set<CommonCall *>& FunctionWrapper::getCommonCalls() {
+set<CommonCall *>& DyckCallGraphNode::getCommonCalls() {
     return commonCalls;
 }
 
-void FunctionWrapper::addCommonCall(CommonCall * call) {
+void DyckCallGraphNode::addCommonCall(CommonCall * call) {
     commonCalls.insert(call);
 }
 
-void FunctionWrapper::addResume(Value * res) {
+void DyckCallGraphNode::addResume(Value * res) {
     resumes.insert(res);
 }
 
-void FunctionWrapper::addLandingPad(Value * invoke, Value * lpad) {
+void DyckCallGraphNode::addLandingPad(Value * invoke, Value * lpad) {
     lpads.insert(pair<Value*, Value*>(invoke, lpad));
 }
 
-void FunctionWrapper::addRet(Value * ret) {
+void DyckCallGraphNode::addRet(Value * ret) {
     rets.insert(ret);
 }
 
-void FunctionWrapper::addArg(Value * arg) {
+void DyckCallGraphNode::addArg(Value * arg) {
     args.push_back(arg);
 }
 
-void FunctionWrapper::addVAArg(Value* arg) {
+void DyckCallGraphNode::addVAArg(Value* arg) {
     va_args.push_back(arg);
 }
 
-vector<Value*>& FunctionWrapper::getArgs() {
+vector<Value*>& DyckCallGraphNode::getArgs() {
     return args;
 }
 
-vector<Value*>& FunctionWrapper::getVAArgs() {
+vector<Value*>& DyckCallGraphNode::getVAArgs() {
     return va_args;
 }
 
-set<Value*>& FunctionWrapper::getReturns() {
+set<Value*>& DyckCallGraphNode::getReturns() {
     return rets;
 }
 
-set<Value*>& FunctionWrapper::getResumes() {
+set<Value*>& DyckCallGraphNode::getResumes() {
     return resumes;
 }
 
-Value* FunctionWrapper::getLandingPad(Value * invoke) {
+Value* DyckCallGraphNode::getLandingPad(Value * invoke) {
     if (lpads.count(invoke)) {
         return lpads[invoke];
     }
     return NULL;
 }
 
-set<CommonCall *>* FunctionWrapper::getCommonCallsForCG() {
+set<CommonCall *>* DyckCallGraphNode::getCommonCallsForCG() {
     return &commonCallsForCG;
 }
 
-set<PointerCall *>* FunctionWrapper::getPointerCallsForCG() {
+set<PointerCall *>* DyckCallGraphNode::getPointerCallsForCG() {
     return &pointerCalls;
 }

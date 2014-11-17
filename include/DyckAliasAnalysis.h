@@ -23,6 +23,7 @@
 #include "llvm/IR/InlineAsm.h"
 
 #include "DyckGraph.h"
+#include "DyckCallGraph.h"
 
 #include <set>
 
@@ -101,6 +102,7 @@ public:
 
 private:
     DyckGraph* dyck_graph;
+    DyckCallGraph * call_graph;
 
 private:
     bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
@@ -113,12 +115,15 @@ private:
     ///     The summary of the evaluation will be printed to the console
     void printAliasSetInformation(Module& M);
 
-public:
     void getEscapedPointersTo(set<DyckVertex*>* ret, Function * func); // escaped to 'func'
     void getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from); // escaped from 'from'
     
+ public:  
     void getEscapedPointersTo(set<Value*>* ret, Function * func); // escaped to 'func'
     void getEscapedPointersFrom(set<Value*>* ret, Value * from); // escaped from 'from'
+    
+    bool callGraphPreserved();
+    DyckCallGraph* getCallGraph();
 
 };
 

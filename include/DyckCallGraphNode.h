@@ -7,8 +7,8 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#ifndef FUNCTIONWRAPPER_H
-#define	FUNCTIONWRAPPER_H
+#ifndef DYCKCALLGRAPHNODE_H
+#define	DYCKCALLGRAPHNODE_H
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Pass.h"
@@ -57,7 +57,7 @@ public:
     PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args);
 };
 
-class FunctionWrapper {
+class DyckCallGraphNode {
 private:
     int idx;
 
@@ -81,9 +81,9 @@ private:
 
 public:
 
-    FunctionWrapper(Function *f);
+    DyckCallGraphNode(Function *f);
 
-    ~FunctionWrapper();
+    ~DyckCallGraphNode();
 
     int getIndex();
 
@@ -123,5 +123,5 @@ public:
 };
 
 
-#endif	/* FUNCTIONWRAPPER_H */
+#endif	/* DYCKCALLGRAPHNODE_H */
 
