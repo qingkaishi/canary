@@ -15,3 +15,4 @@ Makefile.llvm.config
 canary.zip
 .sconsign.dblite
 bin
+*~
