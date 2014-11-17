@@ -1,5 +1,5 @@
 /* 
- * File:   Transformer4Replay.h
+ * File:   Transformer4Leap.h
  *
  * Created on December 3, 2013, 10:30 AM
  * 
@@ -12,7 +12,7 @@
 
 #include "Transformer.h"
 
-class Transformer4Leap : public Transformer{
+class Transformer4Leap : public Transformer, public ModulePass {
 private:
     map<Value *, int> sv_idx_map;
 
@@ -24,41 +24,48 @@ private:
 private:
     static int stmt_idx;
 
-public:
+private:
+    size_t ptrsize; // = sizeof(int*)
+    set<Value*> sharedVariables;
 
-    Transformer4Leap(Module * m, set<Value*> * svs, unsigned psize);
-
-    void transform(AliasAnalysis& AA);
-    
 public:
-    public:
-    virtual void beforeTransform(AliasAnalysis& AA) ;
-    virtual void afterTransform(AliasAnalysis& AA) ;
-    virtual bool functionToTransform(Function * f) ;
-    virtual bool blockToTransform(BasicBlock * bb) ;
-    virtual bool instructionToTransform(Instruction * ins) ;
-    virtual void transformLoadInst(LoadInst* ins, AliasAnalysis& AA) ;
-    virtual void transformStoreInst(StoreInst* ins, AliasAnalysis& AA) ;
-    virtual void transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA);
-    virtual void transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformMemCpyMov(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformMemSet(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformOtherFunctionCalls(CallInst* ins, AliasAnalysis& AA) ;
-    virtual void transformSpecialFunctionInvoke(InvokeInst* ins, AliasAnalysis& AA);
-    virtual bool isInstrumentationFunction(Function *f);
-    
+    static char ID;
+
+    virtual void getAnalysisUsage(AnalysisUsage &AU) const {
+        AU.addRequiredTransitive<DyckAliasAnalysis>(); // required alias analysis transitively 
+        AU.addRequired<TargetLibraryInfo>();
+        AU.addRequired<DataLayoutPass>();
+    }
+
+public:
+    Transformer4Leap() ;
+    virtual bool runOnModule(Module &M);
+    virtual void beforeTransform(Module* module, AliasAnalysis& AA);
+    virtual void afterTransform(Module* module, AliasAnalysis& AA);
+    virtual bool functionToTransform(Module* module, Function * f);
+    virtual bool blockToTransform(Module* module, BasicBlock * bb);
+    virtual bool instructionToTransform(Module* module, Instruction * ins);
+    virtual void transformLoadInst(Module* module, LoadInst* ins, AliasAnalysis& AA);
+    virtual void transformStoreInst(Module* module, StoreInst* ins, AliasAnalysis& AA);
+    virtual void transformPthreadCreate(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformPthreadJoin(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformPthreadMutexLock(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformPthreadMutexUnlock(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformPthreadCondWait(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformPthreadCondTimeWait(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformPthreadCondSignal(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformSystemExit(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformMemCpyMov(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformMemSet(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual void transformOtherFunctionCalls(Module* module, CallInst* ins, AliasAnalysis& AA);
+    virtual bool isInstrumentationFunction(Module* module, Function *f);
+
     virtual bool debug();
 
 private:
 
-    int getValueIndex(Value * v, AliasAnalysis& AA);
-    
+    int getValueIndex(Module* module, Value * v, AliasAnalysis& AA);
+
 };
 
 

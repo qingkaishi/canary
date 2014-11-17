@@ -82,6 +82,9 @@ clang++ <ouput_file> -o <executable> -ltrace
 pecan <log_file> <result_file>
 ```
 
+NOTE
+-----
+Transformers and corresponding supports are not updated in time.
 
 Bugs
 ------
@@ -91,5 +94,6 @@ Email: qingkaishi@gmail.com
 
 TODO
 ------
-1. Do not really combine function groups
-2. Make transformer an exclusive pass
+1. Do not really combine function groups, check function type precisely.
+2. Seperate call graph from AAAnalyzer.
+3. Recover canary record/replay transform pass.

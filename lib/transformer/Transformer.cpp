@@ -10,11 +10,11 @@
 #include <llvm/Support/Debug.h>
 #include <list>
 
-Transformer::Transformer(Module* m, set<Value*>* svs, unsigned psize) {
-    module = m;
-    sharedVariables = svs;
-    ptrsize = psize;
-}
+//Transformer::Transformer(Module* m, set<Value*>* svs, unsigned psize) {
+//    module = m;
+//    sharedVariables = svs;
+//    ptrsize = psize;
+//}
 
 CallInst* Transformer::insertCallInstBefore(Instruction* beforeInst, Function* tocall, ...) {
     std::vector<Value *> args;
@@ -124,15 +124,16 @@ CallInst* Transformer::insertCallInstAtTail(Function* theFunc, Function* tocall,
     return NULL;
 }
 
-void Transformer::transform(AliasAnalysis& AA) {
-    this->beforeTransform(AA);
+void Transformer::transform(Module* module, AliasAnalysis* AAptr) {
+    AliasAnalysis& AA = *AAptr;
+    this->beforeTransform(module, AA);
 
     unsigned functionsNum = module->getFunctionList().size();
     unsigned handledNum = 0;
 
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function& f = *iterF;
-        if (!this->functionToTransform(&f)) {
+        if (!this->functionToTransform(module,&f)) {
             outs() << "Remaining... " << (functionsNum - handledNum++) << " functions             \r";
             continue;
         }
@@ -143,13 +144,13 @@ void Transformer::transform(AliasAnalysis& AA) {
         vector<AllocaInst*> allocas;
         for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
             BasicBlock &b = *iterB;
-            if (!this->blockToTransform(&b)) {
+            if (!this->blockToTransform(module,&b)) {
                 continue;
             }
             for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
                 Instruction &inst = *iterI;
 
-                if (!this->instructionToTransform(&inst)) {
+                if (!this->instructionToTransform(module,&inst)) {
                     continue;
                 }
 
@@ -167,30 +168,31 @@ void Transformer::transform(AliasAnalysis& AA) {
 
                     for (unsigned i = 0; i < allocas.size(); i++) {
                         AllocaInst * a = allocas[i];
-                        this->transformAllocaInst(a, & inst, AA);
+                        this->transformAllocaInst(module, a, & inst, AA);
                     }
                 }
 
                 if (isa<LoadInst>(inst)) {
-                    this->transformLoadInst((LoadInst*) & inst, AA);
+                    this->transformLoadInst(module,(LoadInst*) & inst, AA);
                 }
 
                 if (isa<StoreInst>(inst)) {
-                    this->transformStoreInst((StoreInst*) & inst, AA);
+                    this->transformStoreInst(module,(StoreInst*) & inst, AA);
                 }
 
                 if (isa<AtomicRMWInst>(inst)) {
-                    this->transformAtomicRMWInst((AtomicRMWInst*) & inst, AA);
+                    this->transformAtomicRMWInst(module,(AtomicRMWInst*) & inst, AA);
                 }
 
                 if (isa<AtomicCmpXchgInst>(inst)) {
-                    this->transformAtomicCmpXchgInst((AtomicCmpXchgInst*) & inst, AA);
+                    this->transformAtomicCmpXchgInst(module,(AtomicCmpXchgInst*) & inst, AA);
                 }
 
                 if (isa<VAArgInst>(inst)) {
-                    this->transformVAArgInst((VAArgInst*) & inst, AA);
+                    this->transformVAArgInst(module,(VAArgInst*) & inst, AA);
                 }
 
+                // all invokes have been lowered to calls
                 if (isa<CallInst>(inst)) {
                     CallInst &call = *(CallInst*) & inst;
                     Value* calledValue = call.getCalledValue();
@@ -198,7 +200,7 @@ void Transformer::transform(AliasAnalysis& AA) {
                     if (calledValue == NULL) continue;
 
                     if (isa<Function>(calledValue)) {
-                        handleCalls((CallInst*) & inst, (Function*) calledValue, AA);
+                        handleCalls(module,(CallInst*) & inst, (Function*) calledValue, AA);
                     } else if (calledValue->getType()->isPointerTy()) {
                         set<Function*> may;
                         ((DyckAliasAnalysis*) & AA)->get_aliased_functions(&may, NULL, (CallInst*) & calledValue, module);
@@ -206,79 +208,56 @@ void Transformer::transform(AliasAnalysis& AA) {
                         set<Function*>::iterator it = may.begin();
                         while (it != may.end()) {
                             Function* cf = *it;
-                            handleCalls((CallInst*) & inst, cf, AA);
+                            handleCalls(module,(CallInst*) & inst, cf, AA);
                             it++;
                         }
                     }
                 }
-
-                /*all invokes have been lowered to calls
-                 * 
-                 * if (isa<InvokeInst>(inst)) {
-                    InvokeInst &call = *(InvokeInst*) & inst;
-                    Value* calledValue = call.getCalledValue();
-
-                    if (calledValue == NULL) continue;
-
-                    if (isa<Function>(calledValue)) {
-                        handleInvokes((InvokeInst*) & inst, (Function*) calledValue, AA);
-                    } else if (calledValue->getType()->isPointerTy()) {
-                        set<Function*> may;
-                        ((ExtraAliasAnalysisInterface*) & AA)->get_aliased_functions(&may, &inst);
-
-                        set<Function*>::iterator it = may.begin();
-                        while (it != may.end()) {
-                            Function* cf = *it;
-                            handleInvokes((InvokeInst*) & inst, cf, AA);
-                            it++;
-                        }
-                    }
-                }*/
             }
         }
     }
 
     outs() << "                                                            \r";
 
-    this->afterTransform(AA);
+    this->afterTransform(module, AA);
 }
 
-bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAnalysis & AA) {
+bool Transformer::handleCalls(Module* module, CallInst* call, Function* calledFunction, AliasAnalysis & AA) {
     Function &cf = *calledFunction;
     // fork & join
     if (cf.getName().str() == "pthread_create" && cf.getArgumentList().size() == 4) {
-        transformPthreadCreate(call, AA);
+        transformPthreadCreate(module,call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_join") {
-        transformPthreadJoin(call, AA);
+        transformPthreadJoin(module,call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_mutex_lock") {
         // lock & unlock
-        transformPthreadMutexLock(call, AA);
+        transformPthreadMutexLock(module,call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_mutex_unlock") {
-        transformPthreadMutexUnlock(call, AA);
+        transformPthreadMutexUnlock(module,call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_cond_wait") {
         // wait & notify
-        transformPthreadCondWait(call, AA);
+        transformPthreadCondWait(module,call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_cond_timedwait") {
         // wait & notify
-        transformPthreadCondTimeWait(call, AA);
+        transformPthreadCondTimeWait(module,call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_cond_signal") {
-        transformPthreadCondSignal(call, AA);
+        transformPthreadCondSignal(module,call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_mutex_init") {
-        transformPthreadMutexInit(call, AA);
+        transformPthreadMutexInit(module, call, AA);
         return true;
     } else if (cf.getName().str().find("pthread") == 0) {
-        transformOtherPthreadFunctions(call, AA);
+        transformOtherPthreadFunctions(module,call, AA);
         return true;
     } else if (cf.getName().str() == "exit") {
         // system exit
-        transformSystemExit(call, AA);
+        transformSystemExit(module,call, AA);
         return true;
     } else if (cf.getName().str() == "malloc" || cf.getName().str() == "calloc"
             || cf.getName().str() == "realloc"
@@ -291,45 +270,36 @@ bool Transformer::handleCalls(CallInst* call, Function* calledFunction, AliasAna
             || cf.getName().str() == "_Znwm"
             || cf.getName().str() == "_ZnwmRKSt9nothrow_t") {
         // new / malloc
-        transformAddressInit(call, AA);
+        transformAddressInit(module,call, AA);
         return true;
     } else if (cf.isIntrinsic()) {
         switch (cf.getIntrinsicID()) {
             case Intrinsic::vacopy:
             {
-                transformVACpy(call, AA);
+                transformVACpy(module,call, AA);
             }
                 break;
             case Intrinsic::memmove:
             case Intrinsic::memcpy:
             {
-                transformMemCpyMov(call, AA);
+                transformMemCpyMov(module,call, AA);
             }
                 break;
             case Intrinsic::memset:
             {
-                transformMemSet(call, AA);
+                transformMemSet(module,call, AA);
             }
                 break;
             default:
-                transformOtherIntrinsics(call, AA);
+                transformOtherIntrinsics(module,call, AA);
                 break;
         }
         return true;
-    } else if (!this->functionToTransform(&cf) && !this->isInstrumentationFunction(&cf)) {
+    } else if (!this->functionToTransform(module, &cf) && !this->isInstrumentationFunction(module, &cf)) {
         // other empty functions
-        transformOtherFunctionCalls(call, AA);
+        transformOtherFunctionCalls(module, call, AA);
         return true;
     }
     //*/
-    return false;
-}
-
-bool Transformer::handleInvokes(InvokeInst* call, Function* calledFunction, AliasAnalysis & AA) {
-    Function &cf = *calledFunction;
-    if (!this->functionToTransform(&cf)) {
-        transformSpecialFunctionInvoke(call, AA);
-        return true;
-    }
     return false;
 }

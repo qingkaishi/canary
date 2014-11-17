@@ -15,7 +15,19 @@
 
 int Transformer4Leap::stmt_idx = 0;
 
-Transformer4Leap::Transformer4Leap(Module* m, set<Value*>* svs, unsigned psize) : Transformer(m, svs, psize) {
+char Transformer4Leap::ID = 0;
+
+Transformer4Leap::Transformer4Leap() : ModulePass(ID)  { 
+}
+
+bool Transformer4Leap::debug() {
+    return false;
+}
+
+void Transformer4Leap::beforeTransform(Module* m, AliasAnalysis& AA) {
+     // do not remove it, it is used in the macro
+     ptrsize = AA.getDataLayout()->getPointerSize();
+     
     ///initialize functions
     // do not remove context, it is used in the macro FUNCTION_ARG_TYPE
     LLVMContext& context = m->getContext();
@@ -51,14 +63,7 @@ Transformer4Leap::Transformer4Leap(Module* m, set<Value*>* svs, unsigned psize) 
     F_wait = cast<Function>(m->getOrInsertFunction("OnWait", FUNCTION_WAIT_ARG_TYPE));
 }
 
-bool Transformer4Leap::debug() {
-    return false;
-}
-
-void Transformer4Leap::beforeTransform(AliasAnalysis& AA) {
-}
-
-void Transformer4Leap::afterTransform(AliasAnalysis& AA) {
+void Transformer4Leap::afterTransform(Module* module, AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
         ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sv_idx_map.size());
@@ -67,21 +72,21 @@ void Transformer4Leap::afterTransform(AliasAnalysis& AA) {
     }
 }
 
-bool Transformer4Leap::functionToTransform(Function* f) {
-    return !f->isIntrinsic() && !f->empty() && !this->isInstrumentationFunction(f);
+bool Transformer4Leap::functionToTransform(Module* module, Function* f) {
+    return !f->isIntrinsic() && !f->empty() && !this->isInstrumentationFunction(module, f);
 }
 
-bool Transformer4Leap::blockToTransform(BasicBlock* bb) {
+bool Transformer4Leap::blockToTransform(Module* module, BasicBlock* bb) {
     return true;
 }
 
-bool Transformer4Leap::instructionToTransform(Instruction* ins) {
+bool Transformer4Leap::instructionToTransform(Module* module, Instruction* ins) {
     return true;
 }
 
-void Transformer4Leap::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
+void Transformer4Leap::transformLoadInst(Module* module, LoadInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -91,9 +96,9 @@ void Transformer4Leap::transformLoadInst(LoadInst* inst, AliasAnalysis& AA) {
     this->insertCallInstAfter(inst, F_load, tmp, debug_idx, NULL);
 }
 
-void Transformer4Leap::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
+void Transformer4Leap::transformStoreInst(Module* module, StoreInst* inst, AliasAnalysis& AA) {
     Value * val = inst->getOperand(1);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -103,7 +108,7 @@ void Transformer4Leap::transformStoreInst(StoreInst* inst, AliasAnalysis& AA) {
     this->insertCallInstAfter(inst, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4Leap::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCreate(Module* module, CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
     this->insertCallInstBefore(ins, F_prefork, tmp, NULL);
 
@@ -112,16 +117,16 @@ void Transformer4Leap::transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) 
     this->insertCallInstAfter(c, F_fork, c, NULL);
 }
 
-void Transformer4Leap::transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadJoin(Module* module, CallInst* ins, AliasAnalysis& AA) {
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), -1);
 
     this->insertCallInstBefore(ins, F_prejoin, tmp, NULL);
     this->insertCallInstAfter(ins, F_join, tmp, NULL);
 }
 
-void Transformer4Leap::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadMutexLock(Module* module, CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -130,9 +135,9 @@ void Transformer4Leap::transformPthreadMutexLock(CallInst* ins, AliasAnalysis& A
     this->insertCallInstAfter(ins, F_lock, tmp, NULL);
 }
 
-void Transformer4Leap::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadMutexUnlock(Module* module, CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -141,9 +146,9 @@ void Transformer4Leap::transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis&
     this->insertCallInstAfter(ins, F_unlock, tmp, NULL);
 }
 
-void Transformer4Leap::transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCondWait(Module* module, CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -158,9 +163,9 @@ void Transformer4Leap::transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA
     this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
 }
 
-void Transformer4Leap::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCondTimeWait(Module* module, CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -175,9 +180,9 @@ void Transformer4Leap::transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis
     this->insertCallInstAfter(c2, F_wait, tmp, c1, c2, NULL);
 }
 
-void Transformer4Leap::transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
+void Transformer4Leap::transformPthreadCondSignal(Module* module, CallInst* ins, AliasAnalysis& AA) {
     Value * val = ins->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -186,16 +191,16 @@ void Transformer4Leap::transformPthreadCondSignal(CallInst* ins, AliasAnalysis& 
     this->insertCallInstAfter(ins, F_notify, tmp, NULL);
 }
 
-void Transformer4Leap::transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
-    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables->size());
+void Transformer4Leap::transformSystemExit(Module* module, CallInst* ins, AliasAnalysis& AA) {
+    ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sharedVariables.size());
     this->insertCallInstBefore(ins, F_exit, tmp, NULL);
 }
 
-void Transformer4Leap::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformMemCpyMov(Module* module, CallInst* call, AliasAnalysis& AA) {
     Value * dst = call->getArgOperand(0);
     Value * src = call->getArgOperand(1);
-    int svIdx_dst = this->getValueIndex(dst, AA);
-    int svIdx_src = this->getValueIndex(src, AA);
+    int svIdx_dst = this->getValueIndex(module, dst, AA);
+    int svIdx_src = this->getValueIndex(module, src, AA);
     if (svIdx_dst == -1 && svIdx_src == -1) {
         return;
     } else if (svIdx_dst != -1 && svIdx_src != -1) {
@@ -248,9 +253,9 @@ void Transformer4Leap::transformMemCpyMov(CallInst* call, AliasAnalysis& AA) {
     }
 }
 
-void Transformer4Leap::transformMemSet(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformMemSet(Module* module, CallInst* call, AliasAnalysis& AA) {
     Value * val = call->getArgOperand(0);
-    int svIdx = this->getValueIndex(val, AA);
+    int svIdx = this->getValueIndex(module, val, AA);
     if (svIdx == -1) return;
 
     ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIdx);
@@ -260,12 +265,12 @@ void Transformer4Leap::transformMemSet(CallInst* call, AliasAnalysis& AA) {
     this->insertCallInstAfter(call, F_store, tmp, debug_idx, NULL);
 }
 
-void Transformer4Leap::transformOtherFunctionCalls(CallInst* call, AliasAnalysis& AA) {
+void Transformer4Leap::transformOtherFunctionCalls(Module* module, CallInst* call, AliasAnalysis& AA) {
     vector<int> svIndices;
     for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         Value * arg = call->getArgOperand(i);
 
-        int svIdx = this->getValueIndex(arg, AA);
+        int svIdx = this->getValueIndex(module, arg, AA);
         if (svIdx != -1) {
             bool contained = false;
             vector<int>::iterator it = svIndices.begin();
@@ -296,44 +301,7 @@ void Transformer4Leap::transformOtherFunctionCalls(CallInst* call, AliasAnalysis
     }
 }
 
-void Transformer4Leap::transformSpecialFunctionInvoke(InvokeInst* call, AliasAnalysis& AA) {
-    vector<int> svIndices;
-    for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
-        Value * arg = call->getArgOperand(i);
-
-        int svIdx = this->getValueIndex(arg, AA);
-        if (svIdx != -1) {
-            bool contained = false;
-            vector<int>::iterator it = svIndices.begin();
-            while (it != svIndices.end()) {
-                if (*it == svIdx) {
-                    contained = true;
-                    break;
-                }
-                if (*it < svIdx) break;
-                it++;
-            }
-            if (!contained)
-                svIndices.insert(it, svIdx);
-        }
-    }
-
-    if (!svIndices.empty()) {
-        //BasicBlock * normal = call->getNormalDest();
-        //BasicBlock * unwind = call->getUnwindDest();
-
-        for (unsigned i = 0; i < svIndices.size(); i++) {
-            ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), svIndices[i]);
-            ConstantInt* debug_idx = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), stmt_idx++);
-
-            ///@FIXME
-            this->insertCallInstBefore(call, F_prestore, tmp, debug_idx, NULL);
-            this->insertCallInstBefore(call, F_store, tmp, debug_idx, NULL);
-        }
-    }
-}
-
-bool Transformer4Leap::isInstrumentationFunction(Function * called){
+bool Transformer4Leap::isInstrumentationFunction(Module* module, Function * called){
     return called == F_init || called == F_exit
             || called == F_preload || called == F_load
             || called == F_prestore || called == F_store
@@ -347,7 +315,7 @@ bool Transformer4Leap::isInstrumentationFunction(Function * called){
 
 // private functions
 
-int Transformer4Leap::getValueIndex(Value* v, AliasAnalysis & AA) {
+int Transformer4Leap::getValueIndex(Module* module, Value* v, AliasAnalysis & AA) {
     v = v->stripPointerCastsNoFollowAliases();
     while(isa<GlobalAlias>(v)){
         // aliase can be either global or bitcast of global
@@ -358,8 +326,8 @@ int Transformer4Leap::getValueIndex(Value* v, AliasAnalysis & AA) {
         return -1;
     }
     
-    set<Value*>::iterator it = sharedVariables->begin();
-    while (it != sharedVariables->end()) {
+    set<Value*>::iterator it = sharedVariables.begin();
+    while (it != sharedVariables.end()) {
         Value * rep = *it;
         if (AA.alias(v, rep) != AliasAnalysis::NoAlias) {
             if(sv_idx_map.count(rep)){
@@ -374,4 +342,15 @@ int Transformer4Leap::getValueIndex(Value* v, AliasAnalysis & AA) {
     }
 
     return -1;
+}
+
+bool Transformer4Leap::runOnModule(Module& M){
+    DyckAliasAnalysis & AA = this->getAnalysis<DyckAliasAnalysis>();
+    
+    AA.getEscapedPointersTo(&sharedVariables, M.getFunction("pthread_create"));
+    
+    this->transform(&M, &AA);
+    
+    outs() << "\nPleaase add -ltsxleaprecord or -lleaprecord / -lleapreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
+    return true;
 }

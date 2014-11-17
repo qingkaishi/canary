@@ -1,8 +1,7 @@
 Import('env')
 
-LIBRARYNAME="CanaryTransformer"
+LIBRARYNAME="CanaryReplayer"
 LIBRARYNAME=env['BIN']+"/"+LIBRARYNAME
 
 
 env.Library(LIBRARYNAME, Glob('*.cpp'))
-

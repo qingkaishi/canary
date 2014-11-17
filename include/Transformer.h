@@ -35,19 +35,9 @@
 using namespace std;
 using namespace llvm;
 
-class Transformer {
+class Transformer  {
 public:
-    Module * module;
-    set<Value*> * sharedVariables;
-    unsigned ptrsize; // = sizeof(int*)
-
-public:
-
-    Transformer() {
-    }
-    Transformer(Module * m, set<Value*> * svs, unsigned psize);
-
-    void transform(AliasAnalysis& AA);
+    void transform(Module* module, AliasAnalysis* AAptr);
 
     /// the var agrs are the arguments of the call inst.
     /// the last one must be NULL, otherwise the behavior is not defined.
@@ -61,103 +51,98 @@ public:
     virtual ~Transformer() {
     }
 
-    virtual void beforeTransform(AliasAnalysis& AA) {
+    virtual void beforeTransform(Module* module, AliasAnalysis& AA) {
     }
 
-    virtual void afterTransform(AliasAnalysis& AA) {
+    virtual void afterTransform(Module* module, AliasAnalysis& AA) {
     }
 
-    virtual bool functionToTransform(Function * f) {
+    virtual bool functionToTransform(Module* module, Function * f) {
         return false;
     }
 
-    virtual bool blockToTransform(BasicBlock * bb) {
+    virtual bool blockToTransform(Module* module, BasicBlock * bb) {
         return false;
     }
 
-    virtual bool instructionToTransform(Instruction * ins) {
+    virtual bool instructionToTransform(Module* module, Instruction * ins) {
         return false;
     }
 
-    virtual void transformLoadInst(LoadInst* ins, AliasAnalysis& AA) {
+    virtual void transformLoadInst(Module* module, LoadInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformStoreInst(StoreInst* ins, AliasAnalysis& AA) {
+    virtual void transformStoreInst(Module* module, StoreInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadCreate(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadCreate(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadJoin(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadJoin(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadMutexInit(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadMutexInit(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadMutexLock(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadMutexLock(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadMutexUnlock(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadMutexUnlock(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadCondWait(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadCondWait(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadCondSignal(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadCondSignal(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformPthreadCondTimeWait(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformPthreadCondTimeWait(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformOtherPthreadFunctions(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformOtherPthreadFunctions(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformSystemExit(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformSystemExit(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformMemCpyMov(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformMemCpyMov(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformMemSet(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformMemSet(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformOtherFunctionCalls(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformOtherFunctionCalls(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformOtherIntrinsics(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformOtherIntrinsics(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformSpecialFunctionInvoke(InvokeInst* ins, AliasAnalysis& AA) {
+    virtual void transformAddressInit(Module* module, CallInst* ins, AliasAnalysis& AA) {
     }
 
-    virtual void transformAddressInit(CallInst* ins, AliasAnalysis& AA) {
+    virtual void transformAllocaInst(Module* module, AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
     }
 
-    virtual void transformAllocaInst(AllocaInst* alloca, Instruction* firstNotAlloca, AliasAnalysis& AA) {
+    virtual void transformAtomicCmpXchgInst(Module* module, AtomicCmpXchgInst* inst, AliasAnalysis& AA) {
     }
 
-    virtual void transformAtomicCmpXchgInst(AtomicCmpXchgInst* inst, AliasAnalysis& AA) {
+    virtual void transformAtomicRMWInst(Module* module, AtomicRMWInst* inst, AliasAnalysis& AA) {
     }
 
-    virtual void transformAtomicRMWInst(AtomicRMWInst* inst, AliasAnalysis& AA) {
+    virtual void transformVAArgInst(Module* module, VAArgInst* inst, AliasAnalysis& AA) {
     }
 
-    virtual void transformVAArgInst(VAArgInst* inst, AliasAnalysis& AA) {
+    virtual void transformVACpy(Module* module, CallInst* inst, AliasAnalysis& AA) {
     }
 
-    virtual void transformVACpy(CallInst* inst, AliasAnalysis& AA) {
-    }
-
-    virtual bool isInstrumentationFunction(Function *f) {
+    virtual bool isInstrumentationFunction(Module* module, Function *f) {
         return false;
     }
 
 private:
-    bool handleCalls(CallInst * call, Function* calledFunction, AliasAnalysis& AA);
-    bool handleInvokes(InvokeInst * call, Function* calledFunction, AliasAnalysis& AA);
+    // all calls have been lowered to invokes
+    bool handleCalls(Module* module, CallInst * call, Function* calledFunction, AliasAnalysis& AA);
 };
-
-
 
 #endif	/* TRANSFORMER_H */
 

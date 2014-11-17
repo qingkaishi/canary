@@ -116,6 +116,9 @@ private:
 public:
     void getEscapedPointersTo(set<DyckVertex*>* ret, Function * func); // escaped to 'func'
     void getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from); // escaped from 'from'
+    
+    void getEscapedPointersTo(set<Value*>* ret, Function * func); // escaped to 'func'
+    void getEscapedPointersFrom(set<Value*>* ret, Value * from); // escaped from 'from'
 
 };
 

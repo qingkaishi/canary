@@ -61,10 +61,16 @@
 
 #include "LibcAnnotation.h"
 #include "DyckAliasAnalysis.h"
+#include "Transformer4Trace.h"
+#include "Transformer4Leap.h"
 
 
 using namespace llvm;
 using namespace opt_tool;
+
+/*my optional pass*/
+static RegisterPass<Transformer4Trace> X("trace-transformer", "Transform programs to record a trace.");
+static RegisterPass<Transformer4Leap> Y("leap-transformer", "Transform programs using Leap transformer.");
 
 // The OptimizationList is automatically populated with registered Passes by the
 // PassNameParser.
