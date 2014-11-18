@@ -11,16 +11,16 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph*
     module = m;
     aa = a;
     dgraph = d;
-    
-    if(((DyckAliasAnalysis*)aa)->callGraphPreserved()){
+
+    if (((DyckAliasAnalysis*) aa)->callGraphPreserved()) {
         callgraph = cg;
-    }else{
+    } else {
         callgraph = new DyckCallGraph;
     }
 }
 
 AAAnalyzer::~AAAnalyzer() {
-    if(!((DyckAliasAnalysis*)aa)->callGraphPreserved()){
+    if (!((DyckAliasAnalysis*) aa)->callGraphPreserved()) {
         delete callgraph;
     }
 }
@@ -60,7 +60,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         auto pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
             PointerCall* pc = *pcit;
-            if (!pc->mayAliasedCallees.empty() && pc->instruction != NULL) 
+            if (!pc->mayAliasedCallees.empty() && pc->instruction != NULL)
                 unhandled_call_insts.insert((Instruction*) pc->instruction);
 
             pcit++;
@@ -113,8 +113,14 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 
 bool AAAnalyzer::intra_procedure_analysis() {
     long instNum = 0;
+    long intrinsicsNum = 0;
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function* f = iterF;
+        if (f->isIntrinsic()) {
+            // intrinsics are handled as instructions
+            intrinsicsNum++;
+            continue;
+        }
         DyckCallGraphNode* df = callgraph->getOrInsertFunction(f);
         for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
             for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
@@ -126,7 +132,7 @@ bool AAAnalyzer::intra_procedure_analysis() {
         }
     }
     outs() << "# Instructions: " << instNum << "\n";
-    outs() << "# Functions: " << module->getFunctionList().size() << "\n";
+    outs() << "# Functions: " << module->getFunctionList().size() - intrinsicsNum << "\n";
     return true; // finished
 }
 
@@ -1122,7 +1128,7 @@ bool AAAnalyzer::handle_functions(DyckCallGraphNode* caller) {
 
     while (mit != pointercalls.end()) {
         // print in console
-        int percentage = ((++PTCALL_COUNT)*100 / PTCALL_TOTAL) ;
+        int percentage = ((++PTCALL_COUNT)*100 / PTCALL_TOTAL);
         outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << percentage << "%, \r";
 
         //Value * inst = mit->first;

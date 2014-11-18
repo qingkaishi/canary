@@ -651,6 +651,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
     {
         set<DyckVertex*>& allreps = dyck_graph->getRepresentatives();
 
+        outs() << "Printing distribution.log...\n";
         FILE * log = fopen("distribution.log", "w+");
 
         vector<unsigned long> aliasSetSizes;
@@ -701,6 +702,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
 
     /*if (DotAliasSet) */
     {
+        outs() << "Printing alias_rel.dot...\n";
         FILE * aliasRel = fopen("alias_rel.dot", "w");
         fprintf(aliasRel, "digraph rel{\n");
 
@@ -759,11 +761,14 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
 
     /*if (OutputAliasSet)*/
     {
+        outs() << "Printing alias_sets.log...\n";
+        FILE * log = fopen("alias_sets.log", "w+");
+        
         set<DyckVertex*> svs;
         this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
 
-        outs() << "================= Alias Sets ==================\n";
-        outs() << "===== {.} means pthread escaped alias set =====\n";
+        fprintf(log, "================= Alias Sets ==================\n");
+        fprintf(log, "===== {.} means pthread escaped alias set =====\n");
         int idx = 0;
         set<DyckVertex*>& reps = dyck_graph->getRepresentatives();
         set<DyckVertex*>::iterator repsIt = reps.begin();
@@ -783,16 +788,18 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
                 val = (Value*) ((*eit)->getValue());
                 if (val != NULL) {
                     if (pthread_escaped) {
-                        outs() << "{" << idx << "} " << *val << "\n";
+                        fprintf(log, "{%d} %s", idx, val->getName().data());
                     } else {
-                        outs() << "[" << idx << "] " << *val << "\n";
+                        fprintf(log, "[%d] %s", idx, val->getName().data());
                     }
                 }
                 eit++;
             }
             repsIt++;
-            outs() << "------------------------------\n";
+            fprintf(log, "------------------------------\n");
         }
+        
+        fclose(log);
     }
 }
 
