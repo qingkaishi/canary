@@ -1139,7 +1139,7 @@ bool AAAnalyzer::handle_functions(DyckCallGraphNode* caller) {
         // print in console
         int CAND_TOTAL = cands->size();
         int CAND_COUNT = 0;
-        if (CAND_TOTAL == 0) outs() << "100%.                     \r";
+        if (CAND_TOTAL == 0) outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << "100%, 100%.         \r";
 
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
