@@ -843,6 +843,10 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
             // other operations
         case Instruction::Invoke: // invoke is a terminal operation
         {
+            errs() << "Error during alias analysis. Please add -lowerinvoke -simplifycfg before -dyckaa!\n";
+            exit(-1);
+            
+            // for later use
             InvokeInst * invoke = (InvokeInst*) inst;
             LandingPadInst* lpd = invoke->getLandingPadInst();
             parent_func->addLandingPad(invoke, lpd);
