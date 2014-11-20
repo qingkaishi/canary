@@ -17,6 +17,8 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph*
     } else {
         callgraph = new DyckCallGraph;
     }
+    
+    DEREF_LABEL = new DerefEdgeLabel;
 }
 
 AAAnalyzer::~AAAnalyzer() {
@@ -375,15 +377,15 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* f
     DyckVertex* valrep = val->getRepresentative();
 
     if (field == NULL) {
-        set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (fieldIndex));
+        set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (this->getOrInsertOffsetEdgeLabel(fieldIndex)));
         if (valrepset != NULL && !valrepset->empty()) {
             field = *(valrepset->begin());
         } else {
             field = dgraph->retrieveDyckVertex(NULL).first;
-            valrep->addTarget(field, (void*) (fieldIndex));
+            valrep->addTarget(field, (void*) (this->getOrInsertOffsetEdgeLabel(fieldIndex)));
         }
     } else {
-        valrep->addTarget(field, (void*) (fieldIndex));
+        valrep->addTarget(field, (void*) (this->getOrInsertOffsetEdgeLabel(fieldIndex)));
     }
 
     return field;
@@ -470,7 +472,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 
             /// the label representation and feature impl is temporal. @FIXME
             // s3: y--fieldIdx-->?3
-            current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (fieldIdx));
+            current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (this->getOrInsertOffsetEdgeLabel(fieldIdx)));
 
             // update current
             current = fieldPtr;
@@ -1052,7 +1054,7 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 
             Value * arg = c->args[argIdx];
             Value * par = *pit;
-            if (!func->empty()) {
+            if (!func->empty()) { // for empty/external calls, we do not merge the arg & par
                 makeAlias(wrapValue(par), wrapValue(arg));
             }
 
@@ -1067,6 +1069,8 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
                 Value * arg = c->args[i];
                 DyckVertex* arg_v = wrapValue(arg);
 
+                // for empty/external calls, we do not merge the arg & par
+                // here va_parameters must be empty, thus making it.
                 vector<Value*>::iterator va_par_it = va_parameters.begin();
                 while (va_par_it != va_parameters.end()) {
                     Value* va_par = *va_par_it;

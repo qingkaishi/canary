@@ -137,14 +137,7 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function*
                 return NoAlias;
             }
         } else {
-            //            bool doesnotret = ((FunctionType*) calledValue->getType()->getPointerElementType())->getReturnType()->isVoidTy();
-            //            bool isvar = ((FunctionType*) calledValue->getType()->getPointerElementType())->isVarArg();
-            //
-            //            if (doesnotret == function->getReturnType()->isVoidTy() && isvar == function->isVarArg()) {
             return MayAlias;
-            //            } else {
-            //                return NoAlias;
-            //            }
         }
     }
 
@@ -230,8 +223,8 @@ bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex * v2) {
             set<void*>& outlabels = top->getOutLabels();
             set<void*>::iterator olIt = outlabels.begin();
             while (olIt != outlabels.end()) {
-                long labelValue = (long) (*olIt);
-                if (labelValue >= 0) { /// address offset; @FIXME
+                EdgeLabel* labelValue = (EdgeLabel*) (*olIt);
+                if (labelValue->isLabelTy(EdgeLabel::OFFSET_TYPE)) { /// address offset; @FIXME
                     set<DyckVertex*>* tars = top->getOutVertices(*olIt);
 
                     set<DyckVertex*>::iterator tit = tars->begin();
@@ -253,8 +246,8 @@ bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex * v2) {
             set<void*>& inlabels = top->getInLabels();
             set<void*>::iterator ilIt = inlabels.begin();
             while (ilIt != inlabels.end()) {
-                long labelValue = (long) (*ilIt);
-                if (labelValue >= 0) { /// address offset; @FIXME
+                EdgeLabel* labelValue = (EdgeLabel*) (*ilIt);
+                if (labelValue->isLabelTy(EdgeLabel::OFFSET_TYPE)) { /// address offset; @FIXME
                     set<DyckVertex*>* srcs = top->getInVertices(*ilIt);
 
                     set<DyckVertex*>::iterator sit = srcs->begin();
@@ -731,7 +724,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
             map<void*, set<DyckVertex*>*>::iterator ovIt = outVs.begin();
 
             while (ovIt != outVs.end()) {
-                void* label = ovIt->first;
+                EdgeLabel* label = (EdgeLabel*)ovIt->first;
                 set<DyckVertex*>* oVs = ovIt->second;
 
                 set<DyckVertex*>::iterator olIt = oVs->begin();
@@ -740,10 +733,17 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
                         errs() << "ERROR in DotAliasSet\n";
                         exit(1);
                     }
-                    int idx1 = theMap[dv->getRepresentative()];
-                    int idx2 = theMap[(*olIt)->getRepresentative()];
+                    
+                    DyckVertex * rep1 = dv->getRepresentative();
+                    DyckVertex * rep2 = (*olIt)->getRepresentative();
+                    int idx1 = theMap[rep1];
+                    int idx2 = theMap[rep2];
 
-                    fprintf(aliasRel, "a%d->a%d[label=%p];\n", idx1, idx2, label);
+                    if(svs.count(rep1) && svs.count(rep2)){
+                        fprintf(aliasRel, "a%d->a%d[label=\"%s\" color=red];\n", idx1, idx2, label->getEdgeLabelDescription().data());
+                    } else {
+                        fprintf(aliasRel, "a%d->a%d[label=\"%s\"];\n", idx1, idx2, label->getEdgeLabelDescription().data());
+                    }
 
                     olIt++;
                 }
