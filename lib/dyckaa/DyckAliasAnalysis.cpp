@@ -443,6 +443,10 @@ bool DyckAliasAnalysis::callGraphPreserved(){
 }
 
 DyckCallGraph* DyckAliasAnalysis::getCallGraph(){
+    if(!PreserveCallGraph) {
+        errs() << "Error when getCallGraph, please add -preserve-dyck-callgraph option when using opt.\n";
+        exit(-1);
+    }
     return call_graph;
 }
 
