@@ -256,7 +256,7 @@ FunctionTypeNode* AAAnalyzer::initFunctionGroup(FunctionType* fty) {
 void AAAnalyzer::initFunctionGroups() {
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function* f = iterF;
-        if (f->isIntrinsic()) {
+        if (f->isIntrinsic() || f->empty()) { //empty method will not used for inter-pro analysis
             continue;
         }
 
