@@ -9,12 +9,9 @@
 #include <stdio.h>
 #include <map>
 
-class DyckDerefEdgeLabel;
-class DyckPointerOffsetEdgeLabel;
-
 class EdgeLabel {
 public:
-    enum LABEL_TY {DEREF_TYPE, OFFSET_TYPE};
+    enum LABEL_TY {DEREF_TYPE, OFFSET_TYPE, INDEX_TYPE};
 public:
     virtual std::string& getEdgeLabelDescription();
     virtual bool isLabelTy(LABEL_TY type);
@@ -49,6 +46,25 @@ public:
     
     virtual std::string& getEdgeLabelDescription() { return desc;}
     virtual bool isLabelTy(LABEL_TY type) { return type == EdgeLabel::OFFSET_TYPE;}
+};
+
+class FieldIndexEdgeLabel : public EdgeLabel {
+private:
+    long offset_bytes;
+    std::string desc;
+    
+public:
+    FieldIndexEdgeLabel(long bytes) : offset_bytes(bytes){
+        desc.clear();
+        desc.append("#");
+        
+        char temp[1024];
+        sprintf(temp, "%ld", bytes);
+        desc.append(temp);
+    }
+    
+    virtual std::string& getEdgeLabelDescription() { return desc;}
+    virtual bool isLabelTy(LABEL_TY type) { return type == EdgeLabel::INDEX_TYPE;}
 };
 
 #endif	/* EDGELABEL_H */

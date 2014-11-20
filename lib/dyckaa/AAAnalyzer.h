@@ -31,14 +31,25 @@ private:
     
 private:
     EdgeLabel * DEREF_LABEL;
-    map<long, EdgeLabel*> OFFSET_LABEL_MAP;
     
+    map<long, EdgeLabel*> OFFSET_LABEL_MAP;
     EdgeLabel* getOrInsertOffsetEdgeLabel(long offset){
         if(OFFSET_LABEL_MAP.count(offset)) {
             return OFFSET_LABEL_MAP[offset];
         } else {
             EdgeLabel* ret = new PointerOffsetEdgeLabel(offset);
             OFFSET_LABEL_MAP.insert(pair<long, EdgeLabel*>(offset, ret));
+            return ret;
+        }
+    }
+    
+    map<long, EdgeLabel*> INDEX_LABEL_MAP;
+    EdgeLabel* getOrInsertIndexEdgeLabel(long offset){
+        if(INDEX_LABEL_MAP.count(offset)) {
+            return INDEX_LABEL_MAP[offset];
+        } else {
+            EdgeLabel* ret = new FieldIndexEdgeLabel(offset);
+            INDEX_LABEL_MAP.insert(pair<long, EdgeLabel*>(offset, ret));
             return ret;
         }
     }
@@ -73,6 +84,7 @@ public:
 private:
     void handle_inst(Instruction *inst, DyckCallGraphNode * parent);
     void handle_instrinsic(Instruction *inst);
+    void handle_extract_insert_value_inst(DyckVertex* structureV, Type* aggTy, ArrayRef<unsigned>& indices, Value* insertedOrExtractedValue);
     void handle_invoke_call_inst(Value * ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent);
     void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, DyckCallGraphNode* parent);
 

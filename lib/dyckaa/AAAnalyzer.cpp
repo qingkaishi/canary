@@ -17,7 +17,7 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph*
     } else {
         callgraph = new DyckCallGraph;
     }
-    
+
     DEREF_LABEL = new DerefEdgeLabel;
 }
 
@@ -369,23 +369,18 @@ static DyckVertex* addPtrOffset(DyckVertex* val, int offset, DyckGraph* dgraph) 
 /// return the structure's field vertex
 
 DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* field) {
-    if (fieldIndex >= -1) {
-        errs() << "ERROR in addField: " << fieldIndex << "\n";
-        exit(1);
-    }
-
     DyckVertex* valrep = val->getRepresentative();
 
     if (field == NULL) {
-        set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (this->getOrInsertOffsetEdgeLabel(fieldIndex)));
+        set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
         if (valrepset != NULL && !valrepset->empty()) {
             field = *(valrepset->begin());
         } else {
             field = dgraph->retrieveDyckVertex(NULL).first;
-            valrep->addTarget(field, (void*) (this->getOrInsertOffsetEdgeLabel(fieldIndex)));
+            valrep->addTarget(field, (void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
         }
     } else {
-        valrep->addTarget(field, (void*) (this->getOrInsertOffsetEdgeLabel(fieldIndex)));
+        valrep->addTarget(field, (void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
     }
 
     return field;
@@ -440,20 +435,18 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
     DyckVertex* current = wrapValue(ptr);
 
     gep_type_iterator preGTI = gep_type_begin(gep); // preGTI is the PointerTy of ptr
-    gep_type_iterator GTI = gep_type_begin(gep); // GTI is the PointerTy of ptr
-    if (GTI != gep_type_end(gep))
-        GTI++; // ptr's element type, e.g. struct
 
     int num_indices = gep->getNumIndices();
     int idxidx = 0;
     while (idxidx < num_indices) {
         Value * idx = gep->getOperand(++idxidx);
-        if (/*!isa<ConstantInt>(idx) ||*/ !preGTI->isSized()) {
+        Type * ty = *preGTI;
+        if (/*!isa<ConstantInt>(idx) ||*/ !ty->isSized()) {
             // current->addProperty("unknown-offset", (void*) 1);
             //break;
-        } else if ((*preGTI)->isStructTy()) {
+        } else if (ty->isStructTy()) {
             // example: gep y 0 constIdx
-            // s1: y--deref-->?1--(-2-constIdx)-->?2
+            // s1: y--deref-->?1--(fieldIdx idxLabel)-->?2
             DyckVertex* theStruct = this->addPtrTo(current, NULL);
 
             ConstantInt * ci = cast<ConstantInt>(idx);
@@ -465,29 +458,36 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
             // field index need not be the same as original value
             // make it be a negative integer
             long fieldIdx = (long) (*(ci->getValue().getRawData()));
-            DyckVertex* field = this->addField(theStruct, -2 - fieldIdx, NULL);
+            long addroffset = 0; // use addr offset as field index
+            for (long x = 0; x < fieldIdx; x++) {
+                Type* tx = ty->getStructElementType(x);
+                addroffset += aa->getTypeStoreSize(tx);
+            }
 
-            // s2: ?3--deref-->?2
-            DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
-
-            /// the label representation and feature impl is temporal. @FIXME
-            // s3: y--fieldIdx-->?3
-            current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (this->getOrInsertOffsetEdgeLabel(fieldIdx)));
+            DyckVertex* field = this->addField(theStruct, addroffset, NULL);
+            DyckVertex* fieldPtr = current;
+            if (addroffset != 0) {
+                // s2: ?3--deref-->?2 (see else: if idx = 0, offset = 0, then the same ptr)
+                fieldPtr = this->addPtrTo(NULL, field);
+                /// the label representation and feature impl is temporal. @FIXME
+                // s3: y--(fieldIdx offLabel)-->?3
+                current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (this->getOrInsertOffsetEdgeLabel(addroffset)));
+            } else {
+                this->addPtrTo(fieldPtr, field);
+            }
 
             // update current
             current = fieldPtr;
-        } else if ((*preGTI)->isPointerTy() || (*preGTI)->isArrayTy()) {
+        } else if (ty->isPointerTy() || ty->isArrayTy()) {
 #ifndef ARRAY_SIMPLIFIED
             current = addPtrOffset(current, getConstantIntRawData(cast<ConstantInt>(idx)) * dl.getTypeAllocSize(*GTI), dgraph);
 #endif
         } else {
             errs() << "ERROR in handle_gep: unknown type:\n";
-            errs() << "Type Id: " << (*preGTI)->getTypeID() << "\n";
+            errs() << "Type Id: " << ty->getTypeID() << "\n";
             exit(1);
         }
 
-        if (GTI != gep_type_end(gep))
-            GTI++;
         if (preGTI != gep_type_end(gep))
             preGTI++;
     }
@@ -565,9 +565,12 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 
         Constant * vAgg = (Constant*) v;
         int numElmt = vAgg->getNumOperands();
+        long offset = 0;
         for (int i = 0; i < numElmt; i++) {
             Value * vi = vAgg->getOperand(i);
-            addField(vdv, -2 - i, wrapValue(vi));
+            addField(vdv, offset, wrapValue(vi));
+
+            offset += aa->getTypeStoreSize(vi->getType());
         }
     } else if (isa<GlobalValue>(v)) {
         if (isa<GlobalVariable>(v)) {
@@ -720,36 +723,9 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
         case Instruction::ExtractValue:
         {
             Value * agg = ((ExtractValueInst*) inst)->getAggregateOperand();
-            DyckVertex* aggV = wrapValue(agg);
-
-            Type* aggTy = agg->getType();
-
             ArrayRef<unsigned> indices = ((ExtractValueInst*) inst)->getIndices();
-            DyckVertex* currentStruct = aggV;
-
-            for (unsigned int i = 0; i < indices.size(); i++) {
-                if (isa<CompositeType>(aggTy) && aggTy->isSized()) {
-                    if (!aggTy->isStructTy()) {
-                        aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-#ifndef ARRAY_SIMPLIFIED
-                        current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
-#endif
-                        if (i == indices.size() - 1) {
-                            this->makeAlias(currentStruct, wrapValue(inst));
-                        }
-                    } else {
-                        aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-
-                        if (i != indices.size() - 1) {
-                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], NULL);
-                        } else {
-                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], wrapValue(inst));
-                        }
-                    }
-                } else {
-                    break;
-                }
-            }
+            
+            this->handle_extract_insert_value_inst(wrapValue(agg), agg->getType(), indices, inst);
         }
             break;
         case Instruction::InsertValue:
@@ -760,38 +736,9 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
                 makeAlias(resultV, wrapValue(agg));
             }
 
-            Value * val = ((InsertValueInst*) inst)->getInsertedValueOperand();
-            DyckVertex* insertedVal = wrapValue(val);
-
-            Type *aggTy = inst->getType();
-
             ArrayRef<unsigned> indices = ((InsertValueInst*) inst)->getIndices();
-
-            DyckVertex* currentStruct = resultV;
-
-            for (unsigned int i = 0; i < indices.size(); i++) {
-                if (isa<CompositeType>(aggTy) && aggTy->isSized()) {
-                    if (!aggTy->isStructTy()) {
-                        aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-#ifndef ARRAY_SIMPLIFIED
-                        current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
-#endif
-                        if (i == indices.size() - 1) {
-                            this->makeAlias(currentStruct, insertedVal);
-                        }
-                    } else {
-                        aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-
-                        if (i != indices.size() - 1) {
-                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], NULL);
-                        } else {
-                            currentStruct = this->addField(currentStruct, -2 - (int) indices[i], insertedVal);
-                        }
-                    }
-                } else {
-                    break;
-                }
-            }
+            
+            this->handle_extract_insert_value_inst(resultV, inst->getType(), indices, ((InsertValueInst*) inst)->getInsertedValueOperand());
         }
             break;
 
@@ -959,6 +906,45 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
         case Instruction::FCmp:
         default:
             break;
+    }
+}
+
+void AAAnalyzer::handle_extract_insert_value_inst(DyckVertex* aggV, Type* aggTy, ArrayRef<unsigned>& indices, Value* insertedOrExtractedValue) {
+    DyckVertex* currentStruct = aggV;
+
+    for (unsigned int i = 0; i < indices.size(); i++) {
+        if (!aggTy->isAggregateType()) { // array or struct
+            errs() << "Error in handle_extract_insert_value_inst\n";
+            errs() << "Not agg  type!\n";
+            exit(-1);
+        }
+
+        if (aggTy->isSized()) {
+            if (!aggTy->isStructTy()) {
+                aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
+#ifndef ARRAY_SIMPLIFIED
+                current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
+#endif
+                if (i == indices.size() - 1) {
+                    this->makeAlias(currentStruct, wrapValue(insertedOrExtractedValue));
+                }
+            } else {
+                long offset = 0; // use addr offset as index
+                for (int x = 0; x < indices[i]; x++) {
+                    offset += aa->getTypeStoreSize(((CompositeType*) aggTy)->getTypeAtIndex(x));
+                }
+
+                if (i != indices.size() - 1) {
+                    currentStruct = this->addField(currentStruct, offset, NULL);
+                } else {
+                    currentStruct = this->addField(currentStruct, offset, wrapValue(insertedOrExtractedValue));
+                }
+
+                aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
+            }
+        } else {
+            break;
+        }
     }
 }
 
