@@ -438,12 +438,12 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * f
     ret->insert(visited.begin(), visited.end());
 }
 
-bool DyckAliasAnalysis::callGraphPreserved(){
+bool DyckAliasAnalysis::callGraphPreserved() {
     return PreserveCallGraph;
 }
 
-DyckCallGraph* DyckAliasAnalysis::getCallGraph(){
-    if(!PreserveCallGraph) {
+DyckCallGraph* DyckAliasAnalysis::getCallGraph() {
+    if (!PreserveCallGraph) {
         errs() << "Error when getCallGraph, please add -preserve-dyck-callgraph option when using opt.\n";
         exit(-1);
     }
@@ -648,7 +648,8 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
     {
         set<DyckVertex*>& allreps = dyck_graph->getRepresentatives();
 
-        outs() << "Printing distribution.log...\n";
+        outs() << "Printing distribution.log... ";
+        outs().flush();
         FILE * log = fopen("distribution.log", "w+");
 
         vector<unsigned long> aliasSetSizes;
@@ -656,7 +657,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
         set<DyckVertex*>::iterator it = allreps.begin();
         while (it != allreps.end()) {
             set<DyckVertex*>* aliasset = (*it)->getEquivalentSet();
-
+            
             unsigned long size = 0;
 
             set<DyckVertex*>::iterator asIt = aliasset->begin();
@@ -692,6 +693,8 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
         double percentOfNoAlias = noAliasNum / (double) pairNum * 100;
 
         fclose(log);
+        outs() << "Done!\n";
+        
         outs() << "===== Alias Analysis Evaluator Report =====\n";
         outs() << "   " << pairNum << " Total Alias Queries Performed\n";
         outs() << "   " << noAliasNum << " no alias responses (" << (unsigned long) percentOfNoAlias << "%)\n\n";
@@ -699,7 +702,9 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
 
     /*if (DotAliasSet) */
     {
-        outs() << "Printing alias_rel.dot...\n";
+        outs() << "Printing alias_rel.dot... ";
+        outs().flush();
+        
         FILE * aliasRel = fopen("alias_rel.dot", "w");
         fprintf(aliasRel, "digraph rel{\n");
 
@@ -709,41 +714,40 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
         map<DyckVertex*, int> theMap;
         int idx = 0;
         set<DyckVertex*>& reps = dyck_graph->getRepresentatives();
-        set<DyckVertex*>::iterator svsIt = reps.begin();
-        while (svsIt != reps.end()) {
+        auto repIt = reps.begin();
+        while (repIt != reps.end()) {
             idx++;
-            if (svs.count(*svsIt)) {
+            if (svs.count(*repIt)) {
                 fprintf(aliasRel, "a%d[label=%d color=red];\n", idx, idx);
             } else {
                 fprintf(aliasRel, "a%d[label=%d];\n", idx, idx);
             }
-            theMap.insert(pair<DyckVertex*, int>(*svsIt, idx));
-            svsIt++;
+            theMap.insert(pair<DyckVertex*, int>(*repIt, idx));
+            repIt++;
         }
 
-        svsIt = reps.begin();
-        while (svsIt != reps.end()) {
-            DyckVertex* dv = *svsIt;
+        repIt = reps.begin();
+        while (repIt != reps.end()) {
+            DyckVertex* dv = *repIt;
             map<void*, set<DyckVertex*>*>& outVs = dv->getOutVertices();
-            map<void*, set<DyckVertex*>*>::iterator ovIt = outVs.begin();
 
+            auto ovIt = outVs.begin();
             while (ovIt != outVs.end()) {
-                EdgeLabel* label = (EdgeLabel*)ovIt->first;
+                EdgeLabel* label = (EdgeLabel*) ovIt->first;
                 set<DyckVertex*>* oVs = ovIt->second;
 
                 set<DyckVertex*>::iterator olIt = oVs->begin();
                 while (olIt != oVs->end()) {
-                    if (!theMap.count(dv) || !theMap.count(*olIt)) {
-                        errs() << "ERROR in DotAliasSet\n";
-                        exit(1);
-                    }
-                    
                     DyckVertex * rep1 = dv->getRepresentative();
                     DyckVertex * rep2 = (*olIt)->getRepresentative();
+
+                    assert(theMap.count(rep1) && "ERROR in DotAliasSet (1)\n");
+                    assert(theMap.count(rep2) && "ERROR in DotAliasSet (2)\n");
+
                     int idx1 = theMap[rep1];
                     int idx2 = theMap[rep2];
 
-                    if(svs.count(rep1) && svs.count(rep2)){
+                    if (svs.count(rep1) && svs.count(rep2)) {
                         fprintf(aliasRel, "a%d->a%d[label=\"%s\" color=red];\n", idx1, idx2, label->getEdgeLabelDescription().data());
                     } else {
                         fprintf(aliasRel, "a%d->a%d[label=\"%s\"];\n", idx1, idx2, label->getEdgeLabelDescription().data());
@@ -755,19 +759,22 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
                 ovIt++;
             }
 
-            theMap.insert(pair<DyckVertex*, int>(*svsIt, idx));
-            svsIt++;
+            theMap.insert(pair<DyckVertex*, int>(*repIt, idx));
+            repIt++;
         }
 
         fprintf(aliasRel, "}\n");
         fclose(aliasRel);
+        outs() << "Done!\n";
     }
 
     /*if (OutputAliasSet)*/
     {
-        outs() << "Printing alias_sets.log...\n";
-        FILE * log = fopen("alias_sets.log", "w+");
+        outs() << "Printing alias_sets.log... ";
+        outs().flush();
         
+        FILE * log = fopen("alias_sets.log", "w+");
+
         set<DyckVertex*> svs;
         this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
 
@@ -802,8 +809,9 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
             repsIt++;
             fprintf(log, "------------------------------\n");
         }
-        
+
         fclose(log);
+        outs() << "Done! \n";
     }
 }
 

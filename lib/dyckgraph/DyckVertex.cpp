@@ -4,6 +4,7 @@
  */
 
 #include "DyckVertex.h"
+#include <assert.h>
 
 int DyckVertex::global_indx = 0;
 
@@ -60,11 +61,7 @@ unsigned int DyckVertex::degree() {
 
 set<DyckVertex*>* DyckVertex::getEquivalentSet() {
     set<DyckVertex*>* alias = this->getRepresentative()->getEquivClass();
-    if (alias == NULL) {
-        fprintf(stderr, "ERROR in DyckGraph::getAliases(DyckVertex*) for following vertex.\n");
-        fprintf(stderr, "%s\n", this->getName());
-        exit(-1);
-    }
+    assert(alias != NULL && "ERROR in DyckVertex::getAliases(DyckVertex*) \n");
     return alias;
 }
 
@@ -72,35 +69,39 @@ bool DyckVertex::inSameEquivalentSet(DyckVertex* v1) {
     return this->getRepresentative() == v1->getRepresentative();
 }
 
-void DyckVertex::setRepresentative(DyckVertex* root) {
-    /// @FIXME properties of this's rep should be added to root
-    DyckVertex * rootRep = root->getRepresentative();
+void DyckVertex::setRepresentative(DyckVertex* rootRep, bool replace) {
+
+    if (!replace) {
+        assert(rootRep->getRepresentative() == rootRep && "Error in setRepresentative!");
+    }
+
     DyckVertex * thisRep = this->getRepresentative();
-
-    if (rootRep == thisRep) {
-        return;
-    }
-
-    map<const char*, void*>& props = thisRep->getAllProperties();
-    map<const char*, void*>::iterator mit = props.begin();
-    while (mit != props.end()) {
-        rootRep->addProperty(mit->first, mit->second);
-        mit++;
-    }
-
     set<DyckVertex*> * rootecls = rootRep->getEquivClass();
-    set<DyckVertex*> * thisecls = thisRep->getEquivClass();
+    set<DyckVertex*> * thisecls = this->getEquivClass();
 
-    rootecls->insert(thisecls->begin(), thisecls->end());
+    // rootRep and this actually are not in the same equiv class
+    if (rootecls != thisecls) {
+        // combine equiv class
+        rootecls->insert(thisecls->begin(), thisecls->end());
+    }
+
     set<DyckVertex*>::iterator thiseclsIt = thisecls->begin();
     while (thiseclsIt != thisecls->end()) {
         (*thiseclsIt)->representative = rootRep;
         thiseclsIt++;
     }
-
-    thisRep->representative = rootRep;
-    delete thisecls;
-    thisRep->equivclass = NULL; // set null after delete
+    
+    if(rootRep->equivclass == NULL){
+        set<DyckVertex*> * newEquivClass = new set<DyckVertex*>;
+        rootRep->equivclass = newEquivClass;
+        newEquivClass->insert(rootecls->begin(), rootecls->end());
+    }
+    
+    if (rootecls != thisecls) {
+        thisRep->representative = rootRep;
+        delete thisecls;
+        thisRep->equivclass = NULL; // set null after delete
+    }
 }
 
 DyckVertex* DyckVertex::getRepresentative() {
@@ -249,31 +250,6 @@ void DyckVertex::getOutVertices(set<DyckVertex*>* ret) {
         ret->insert(vertices->begin(), vertices->end());
         it++;
     }
-}
-
-void DyckVertex::addProperty(const char * name, void * value) {
-    properties.erase(name);
-    properties.insert(pair<const char*, void*>(name, value));
-}
-
-void * DyckVertex::getProperty(const char * name) {
-    if (this->hasProperty(name)) {
-        return properties[name];
-    } else {
-        return NULL;
-    }
-}
-
-bool DyckVertex::hasProperty(const char * name) {
-    return properties.count(name) != 0;
-}
-
-void DyckVertex::removeProperty(const char * name) {
-    properties.erase(name);
-}
-
-map<const char*, void*>& DyckVertex::getAllProperties() {
-    return properties;
 }
 
 // the followings are private functions

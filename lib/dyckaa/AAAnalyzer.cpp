@@ -75,32 +75,51 @@ void AAAnalyzer::end_inter_procedure_analysis() {
     /// @TODO delete unnecessary null-value dyckvertices
     set<DyckVertex*>& allver = dgraph->getVertices();
     set<DyckVertex*>& reps = dgraph->getRepresentatives();
+
+    set<DyckVertex*> newReps;
     set<DyckVertex*>::iterator rit = reps.begin();
     while (rit != reps.end()) {
         DyckVertex* rep = *rit;
 
-        // for each value in rep's equiv class, if it's the 2nd null-value vertex, delete it
-        bool has_value_null = (rep->getValue() == NULL);
+        // for each value in rep's equiv class, 
+        // if it's a non-rep null-value vertex, delete it
+        DyckVertex* aNonRepNonNullVertex = NULL;
         set<DyckVertex*> * eset = rep->getEquivalentSet();
-        set<DyckVertex*>::iterator esetIt = eset->begin();
+        auto esetIt = eset->begin();
         while (esetIt != eset->end()) {
             DyckVertex* d = *esetIt;
+            if (d->getValue() != NULL && d != rep) {
+                aNonRepNonNullVertex = d;
+            }
+
             if (d->getValue() == NULL && d != rep) {
-                if (!has_value_null) {
-                    has_value_null = true;
-                } else {
-                    allver.erase(d);
-                    eset->erase(esetIt++);
-                    delete d;
-                    num++;
-                    continue;
-                }
+                allver.erase(d);
+                eset->erase(esetIt++);
+                delete d;
+                num++;
+                continue;
             }
 
             esetIt++;
         }
 
-        if (eset->size() == 1 && rep == NULL && !rep->isBridge()) {
+        if (eset->size() > 1 && rep->getValue() == NULL) {
+
+            assert(aNonRepNonNullVertex != NULL && "Error when simplifying dyck graph!");
+
+            // reset rep
+            aNonRepNonNullVertex->setRepresentative(aNonRepNonNullVertex, true);
+            newReps.insert(aNonRepNonNullVertex);
+
+            aNonRepNonNullVertex->getEquivalentSet()->erase(rep);
+            allver.erase(rep);
+            reps.erase(rit++);
+            delete rep;
+            num++;
+            continue;
+        }
+
+        if (eset->size() == 1 && rep->getValue() == NULL && !rep->isBridge()) {
             allver.erase(rep);
             reps.erase(rit++);
             delete rep;
@@ -110,6 +129,8 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 
         rit++;
     }
+
+    reps.insert(newReps.begin(), newReps.end());
     outs() << "\n# Unnecessary nodes: " << num << "(" << (num * 100 / (allver.size() + num)) << "%)";
 }
 
@@ -681,7 +702,7 @@ set<Function*>* AAAnalyzer::getCompatibleFunctions(FunctionType * fty) {
 }
 
 void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func) {
-    //outs()<<*inst<<"\n"; outs().flush();
+    DEBUG_WITH_TYPE("inst", errs() << *inst << "\n");
     switch (inst->getOpcode()) {
             // common/bitwise binary operations
             // Terminator instructions
@@ -1067,14 +1088,14 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
         if (NumArgs > NumPars && func->isVarArg()) {
             vector<Value*>& var_parameters = callee->getVAArgs();
             unsigned NumVarPars = var_parameters.size();
-            
+
             for (unsigned int i = NumPars; i < NumArgs; i++) {
                 Value * arg = arguments[i];
                 DyckVertex* argV = wrapValue(arg);
-                
-                for(unsigned j = 0; j < NumVarPars; j++) {
+
+                for (unsigned j = 0; j < NumVarPars; j++) {
                     Value * var_par = var_parameters[j];
-                    
+
                     // for var arg function, we only can get var args according to exact types.
                     if (aa->getTypeStoreSize(var_par->getType()) == aa->getTypeStoreSize(arg->getType())) {
                         makeAlias(argV, wrapValue(var_par));

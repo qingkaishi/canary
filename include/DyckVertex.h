@@ -31,8 +31,6 @@ private:
     DyckVertex* representative;
     set<DyckVertex*>* equivclass;
     
-    map<const char*, void*> properties;
-    
     /// Default constructor is not visible.
     /// please use DyckGraph::retrieveDyckVertex for initialization
     DyckVertex();
@@ -124,7 +122,7 @@ public:
     /// For qirun's algorithm DyckGraph::qirunAlgorithm().
     /// The representatives of all the vertices in the equivalent set of this vertex
     /// will be set to be rep.
-    void setRepresentative(DyckVertex* rep);
+    void setRepresentative(DyckVertex* rep, bool replace = false);
 
     /// For qirun's algorithm DyckGraph::qirunAlgorithm().
     /// Get the representative of the equivalent set that this vertex belongs to. 
@@ -140,23 +138,6 @@ public:
     /// Return true if this vertex and v are in the same equivalent set.
     /// Use it after you call DyckGraph::qirunAlgorithm().
     bool inSameEquivalentSet(DyckVertex* v);
-    
-    /// Add a property for the vertex.
-    /// If the property has existed, its value will be replaced.
-    void addProperty(const char * name, void * value);
-    
-    /// Get the value of the property, whose name is "name".
-    /// If it doesn't exist, NULL will be returned.
-    void * getProperty(const char * name);
-    
-    /// Answer the question: does the vertex contain the property?
-    bool hasProperty(const char * name);
-    
-    /// Remove the property
-    void removeProperty(const char * name);
-    
-    /// Get all properties of the vertex.
-    map<const char*, void*>& getAllProperties();
     
 private:
     void addSource(DyckVertex* ver, void* label);

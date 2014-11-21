@@ -137,9 +137,9 @@ void DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 
         yilit++;
     }
-
-    this->getRepresentatives().erase(y);
-    y->setRepresentative(x);
+    
+    this->getRepresentatives().erase(y); 
+    y->setRepresentative(x->getRepresentative()); 
 }
 
 bool DyckGraph::qirunAlgorithm() {
