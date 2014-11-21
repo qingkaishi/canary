@@ -724,7 +724,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
         {
             Value * agg = ((ExtractValueInst*) inst)->getAggregateOperand();
             ArrayRef<unsigned> indices = ((ExtractValueInst*) inst)->getIndices();
-            
+
             this->handle_extract_insert_value_inst(wrapValue(agg), agg->getType(), indices, inst);
         }
             break;
@@ -737,7 +737,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
             }
 
             ArrayRef<unsigned> indices = ((InsertValueInst*) inst)->getIndices();
-            
+
             this->handle_extract_insert_value_inst(resultV, inst->getType(), indices, ((InsertValueInst*) inst)->getInsertedValueOperand());
         }
             break;
@@ -845,7 +845,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
         {
             errs() << "Error during alias analysis. Please add -lowerinvoke -simplifycfg before -dyckaa!\n";
             exit(-1);
-            
+
             // for later use
             InvokeInst * invoke = (InvokeInst*) inst;
             LandingPadInst* lpd = invoke->getLandingPadInst();
@@ -996,84 +996,92 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
     }
 }
 
-// ci is callinst or invokeinst
-
 void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller, DyckCallGraphNode* callee) {
-    //landingpad<->resume
+    // for better precise, if callee is an empty function, we do not
+    // match the args and parameters.
+    if (callee->getLLVMFunction()->empty()) {
+        return;
+    }
+
+    // since invoke has been lowered to call, no landingpads
+    // and resumes. The following codes are for later use.
+    // landingpad<->resume
+    //    if (c->instruction != NULL) {
+    //        Value* lpd = caller->getLandingPad(c->instruction);
+    //        if (lpd != NULL) {
+    //            DyckVertex* lpdVertex = wrapValue(lpd);
+    //            set<Value*>& res = callee->getResumes();
+    //            set<Value*>::iterator resIt = res.begin();
+    //            while (resIt != res.end()) {
+    //                makeAlias(wrapValue(*resIt), lpdVertex);
+    //                resIt++;
+    //            }
+    //        }
+    //    }
+
+    //return<->call
     if (c->instruction != NULL) {
-        Value* lpd = caller->getLandingPad(c->instruction);
-        if (lpd != NULL) {
-            DyckVertex* lpdVertex = wrapValue(lpd);
-            set<Value*>& res = callee->getResumes();
-            set<Value*>::iterator resIt = res.begin();
-            while (resIt != res.end()) {
-                makeAlias(wrapValue(*resIt), lpdVertex);
-                resIt++;
+        Type * calledValueTy = ((CallInst*) c->instruction)->getCalledValue()->getType();
+        assert(calledValueTy->isPointerTy() && "A called value is not a pointer type!");
+        Type * calledFuncTy = calledValueTy->getPointerElementType();
+        assert(calledFuncTy->isFunctionTy() && "A called value is not a function pointer type!");
+
+        set<Value*>& rets = callee->getReturns();
+        if (!((FunctionType*) calledFuncTy)->getReturnType()->isVoidTy()) {
+            Type* retTy = c->instruction->getType();
+
+            set<Value*>::iterator retIt = rets.begin();
+            while (retIt != rets.end()) {
+                Value* val = *retIt;
+                if (aa->getTypeStoreSize(retTy) >= aa->getTypeStoreSize(val->getType())) {
+                    makeAlias(wrapValue(val), wrapValue(c->instruction));
+                }
+                retIt++;
             }
         }
     }
 
-    //return<->call
-    set<Value*>& rets = callee->getReturns();
-    if (c->instruction != NULL) {
-        set<Value*>::iterator retIt = rets.begin();
-        while (retIt != rets.end()) {
-            makeAlias(wrapValue(*retIt), wrapValue(c->instruction));
-            retIt++;
-        }
-    }
     // parameter<->arg
-    unsigned int numOfArgOp = c->args.size();
-
-    unsigned argIdx = 0;
     Function * func = callee->getLLVMFunction();
     if (!func->isIntrinsic()) {
         vector<Value*>& parameters = callee->getArgs();
+        vector<Value*>& arguments = c->args;
 
-        vector<Value*>::iterator pit = parameters.begin();
-        while (pit != parameters.end()) {
-            if (numOfArgOp <= argIdx) {
-                errs() << "Warning the number of args is less than that of parameters\n";
-                errs() << func->getName() << "\n";
-                if (c->instruction != NULL)
-                    errs() << *(c->instruction) << "\n";
-                else
-                    errs() << "No call inst\n";
-                break; //exit(-1);
+        unsigned NumPars = parameters.size();
+        unsigned NumArgs = arguments.size();
+
+        unsigned iterationNum = NumPars < NumArgs ? NumPars : NumArgs;
+        for (unsigned i = 0; i < iterationNum; i++) {
+            Value* par = parameters[i];
+            Value* arg = arguments[i];
+
+            makeAlias(wrapValue(par), wrapValue(arg));
+
+            if (aa->getTypeStoreSize(par->getType()) < aa->getTypeStoreSize(arg->getType())) {
+                // the first pair of arg and par that are not type matched can be aliased,
+                // but the followings are rarely possible.
+                return;
             }
-
-            Value * arg = c->args[argIdx];
-            Value * par = *pit;
-            if (!func->empty()) { // for empty/external calls, we do not merge the arg & par
-                makeAlias(wrapValue(par), wrapValue(arg));
-            }
-
-            argIdx++;
-            pit++;
         }
 
-        if (func->isVarArg()) {
-            vector<Value*>& va_parameters = callee->getVAArgs();
-            for (unsigned int i = argIdx; i < numOfArgOp; i++) {
-
-                Value * arg = c->args[i];
-                DyckVertex* arg_v = wrapValue(arg);
-
-                // for empty/external calls, we do not merge the arg & par
-                // here va_parameters must be empty, thus making it.
-                vector<Value*>::iterator va_par_it = va_parameters.begin();
-                while (va_par_it != va_parameters.end()) {
-                    Value* va_par = *va_par_it;
-                    makeAlias(arg_v, wrapValue(va_par));
-
-                    va_par_it++;
+        if (NumArgs > NumPars && func->isVarArg()) {
+            vector<Value*>& var_parameters = callee->getVAArgs();
+            unsigned NumVarPars = var_parameters.size();
+            
+            for (unsigned int i = NumPars; i < NumArgs; i++) {
+                Value * arg = arguments[i];
+                DyckVertex* argV = wrapValue(arg);
+                
+                for(unsigned j = 0; j < NumVarPars; j++) {
+                    Value * var_par = var_parameters[j];
+                    
+                    // for var arg function, we only can get var args according to exact types.
+                    if (aa->getTypeStoreSize(var_par->getType()) == aa->getTypeStoreSize(arg->getType())) {
+                        makeAlias(argV, wrapValue(var_par));
+                    }
                 }
             }
         }
-    } else {
-        errs() << "ERROR in handle_common_function_call(...):\n";
-        errs() << func->getName() << " can not be an intrinsic.\n";
-        exit(-1);
     }
 }
 
