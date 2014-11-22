@@ -898,11 +898,7 @@ void AAAnalyzer::handle_extract_insert_value_inst(DyckVertex* aggV, Type* aggTy,
     DyckVertex* currentStruct = aggV;
 
     for (unsigned int i = 0; i < indices.size(); i++) {
-        if (!aggTy->isAggregateType()) { // array or struct
-            errs() << "Error in handle_extract_insert_value_inst\n";
-            errs() << "Not agg  type!\n";
-            exit(-1);
-        }
+        assert(aggTy->isAggregateType() && "Error in handle_extract_insert_value_inst, not an agg (array/struct) type!");
 
         if (aggTy->isSized()) {
             if (!aggTy->isStructTy()) {
