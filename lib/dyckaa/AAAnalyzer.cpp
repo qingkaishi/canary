@@ -71,67 +71,33 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         dfit++;
     }
 
-    int num = 0;
-    /// @TODO delete unnecessary null-value dyckvertices
-    set<DyckVertex*>& allver = dgraph->getVertices();
+    // @TODO delete all null-value dyckvertices
+    set<DyckVertex*> toDeletes;
+    unsigned bytesToFree = 0;
+    
     set<DyckVertex*>& reps = dgraph->getRepresentatives();
-
-    set<DyckVertex*> newReps;
     set<DyckVertex*>::iterator rit = reps.begin();
     while (rit != reps.end()) {
         DyckVertex* rep = *rit;
 
-        // for each value in rep's equiv class, 
-        // if it's a non-rep null-value vertex, delete it
-        DyckVertex* aNonRepNonNullVertex = NULL;
         set<DyckVertex*> * eset = rep->getEquivalentSet();
         auto esetIt = eset->begin();
         while (esetIt != eset->end()) {
             DyckVertex* d = *esetIt;
-            if (d->getValue() != NULL && d != rep) {
-                aNonRepNonNullVertex = d;
-            }
-
-            if (d->getValue() == NULL && d != rep) {
-                allver.erase(d);
-                eset->erase(esetIt++);
-                delete d;
-                num++;
-                continue;
+            if (d->getValue() == NULL) {
+                bytesToFree += sizeof(DyckVertex);
+                toDeletes.insert(d);
             }
 
             esetIt++;
         }
 
-        if (eset->size() > 1 && rep->getValue() == NULL) {
-
-            assert(aNonRepNonNullVertex != NULL && "Error when simplifying dyck graph!");
-
-            // reset rep
-            aNonRepNonNullVertex->setRepresentative(aNonRepNonNullVertex, true);
-            newReps.insert(aNonRepNonNullVertex);
-
-            aNonRepNonNullVertex->getEquivalentSet()->erase(rep);
-            allver.erase(rep);
-            reps.erase(rit++);
-            delete rep;
-            num++;
-            continue;
-        }
-
-        if (eset->size() == 1 && rep->getValue() == NULL && !rep->isBridge()) {
-            allver.erase(rep);
-            reps.erase(rit++);
-            delete rep;
-            num++;
-            continue;
-        }
-
         rit++;
     }
-
-    reps.insert(newReps.begin(), newReps.end());
-    outs() << "\n# Unnecessary nodes: " << num << "(" << (num * 100 / (allver.size() + num)) << "%)";
+    
+    int NumAssistantVertices = toDeletes.size();
+    int NumVertices = dgraph->numVertices();
+    outs() << "\n# Assistant nodes: " <<  NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree/1024 << "KB." ;
 }
 
 bool AAAnalyzer::intra_procedure_analysis() {
@@ -411,10 +377,9 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* f
 /// otherwise return the ptr;
 
 DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
-    if (address == NULL && val == NULL) {
-        errs() << "ERROR in addPtrTo\n";
-        exit(1);
-    } else if (address == NULL) {
+    assert((address != NULL || val != NULL) && "ERROR in addPtrTo\n");
+    
+    if (address == NULL) {
         address = dgraph->retrieveDyckVertex(NULL).first;
         address->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
         return address;
@@ -437,18 +402,13 @@ DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
 
 }
 
-/// make them alias
-
 void AAAnalyzer::makeAlias(DyckVertex* x, DyckVertex* y) {
     // combine x's rep and y's rep
     dgraph->combine(x, y);
 }
 
 void AAAnalyzer::makeContentAlias(DyckVertex* x, DyckVertex* y) {
-    DyckVertex * x_content = addPtrTo(x, NULL);
-    DyckVertex * y_content = addPtrTo(y, NULL);
-
-    this->makeAlias(x_content, y_content);
+    addPtrTo(y, addPtrTo(x, NULL));
 }
 
 DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {

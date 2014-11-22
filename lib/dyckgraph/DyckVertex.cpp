@@ -69,39 +69,28 @@ bool DyckVertex::inSameEquivalentSet(DyckVertex* v1) {
     return this->getRepresentative() == v1->getRepresentative();
 }
 
-void DyckVertex::setRepresentative(DyckVertex* rootRep, bool replace) {
+void DyckVertex::setRepresentative(DyckVertex* rootRep) {
+    rootRep = rootRep->getRepresentative();
+    DyckVertex * thisRep = this->getRepresentative();
 
-    if (!replace) {
-        assert(rootRep->getRepresentative() == rootRep && "Error in setRepresentative!");
+    if (rootRep == thisRep) {
+        return;
     }
 
-    DyckVertex * thisRep = this->getRepresentative();
     set<DyckVertex*> * rootecls = rootRep->getEquivClass();
     set<DyckVertex*> * thisecls = this->getEquivClass();
 
-    // rootRep and this actually are not in the same equiv class
-    if (rootecls != thisecls) {
-        // combine equiv class
-        rootecls->insert(thisecls->begin(), thisecls->end());
-    }
+    rootecls->insert(thisecls->begin(), thisecls->end());
 
     set<DyckVertex*>::iterator thiseclsIt = thisecls->begin();
     while (thiseclsIt != thisecls->end()) {
         (*thiseclsIt)->representative = rootRep;
         thiseclsIt++;
     }
-    
-    if(rootRep->equivclass == NULL){
-        set<DyckVertex*> * newEquivClass = new set<DyckVertex*>;
-        rootRep->equivclass = newEquivClass;
-        newEquivClass->insert(rootecls->begin(), rootecls->end());
-    }
-    
-    if (rootecls != thisecls) {
-        thisRep->representative = rootRep;
-        delete thisecls;
-        thisRep->equivclass = NULL; // set null after delete
-    }
+
+    thisRep->representative = rootRep;
+    delete thisecls;
+    thisRep->equivclass = NULL; // set null after delete
 }
 
 DyckVertex* DyckVertex::getRepresentative() {

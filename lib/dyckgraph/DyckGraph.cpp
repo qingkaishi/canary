@@ -137,14 +137,14 @@ void DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 
         yilit++;
     }
-    
-    this->getRepresentatives().erase(y); 
-    y->setRepresentative(x->getRepresentative()); 
+
+    this->getRepresentatives().erase(y);
+    y->setRepresentative(x->getRepresentative());
 }
 
 bool DyckGraph::qirunAlgorithm() {
     bool ret = true;
-    
+
     multimap<DyckVertex*, void*> worklist;
 
     set<DyckVertex*>::iterator vit = reps.begin();
@@ -160,8 +160,8 @@ bool DyckGraph::qirunAlgorithm() {
 
         vit++;
     }
-    
-    if(!worklist.empty()){
+
+    if (!worklist.empty()) {
         ret = false;
     }
 
@@ -259,7 +259,7 @@ bool DyckGraph::qirunAlgorithm() {
             yilit++;
         }
     }
-    
+
     return ret;
 }
 
@@ -290,7 +290,9 @@ unsigned int DyckGraph::numEquivalentClasses() {
 
 bool DyckGraph::addVertex(DyckVertex* ver) {
     if (vertices.insert(ver).second) {
-        reps.insert(ver);
+        DyckVertex * rep = ver->getRepresentative();
+        if (!reps.count(rep))
+            reps.insert(rep);
         return true;
     }
     return false;
@@ -303,62 +305,3 @@ set<DyckVertex*>& DyckGraph::getVertices() {
 set<DyckVertex*>& DyckGraph::getRepresentatives() {
     return reps;
 }
-/*
-bool DyckGraph::havePathsWithoutLabel(DyckVertex* v1, DyckVertex* v2, void* label) {
-    if (!v1->hasLabelsBesides(label)) {
-        return false;
-    }
-
-    if (!v2->hasLabelsBesides(label)) {
-        return false;
-    }
-
-    // DFS from v1. 
-    set<DyckVertex*> visited;
-    stack<DyckVertex*> workStack;
-    workStack.push(v1);
-
-    while (!workStack.empty()) {
-        DyckVertex* top = workStack.top();
-        workStack.pop();
-
-        // have visited
-        if (visited.find(top) != visited.end()) {
-            continue;
-        }
-
-        if (top == v2) {
-            return true;
-        }
-
-        visited.insert(top);
-
-
-        set<DyckVertex*> tars;
-        top->getOutVerticesWithout(label, &tars);
-
-        set<DyckVertex*>::iterator tit = tars.begin();
-        while (tit != tars.end()) {
-            // if it has not been visited
-            if (visited.find(*tit) == visited.end()) {
-                workStack.push(*tit);
-            }
-            tit++;
-        }
-
-        tars.clear();
-        top->getInVerticesWithout(label, &tars);
-
-        tit = tars.begin();
-        while (tit != tars.end()) {
-            // if it has not been visited
-            if (visited.find(*tit) == visited.end()) {
-                workStack.push(*tit);
-            }
-            tit++;
-        }
-
-    }
-
-    return false;
-}*/

@@ -122,7 +122,7 @@ public:
     /// For qirun's algorithm DyckGraph::qirunAlgorithm().
     /// The representatives of all the vertices in the equivalent set of this vertex
     /// will be set to be rep.
-    void setRepresentative(DyckVertex* rep, bool replace = false);
+    void setRepresentative(DyckVertex* rep);
 
     /// For qirun's algorithm DyckGraph::qirunAlgorithm().
     /// Get the representative of the equivalent set that this vertex belongs to. 
