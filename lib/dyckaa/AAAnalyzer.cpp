@@ -74,7 +74,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
     // @TODO delete all null-value dyckvertices
     set<DyckVertex*> toDeletes;
     unsigned bytesToFree = 0;
-    
+
     set<DyckVertex*>& reps = dgraph->getRepresentatives();
     set<DyckVertex*>::iterator rit = reps.begin();
     while (rit != reps.end()) {
@@ -85,7 +85,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         while (esetIt != eset->end()) {
             DyckVertex* d = *esetIt;
             if (d->getValue() == NULL) {
-                bytesToFree += sizeof(DyckVertex);
+                bytesToFree += sizeof (DyckVertex);
                 toDeletes.insert(d);
             }
 
@@ -94,10 +94,10 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 
         rit++;
     }
-    
+
     int NumAssistantVertices = toDeletes.size();
     int NumVertices = dgraph->numVertices();
-    outs() << "\n# Assistant nodes: " <<  NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree/1024 << "KB." ;
+    outs() << "\n# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree / 1024 << "KB.";
 }
 
 bool AAAnalyzer::intra_procedure_analysis() {
@@ -247,42 +247,25 @@ void AAAnalyzer::initFunctionGroups() {
             continue;
         }
 
-        for (Value::use_iterator I = f->use_begin(), E = f->use_end(); I != E; ++I) {
-            Use *U = &(*I);
-            Type* origTy = NULL, *castTy = NULL;
-            if (isa<Instruction>(U)) {
-                if (((Instruction*) U)->isCast()) {
-                    Value* v1 = (Value*) U;
-                    Value *v2 = ((Instruction*) U)->getOperand(0);
-
-                    origTy = v2->getType();
-                    castTy = v1->getType();
-                }
-            } else if (isa<ConstantExpr>(U)) {
-                if (((ConstantExpr*) U)->isCast()) {
-                    Value* v1 = (Value*) U;
-                    Value *v2 = ((ConstantExpr*) U)->getOperand(0);
-
-                    origTy = v2->getType();
-                    castTy = v1->getType();
-                }
-            } else if (*U == f) {
+        bool onlyUsedAsCallFunc = true;
+        for (Value::user_iterator I = f->user_begin(), E = f->user_end(); I != E; ++I) {
+            User *U = (User*) (*I);
+            if (isa<CallInst>(U) && ((CallInst*) U)->getCalledFunction() == f) { // all invoke -> call
+                continue;
             } else {
-                errs() << *f << "\n";
-                errs() << "Warning: unknown user of a function: " << **U << "\n";
-                errs() << "-----------------------------------------\n";
-            }
-
-            if (origTy != NULL && origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
-                    && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
-                combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
+                onlyUsedAsCallFunc = false;
+                break;
             }
         }
 
-        FunctionType * fty = (FunctionType *) ((PointerType*) f->getType())->getPointerElementType();
+        // the function only used in call instructions cannot alias with
+        // certain function pointers
+        if (!onlyUsedAsCallFunc) {
+            FunctionType * fty = (FunctionType *) ((PointerType*) f->getType())->getPointerElementType();
 
-        FunctionTypeNode * root = this->initFunctionGroup(fty);
-        root->compatibleFuncs.insert(f);
+            FunctionTypeNode * root = this->initFunctionGroup(fty);
+            root->compatibleFuncs.insert(f);
+        }
     }
 }
 
@@ -378,7 +361,7 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* f
 
 DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
     assert((address != NULL || val != NULL) && "ERROR in addPtrTo\n");
-    
+
     if (address == NULL) {
         address = dgraph->retrieveDyckVertex(NULL).first;
         address->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
