@@ -5,11 +5,11 @@
 
 #include "DyckCallGraphNode.h"
 
-Call::Call(Value* ret, Value * cv, vector<Value*>* args){
+Call::Call(Value* ret, Value * cv, vector<Value*>* args) {
     this->calledValue = cv;
     this->instruction = ret;
     vector<Value*>::iterator aIt = args->begin();
-    while(aIt!=args->end()){
+    while (aIt != args->end()) {
         this->args.push_back(*aIt);
         aIt++;
     }
@@ -60,7 +60,7 @@ set<PointerCall *>& DyckCallGraphNode::getPointerCalls() {
     return pointerCalls;
 }
 
-void DyckCallGraphNode::addPointerCall(PointerCall* call){
+void DyckCallGraphNode::addPointerCall(PointerCall* call) {
     pointerCalls.insert(call);
 }
 
