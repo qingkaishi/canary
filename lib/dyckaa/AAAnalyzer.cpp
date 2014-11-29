@@ -1065,19 +1065,14 @@ bool AAAnalyzer::handle_functions(DyckCallGraphNode* caller) {
 
         Value * cv = (*cit)->calledValue;
 
-        if (isa<Function>(cv)) {
-            ret = true;
-            handle_common_function_call((*cit), caller, callgraph->getOrInsertFunction((Function*) cv));
+        assert(isa<Function>(cv) && "Error: it is not a function in common calls!");
 
-            commonCalls->insert(*cit);
+        ret = true;
+        handle_common_function_call((*cit), caller, callgraph->getOrInsertFunction((Function*) cv));
 
-            callInsts.erase(cit);
-        } else {
-            errs() << "WARNING in handle_function(...):\n";
-            errs() << *cv << " should be handled.\n";
-            exit(-1);
-        }
-        cit++;
+        commonCalls->insert(*cit);
+
+        callInsts.erase(cit++);
     }
 
     set<PointerCall*>& pointercalls = caller->getPointerCalls();
