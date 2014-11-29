@@ -50,11 +50,6 @@ DyckCallGraphNode::~DyckCallGraphNode() {
         cit++;
     }
 
-    cit = commonCallsForCG.begin();
-    while (cit != commonCallsForCG.end()) {
-        delete *cit;
-        cit++;
-    }
 }
 
 int DyckCallGraphNode::getIndex() {
@@ -124,10 +119,3 @@ Value* DyckCallGraphNode::getLandingPad(Value * invoke) {
     return NULL;
 }
 
-set<CommonCall *>* DyckCallGraphNode::getCommonCallsForCG() {
-    return &commonCallsForCG;
-}
-
-set<PointerCall *>* DyckCallGraphNode::getPointerCallsForCG() {
-    return &pointerCalls;
-}

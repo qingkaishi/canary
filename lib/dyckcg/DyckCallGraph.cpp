@@ -27,7 +27,7 @@ void DyckCallGraph::dotCallGraph(const string& mIdentifier) {
     fwIt = FunctionMap.begin();
     while (fwIt != FunctionMap.end()) {
         DyckCallGraphNode* fw = fwIt->second;
-        set<CommonCall*>* commonCalls = fw->getCommonCallsForCG();
+        set<CommonCall*>* commonCalls = &(fw->getCommonCalls());
         set<CommonCall*>::iterator comIt = commonCalls->begin();
         while (comIt != commonCalls->end()) {
             CommonCall* cc = *comIt;
@@ -64,7 +64,7 @@ void DyckCallGraph::dotCallGraph(const string& mIdentifier) {
             comIt++;
         }
 
-        set<PointerCall*>* fpCallsMap = fw->getPointerCallsForCG();
+        set<PointerCall*>* fpCallsMap = &(fw->getPointerCalls());
         set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
             PointerCall* pcall = *fpIt;
@@ -130,7 +130,7 @@ void DyckCallGraph::printFunctionPointersInformation(const string& mIdentifier) 
     while (fwIt != this->end()) {
         DyckCallGraphNode* fw = fwIt->second;
 
-        set<PointerCall*>* fpCallsMap = fw->getPointerCallsForCG();
+        set<PointerCall*>* fpCallsMap = &(fw->getPointerCalls());
         set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
             /*Value * callInst = fpIt->first;

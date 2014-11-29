@@ -72,8 +72,8 @@ public:
     void start_inter_procedure_analysis();
     void end_inter_procedure_analysis();
 
-    bool intra_procedure_analysis();
-    bool inter_procedure_analysis();
+    void intra_procedure_analysis();
+    void inter_procedure_analysis();
     
     void getUnhandledCallInstructions(set<Instruction*>* ret);
     
@@ -89,7 +89,7 @@ private:
     void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, DyckCallGraphNode* parent);
 
 private:
-    bool handle_functions(DyckCallGraphNode* caller);
+    bool handle_pointer_function_calls(DyckCallGraphNode* caller);
     void handle_common_function_call(Call* c, DyckCallGraphNode* caller, DyckCallGraphNode* callee);
     
 private:

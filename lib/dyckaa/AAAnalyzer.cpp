@@ -97,10 +97,10 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 
     int NumAssistantVertices = toDeletes.size();
     int NumVertices = dgraph->numVertices();
-    outs() << "\n# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree / 1024 << "KB.";
+    outs() << "# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree / 1024 << "KB.\n\n";
 }
 
-bool AAAnalyzer::intra_procedure_analysis() {
+void AAAnalyzer::intra_procedure_analysis() {
     long instNum = 0;
     long intrinsicsNum = 0;
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
@@ -122,28 +122,87 @@ bool AAAnalyzer::intra_procedure_analysis() {
     }
     outs() << "# Instructions: " << instNum << "\n";
     outs() << "# Functions: " << module->getFunctionList().size() - intrinsicsNum << "\n";
-    return true; // finished
+    return;
 }
 
 static int INTERT = 0; // how many times inter_procedure_analysis() is called
 static int FUNCTION_COUNT = 0;
 
-bool AAAnalyzer::inter_procedure_analysis() {
-    INTERT++;
-    FUNCTION_COUNT = 0;
+void AAAnalyzer::inter_procedure_analysis() {
+    map<DyckCallGraphNode*, set<CommonCall*>* > handledCommonCalls;
 
-    bool finished = true;
-    auto dfit = callgraph->begin();
-    while (dfit != callgraph->end()) {
-        DyckCallGraphNode * df = dfit->second;
+    while (1) {
+        dgraph->qirunAlgorithm();
 
-        if (handle_functions(df)) {
-            finished = false;
+        FUNCTION_COUNT = 0;
+
+        bool finished = true;
+
+        outs() << "\nIteration #" << ++INTERT << "... \n";
+        { // direct calls
+            outs() << "Handling direct calls...";
+            outs().flush();
+            auto dfit = callgraph->begin();
+            while (dfit != callgraph->end()) {
+                DyckCallGraphNode * df = dfit->second;
+                // ----------------------------------------------------
+                set<CommonCall*>* df_handledCommonCalls = NULL;
+                if (handledCommonCalls.count(df)) {
+                    df_handledCommonCalls = handledCommonCalls[df];
+                } else {
+                    df_handledCommonCalls = new set<CommonCall*>;
+                    handledCommonCalls.insert(pair<DyckCallGraphNode*, set<CommonCall*>*> (df, df_handledCommonCalls));
+                }
+                // ----------------------------------------------------
+                set<CommonCall*>& callInsts = df->getCommonCalls();
+
+                set<CommonCall*> df_unHandledCommonCalls;
+                set_difference(callInsts.begin(), callInsts.end(), 
+                        df_handledCommonCalls->begin(), df_handledCommonCalls->end(), 
+                        inserter(df_unHandledCommonCalls, df_unHandledCommonCalls.begin()));
+
+                auto cit = df_unHandledCommonCalls.begin();
+                while (cit != df_unHandledCommonCalls.end()) {
+                    finished = false;
+                    CommonCall * theComCall = *cit;
+                    df_handledCommonCalls->insert(theComCall);
+
+                    Value * cv = theComCall->calledValue;
+                    assert(isa<Function>(cv) && "Error: it is not a function in common calls!");
+                    handle_common_function_call(theComCall, df, callgraph->getOrInsertFunction((Function*) cv));
+                    cit++;
+                }
+                // ---------------------------------------------------
+                ++dfit;
+            }
+            outs() << "Done!\n";
         }
-        ++dfit;
+
+        { // indirect call
+            auto dfit = callgraph->begin();
+            while (dfit != callgraph->end()) {
+                DyckCallGraphNode * df = dfit->second;
+
+                if (handle_pointer_function_calls(df)) {
+                    finished = false;
+                }
+                ++dfit;
+            }
+        }
+
+        if (finished) {
+            break;
+        }
     }
 
-    return finished;
+    // ---------------------------------------------------------
+    auto mIt = handledCommonCalls.begin();
+    while (mIt != handledCommonCalls.end()) {
+        delete mIt->second;
+        mIt++;
+    }
+
+    return;
 }
 
 void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
@@ -1045,35 +1104,10 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
     }
 }
 
-bool AAAnalyzer::handle_functions(DyckCallGraphNode* caller) {
+bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
     FUNCTION_COUNT++;
 
     bool ret = false;
-
-    set<CommonCall*>* commonCalls = caller->getCommonCallsForCG();
-    set<CommonCall*>& callInsts = caller->getCommonCalls();
-    set<CommonCall*>::iterator cit = callInsts.begin();
-
-    // print in console
-    int COMCALL_TOTAL = callInsts.size();
-    int COMCALL_COUNT = 0;
-    if (COMCALL_TOTAL == 0) outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... " << "100%,         \r";
-
-    while (cit != callInsts.end()) {
-        // print in console
-        outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... " << ((++COMCALL_COUNT)*100 / COMCALL_TOTAL) << "%,         \r";
-
-        Value * cv = (*cit)->calledValue;
-
-        assert(isa<Function>(cv) && "Error: it is not a function in common calls!");
-
-        ret = true;
-        handle_common_function_call((*cit), caller, callgraph->getOrInsertFunction((Function*) cv));
-
-        commonCalls->insert(*cit);
-
-        callInsts.erase(cit++);
-    }
 
     set<PointerCall*>& pointercalls = caller->getPointerCalls();
     set<PointerCall*>::iterator mit = pointercalls.begin();
@@ -1081,12 +1115,12 @@ bool AAAnalyzer::handle_functions(DyckCallGraphNode* caller) {
     // print in console
     int PTCALL_TOTAL = pointercalls.size();
     int PTCALL_COUNT = 0;
-    if (PTCALL_TOTAL == 0) outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << "100%, 100%.         \r";
+    if (PTCALL_TOTAL == 0) outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... 100%, 100%. Done!\r";
 
     while (mit != pointercalls.end()) {
         // print in console
         int percentage = ((++PTCALL_COUNT)*100 / PTCALL_TOTAL);
-        outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << percentage << "%, \r";
+        outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, \r";
 
         //Value * inst = mit->first;
         PointerCall * pcall = *mit;
@@ -1096,13 +1130,13 @@ bool AAAnalyzer::handle_functions(DyckCallGraphNode* caller) {
         // print in console
         int CAND_TOTAL = cands->size();
         int CAND_COUNT = 0;
-        if (CAND_TOTAL == 0) outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << "100%, 100%.         \r";
+        if (CAND_TOTAL == 0) outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
 
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
         while (pfit != cands->end()) {
             // print in console
-            outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
+            outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
 
             AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, pcall->calledValue);
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
@@ -1120,7 +1154,7 @@ bool AAAnalyzer::handle_functions(DyckCallGraphNode* caller) {
                     cands->clear();
 
                     // print in console
-                    outs() << "Iteration " << INTERT << "... Handling Function #" << FUNCTION_COUNT << "... 100%, " << "100%, 100%.         \r";
+                    outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
                     break;
                 }
             } else {

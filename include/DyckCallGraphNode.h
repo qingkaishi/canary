@@ -74,8 +74,6 @@ private:
     set<CommonCall *> commonCalls; // common calls
     set<PointerCall*> pointerCalls; // pointer calls
 
-    set<CommonCall *> commonCallsForCG;
-
 private:
     static int global_idx;
 
@@ -117,9 +115,6 @@ public:
 
     Value* getLandingPad(Value * invoke);
 
-    set<PointerCall *>* getPointerCallsForCG();
-
-    set<CommonCall *>* getCommonCallsForCG();
 };
 
 

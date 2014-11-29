@@ -464,18 +464,11 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
 
     /// step 2: inter-procedure analysis 
     aaa->start_inter_procedure_analysis();
-    outs() << "Start inter-procedure analysis...\n";
-    while (1) {
-        dyck_graph->qirunAlgorithm();
-        bool finished = aaa->inter_procedure_analysis();
-
-        if (finished) {
-            break;
-        }
-    }
-    aaa->end_inter_procedure_analysis();
+    outs() << "Start inter-procedure analysis...";
+    aaa->inter_procedure_analysis();
     outs() << "\nDone!\n\n";
-
+    aaa->end_inter_procedure_analysis();
+    
     /* call graph */
     if (DotCallGraph) {
         DyckCallGraph *cg = aaa->getCallGraph();
