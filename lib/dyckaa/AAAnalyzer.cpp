@@ -1108,7 +1108,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
     FUNCTION_COUNT++;
 
     bool ret = false;
-
+    
     set<PointerCall*>& pointercalls = caller->getPointerCalls();
     set<PointerCall*>::iterator mit = pointercalls.begin();
 
@@ -1122,9 +1122,11 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         int percentage = ((++PTCALL_COUNT)*100 / PTCALL_TOTAL);
         outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, \r";
 
-        //Value * inst = mit->first;
         PointerCall * pcall = *mit;
-        set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) (pcall->calledValue->getType()->getPointerElementType()));
+        Type* fty = pcall->calledValue->getType()->getPointerElementType();
+        assert(fty->isFunctionTy() && "Error in AAAnalyzer::handle_pointer_function_calls!");
+        
+        set<Function*>* cands = this->getCompatibleFunctions((FunctionType*)fty);
         set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
 
         // print in console
@@ -1136,23 +1138,24 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
             continue;
         }
 
-        // cv, numOfArguments
-        set<Function*>::iterator pfit = cands->begin();
-        while (pfit != cands->end()) {
+        // handle each unhandled, possible function
+        set<Function*> unhandled_function;
+        set_difference(cands->begin(), cands->end(), 
+                        maycallfuncs->begin(), maycallfuncs->end(), 
+                        inserter(unhandled_function, unhandled_function.begin()));
+        
+        set<Function*>::iterator pfit = unhandled_function.begin();
+        while (pfit != unhandled_function.end()) {
             // print in console
             outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
 
             AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, pcall->calledValue);
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
                 ret = true;
-
-                handle_common_function_call(pcall, caller, callgraph->getOrInsertFunction(*pfit));
-
                 maycallfuncs->insert(*pfit);
 
-                this->handle_lib_invoke_call_inst(pcall->instruction, *pfit, &(pcall->args), caller);
-
-                cands->erase(pfit++);
+                handle_common_function_call(pcall, caller, callgraph->getOrInsertFunction(*pfit));
+                handle_lib_invoke_call_inst(pcall->instruction, *pfit, &(pcall->args), caller);
 
                 if (ar == AliasAnalysis::MustAlias) {
                     // print in console
@@ -1162,9 +1165,8 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
                     outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
                     break;
                 }
-            } else {
-                pfit++;
             }
+            pfit++;
         }
 
         mit++;
