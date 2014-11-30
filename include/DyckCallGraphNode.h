@@ -41,20 +41,20 @@ public:
     Value* calledValue;
     vector<Value*> args;
     
-    Call(Value* ret, Value * cv, vector<Value*>* args);
+    Call(Value* inst, Value * calledValue, vector<Value*>* args);
 };
 
 class CommonCall : public Call{
 public:
-    CommonCall(Value* ret, Function * f, vector<Value*>* args);
+    CommonCall(Value* inst, Function * function, vector<Value*>* args);
 };
 
 class PointerCall : public Call{
 public:
-    set<Function*> calleeCands;
     set<Function*> mayAliasedCallees;
+    bool mustAliasedPointerCall;
 
-    PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args);
+    PointerCall(Value* inst, Value* calledValue, vector<Value*>* args);
 };
 
 class DyckCallGraphNode {

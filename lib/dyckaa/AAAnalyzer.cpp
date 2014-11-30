@@ -982,7 +982,7 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
     } else {
         wrapValue(cv);
         if (isa<ConstantExpr>(cv)) {
-
+            
             Value * cvcopy = cv;
             while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
                 cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
@@ -992,7 +992,7 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
                 this->handle_lib_invoke_call_inst(ret, (Function*) cvcopy, args, parent);
                 parent->addCommonCall(new CommonCall(ret, (Function*) cvcopy, args));
             } else {
-                PointerCall* pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cvcopy->getType()->getPointerElementType())), args);
+                PointerCall* pcall = new PointerCall(ret, cv, args);
                 parent->addPointerCall(pcall);
             }
         } else if (isa<GlobalAlias>(cv)) {
@@ -1005,11 +1005,11 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
                 this->handle_lib_invoke_call_inst(ret, (Function*) cvcopy, args, parent);
                 parent->addCommonCall(new CommonCall(ret, (Function*) cvcopy, args));
             } else {
-                PointerCall* pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cvcopy->getType()->getPointerElementType())), args);
+                PointerCall* pcall = new PointerCall(ret, cv, args);
                 parent->addPointerCall(pcall);
             }
         } else {
-            PointerCall * pcall = new PointerCall(ret, cv, getCompatibleFunctions((FunctionType*) (cv->getType()->getPointerElementType())), args);
+            PointerCall * pcall = new PointerCall(ret, cv, args);
             parent->addPointerCall(pcall);
         }
     }
@@ -1124,13 +1124,17 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
 
         //Value * inst = mit->first;
         PointerCall * pcall = *mit;
-        set<Function*>* cands = &(pcall->calleeCands);
+        set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) (pcall->calledValue->getType()->getPointerElementType()));
         set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
 
         // print in console
         int CAND_TOTAL = cands->size();
         int CAND_COUNT = 0;
-        if (CAND_TOTAL == 0) outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+        if (CAND_TOTAL == 0 || pcall->mustAliasedPointerCall) {
+            outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+            mit ++;
+            continue;
+        }
 
         // cv, numOfArguments
         set<Function*>::iterator pfit = cands->begin();
@@ -1151,9 +1155,10 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
                 cands->erase(pfit++);
 
                 if (ar == AliasAnalysis::MustAlias) {
-                    cands->clear();
-
                     // print in console
+                    pcall->mustAliasedPointerCall = true;
+                    pcall->mayAliasedCallees.clear();
+                    pcall->mayAliasedCallees.insert(*pfit);
                     outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
                     break;
                 }

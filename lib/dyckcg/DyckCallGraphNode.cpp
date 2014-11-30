@@ -5,9 +5,9 @@
 
 #include "DyckCallGraphNode.h"
 
-Call::Call(Value* ret, Value * cv, vector<Value*>* args) {
-    this->calledValue = cv;
-    this->instruction = ret;
+Call::Call(Value* inst, Value * calledValue, vector<Value*>* args) {
+    this->calledValue = calledValue;
+    this->instruction = inst;
     vector<Value*>::iterator aIt = args->begin();
     while (aIt != args->end()) {
         this->args.push_back(*aIt);
@@ -15,11 +15,10 @@ Call::Call(Value* ret, Value * cv, vector<Value*>* args) {
     }
 }
 
-CommonCall::CommonCall(Value* ret, Function * f, vector<Value*>* args) : Call(ret, f, args) {
+CommonCall::CommonCall(Value* inst, Function * func, vector<Value*>* args) : Call(inst, func, args) {
 }
 
-PointerCall::PointerCall(Value* ret, Value* cv, set<Function *>* fs, vector<Value*>* args) : Call(ret, cv, args) {
-    this->calleeCands.insert(fs->begin(), fs->end());
+PointerCall::PointerCall(Value* inst, Value* calledValue, vector<Value*>* args) : Call(inst, calledValue, args), mustAliasedPointerCall(false) {
 }
 
 int DyckCallGraphNode::global_idx = 0;
