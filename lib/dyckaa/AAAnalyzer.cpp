@@ -1222,7 +1222,10 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
             break;
         case 3:
         {
-            if (functionName == "strncat" || functionName == "strncpy") {
+            if (functionName == "strncat" 
+                    || functionName == "strncpy" 
+                    || functionName == "memcpy"
+                    || functionName == "memmove") {
                 if (ret != NULL) {
                     DyckVertex * dst_ptr = wrapValue(args->at(0));
                     DyckVertex * src_ptr = wrapValue(args->at(1));
@@ -1233,7 +1236,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
                     errs() << "ERROR strncat/cpy does not return.\n";
                     exit(1);
                 }
-            } else if (functionName == "memchr" || functionName == "memrchr") {
+            } else if (functionName == "memchr" || functionName == "memrchr" || functionName == "memset") {
                 // alias r/1st
                 this->makeAlias(wrapValue(ret), wrapValue(args->at(0)));
             } else if (functionName == "strtok_r" || functionName == "__strtok_r") {
