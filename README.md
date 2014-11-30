@@ -99,5 +99,8 @@ Email: qingkaishi@gmail.com
 
 TODO
 ------
-1. Do not really combine function groups, check function type precisely.
+1. Upgrade canary:
+    1.1 rewrite dyckgraph library
+    1.2 support more presice aa of constant array
+    1.3 performance optimization
 2. Recover canary record/replay transform pass.
