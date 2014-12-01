@@ -76,6 +76,7 @@ public:
     void inter_procedure_analysis();
     
     void getUnhandledCallInstructions(set<Instruction*>* ret);
+    void printNoAliasedPointerCalls();
     
     DyckCallGraph* getCallGraph(){
         return callgraph;

@@ -23,7 +23,7 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph*
 
 AAAnalyzer::~AAAnalyzer() {
     this->destroyFunctionGroups();
-    
+
     if (!((DyckAliasAnalysis*) aa)->callGraphPreserved()) {
         delete callgraph;
     }
@@ -45,13 +45,6 @@ void AAAnalyzer::start_inter_procedure_analysis() {
     if (gf || sf || cf) {
         errs() << "Warning: dyckaa does not handle pthread_getspecific/setspecific/key_create\n";
     }
-
-    /* for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-            Function* f = iterF;
-            if(f->empty() && !f->isIntrinsic()){
-                outs() << *f <<"\n";
-            }
-        }*/
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
@@ -99,6 +92,8 @@ void AAAnalyzer::end_inter_procedure_analysis() {
     int NumAssistantVertices = toDeletes.size();
     int NumVertices = dgraph->numVertices();
     outs() << "# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree / 1024 << "KB.\n\n";
+    
+    
 }
 
 void AAAnalyzer::intra_procedure_analysis() {
@@ -123,6 +118,8 @@ void AAAnalyzer::intra_procedure_analysis() {
     }
     outs() << "# Instructions: " << instNum << "\n";
     outs() << "# Functions: " << module->getFunctionList().size() - intrinsicsNum << "\n";
+    
+    DEBUG_WITH_TYPE("pointercalls", this->printNoAliasedPointerCalls());
     return;
 }
 
@@ -158,8 +155,8 @@ void AAAnalyzer::inter_procedure_analysis() {
                 set<CommonCall*>& callInsts = df->getCommonCalls();
 
                 set<CommonCall*> df_unHandledCommonCalls;
-                set_difference(callInsts.begin(), callInsts.end(), 
-                        df_handledCommonCalls->begin(), df_handledCommonCalls->end(), 
+                set_difference(callInsts.begin(), callInsts.end(),
+                        df_handledCommonCalls->begin(), df_handledCommonCalls->end(),
                         inserter(df_unHandledCommonCalls, df_unHandledCommonCalls.begin()));
 
                 auto cit = df_unHandledCommonCalls.begin();
@@ -208,12 +205,14 @@ void AAAnalyzer::inter_procedure_analysis() {
 
 void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
     ret->insert(unhandled_call_insts.begin(), unhandled_call_insts.end());
-    
+}
+
+void AAAnalyzer::printNoAliasedPointerCalls() {
     outs() << ">>>>>>>>>> Pointer Calls that do not find any aliased function\n";
     auto it = unhandled_call_insts.begin();
-    while(it!=unhandled_call_insts.end()) {
-        CallInst * inst = (CallInst*)*it;
-        if(!inst->isInlineAsm()) {
+    while (it != unhandled_call_insts.end()) {
+        CallInst * inst = (CallInst*) * it;
+        if (!inst->isInlineAsm()) {
             outs() << *inst << "\n";
         }
         it++;
@@ -994,7 +993,7 @@ void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* 
     } else {
         wrapValue(cv);
         if (isa<ConstantExpr>(cv)) {
-            
+
             Value * cvcopy = cv;
             while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
                 cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
@@ -1120,7 +1119,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
     FUNCTION_COUNT++;
 
     bool ret = false;
-    
+
     set<PointerCall*>& pointercalls = caller->getPointerCalls();
     set<PointerCall*>::iterator mit = pointercalls.begin();
 
@@ -1137,25 +1136,25 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         PointerCall * pcall = *mit;
         Type* fty = pcall->calledValue->getType()->getPointerElementType();
         assert(fty->isFunctionTy() && "Error in AAAnalyzer::handle_pointer_function_calls!");
-        
-        set<Function*>* cands = this->getCompatibleFunctions((FunctionType*)fty);
+
+        set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) fty);
         set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
-        
+
         // handle each unhandled, possible function
         set<Function*> unhandled_function;
-        set_difference(cands->begin(), cands->end(), 
-                        maycallfuncs->begin(), maycallfuncs->end(), 
-                        inserter(unhandled_function, unhandled_function.begin()));
-        
+        set_difference(cands->begin(), cands->end(),
+                maycallfuncs->begin(), maycallfuncs->end(),
+                inserter(unhandled_function, unhandled_function.begin()));
+
         // print in console
         int CAND_TOTAL = unhandled_function.size();
         int CAND_COUNT = 0;
         if (CAND_TOTAL == 0 || pcall->mustAliasedPointerCall) {
             outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
-            mit ++;
+            mit++;
             continue;
         }
-                
+
         set<Function*>::iterator pfit = unhandled_function.begin();
         while (pfit != unhandled_function.end()) {
             // print in console
@@ -1234,8 +1233,8 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
             break;
         case 3:
         {
-            if (functionName == "strncat" 
-                    || functionName == "strncpy" 
+            if (functionName == "strncat"
+                    || functionName == "strncpy"
                     || functionName == "memcpy"
                     || functionName == "memmove") {
                 if (ret != NULL) {
