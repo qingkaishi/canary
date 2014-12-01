@@ -60,7 +60,8 @@ unsigned int DyckVertex::degree() {
 }
 
 set<DyckVertex*>* DyckVertex::getEquivalentSet() {
-    set<DyckVertex*>* alias = this->getRepresentative()->getEquivClass();
+    DyckVertex* rep = this->getRepresentative();
+    set<DyckVertex*>* alias = rep->equivclass;
     assert(alias != NULL && "ERROR in DyckVertex::getAliases(DyckVertex*) \n");
     return alias;
 }
@@ -77,8 +78,8 @@ void DyckVertex::setRepresentative(DyckVertex* rootRep) {
         return;
     }
 
-    set<DyckVertex*> * rootecls = rootRep->getEquivClass();
-    set<DyckVertex*> * thisecls = this->getEquivClass();
+    set<DyckVertex*> * rootecls = rootRep->getEquivalentSet();
+    set<DyckVertex*> * thisecls = this->getEquivalentSet();
 
     rootecls->insert(thisecls->begin(), thisecls->end());
 
@@ -145,16 +146,6 @@ void DyckVertex::removeTarget(DyckVertex* ver, void* label) {
     ver->removeSource(this, label);
 }
 
-void DyckVertex::removeTarget(DyckVertex* ver) {
-    set<void*>& olabels = this->getOutLabels();
-
-    set<void*>::iterator olit = olabels.begin();
-    while (olit != olabels.end()) {
-        this->removeTarget(ver, *olit);
-        olit++;
-    }
-}
-
 void * DyckVertex::getValue() {
     return value;
 }
@@ -185,62 +176,6 @@ set<DyckVertex*>* DyckVertex::getOutVertices(void * label) {
     return NULL;
 }
 
-void DyckVertex::setEquivalentSet(set<DyckVertex*>* eset) {
-    this->equivclass = eset;
-}
-
-DyckVertex* DyckVertex::clone() {
-    DyckVertex* copy = new DyckVertex(this->getValue(), this->getName());
-
-    // copy in_labels/out_labels
-    // copy in_vertices/out_vertices
-    map<void*, set<DyckVertex*>*>& ins = this->getInVertices();
-    map<void*, set<DyckVertex*>*>::iterator iit = ins.begin();
-    while (iit != ins.end()) {
-        void * label = iit->first;
-        set<DyckVertex*>* ltars = iit->second;
-        set<DyckVertex*>::iterator lrit = ltars->begin();
-        while (lrit != ltars->end()) {
-            (*lrit)->addTarget(copy, label);
-            lrit++;
-        }
-        iit++;
-    }
-
-    map<void*, set<DyckVertex*>*>& ous = this->getOutVertices();
-    map<void*, set<DyckVertex*>*>::iterator oit = ous.begin();
-    while (oit != ous.end()) {
-        void * label = oit->first;
-        set<DyckVertex*>* ltars = oit->second;
-        set<DyckVertex*>::iterator lrit = ltars->begin();
-        while (lrit != ltars->end()) {
-            copy->addTarget(*lrit, label);
-            lrit++;
-        }
-        oit++;
-    }
-
-    return copy;
-}
-
-void DyckVertex::getInVertices(set<DyckVertex*>* ret) {
-    set<void *>::iterator it = in_lables.begin();
-    while (it != in_lables.end()) {
-        set<DyckVertex*>* vertices = this->getInVertices(*it);
-        ret->insert(vertices->begin(), vertices->end());
-        it++;
-    }
-}
-
-void DyckVertex::getOutVertices(set<DyckVertex*>* ret) {
-    set<void *>::iterator it = out_lables.begin();
-    while (it != out_lables.end()) {
-        set<DyckVertex*>* vertices = this->getOutVertices(*it);
-        ret->insert(vertices->begin(), vertices->end());
-        it++;
-    }
-}
-
 // the followings are private functions
 
 void DyckVertex::addSource(DyckVertex* ver, void* label) {
@@ -258,30 +193,4 @@ void DyckVertex::removeSource(DyckVertex* ver, void* label) {
     if (in_vers.count(label)) {
         in_vers[label]->erase(ver);
     }
-}
-
-set<DyckVertex*> * DyckVertex::getEquivClass() {
-    if (representative == this) {
-        return equivclass;
-    } else {
-        return representative->getEquivClass();
-    }
-}
-
-bool DyckVertex::isBridge() {
-    DyckVertex* rep = this->getRepresentative();
-
-    set<DyckVertex*> ins;
-    rep->getInVertices(&ins);
-    if (ins.size() > 1) {
-        return true;
-    }
-
-    set<DyckVertex*> outs;
-    rep->getOutVertices(&outs);
-    if (outs.size() + ins.size() > 1) {
-        return true;
-    }
-
-    return false;
 }

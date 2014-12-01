@@ -93,7 +93,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
     int NumVertices = dgraph->numVertices();
     outs() << "# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree / 1024 << "KB.\n\n";
     
-    
+    DEBUG_WITH_TYPE("pointercalls", this->printNoAliasedPointerCalls());
 }
 
 void AAAnalyzer::intra_procedure_analysis() {
@@ -118,8 +118,6 @@ void AAAnalyzer::intra_procedure_analysis() {
     }
     outs() << "# Instructions: " << instNum << "\n";
     outs() << "# Functions: " << module->getFunctionList().size() - intrinsicsNum << "\n";
-    
-    DEBUG_WITH_TYPE("pointercalls", this->printNoAliasedPointerCalls());
     return;
 }
 
@@ -208,7 +206,7 @@ void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
 }
 
 void AAAnalyzer::printNoAliasedPointerCalls() {
-    outs() << ">>>>>>>>>> Pointer Calls that do not find any aliased function\n";
+    outs() << ">>>>>>>>>> Pointer calls that do not find any aliased function\n";
     auto it = unhandled_call_insts.begin();
     while (it != unhandled_call_insts.end()) {
         CallInst * inst = (CallInst*) * it;
@@ -217,7 +215,7 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
         }
         it++;
     }
-    outs() << "<<<<<<<<<< Pointer Calls that do not find any aliased function\n";
+    outs() << "<<<<<<<<<< Pointer calls that do not find any aliased function\n";
 }
 
 //// The followings are private functions
