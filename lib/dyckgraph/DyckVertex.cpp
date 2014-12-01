@@ -13,8 +13,11 @@ DyckVertex::DyckVertex(void * v, const char * itsname) {
     index = global_indx++;
     value = v;
     representative = this;
-    equivclass = new set<DyckVertex*>;
-    equivclass->insert(representative);
+    equivclass = new set<void*>;
+    
+    if(value!=NULL) {
+        equivclass->insert(value);
+    }
 }
 
 DyckVertex::~DyckVertex() {
@@ -59,9 +62,9 @@ unsigned int DyckVertex::degree() {
     return ret;
 }
 
-set<DyckVertex*>* DyckVertex::getEquivalentSet() {
+set<void*>* DyckVertex::getEquivalentSet() {
     DyckVertex* rep = this->getRepresentative();
-    set<DyckVertex*>* alias = rep->equivclass;
+    set<void*>* alias = rep->equivclass;
     assert(alias != NULL && "ERROR in DyckVertex::getAliases(DyckVertex*) \n");
     return alias;
 }
@@ -78,16 +81,10 @@ void DyckVertex::setRepresentative(DyckVertex* rootRep) {
         return;
     }
 
-    set<DyckVertex*> * rootecls = rootRep->getEquivalentSet();
-    set<DyckVertex*> * thisecls = this->getEquivalentSet();
+    set<void*> * rootecls = rootRep->getEquivalentSet();
+    set<void*> * thisecls = this->getEquivalentSet();
 
     rootecls->insert(thisecls->begin(), thisecls->end());
-
-    set<DyckVertex*>::iterator thiseclsIt = thisecls->begin();
-    while (thiseclsIt != thisecls->end()) {
-        (*thiseclsIt)->representative = rootRep;
-        thiseclsIt++;
-    }
 
     thisRep->representative = rootRep;
     delete thisecls;

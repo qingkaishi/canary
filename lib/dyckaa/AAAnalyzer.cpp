@@ -5,6 +5,10 @@
 
 #include "AAAnalyzer.h"
 
+static cl::opt<bool>
+NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
+        cl::desc("Do not check function type when resolving pointer calls."));
+
 #define ARRAY_SIMPLIFIED
 
 AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
@@ -66,33 +70,11 @@ void AAAnalyzer::end_inter_procedure_analysis() {
     }
 
     // @TODO delete all null-value dyckvertices
-    set<DyckVertex*> toDeletes;
-    unsigned bytesToFree = 0;
-
-    set<DyckVertex*>& reps = dgraph->getRepresentatives();
-    set<DyckVertex*>::iterator rit = reps.begin();
-    while (rit != reps.end()) {
-        DyckVertex* rep = *rit;
-
-        set<DyckVertex*> * eset = rep->getEquivalentSet();
-        auto esetIt = eset->begin();
-        while (esetIt != eset->end()) {
-            DyckVertex* d = *esetIt;
-            if (d->getValue() == NULL) {
-                bytesToFree += sizeof (DyckVertex);
-                toDeletes.insert(d);
-            }
-
-            esetIt++;
-        }
-
-        rit++;
-    }
-
-    int NumAssistantVertices = toDeletes.size();
+    int NumAssistantVertices = dgraph->getAssistantVertices().size();
     int NumVertices = dgraph->numVertices();
-    outs() << "# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << bytesToFree / 1024 << "KB.\n\n";
-    
+    unsigned BytesToFree = sizeof (DyckVertex) * NumAssistantVertices;
+    outs() << "# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << BytesToFree / 1024 << "KB.\n\n";
+
     DEBUG_WITH_TYPE("pointercalls", this->printNoAliasedPointerCalls());
 }
 
@@ -207,20 +189,26 @@ void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
 
 void AAAnalyzer::printNoAliasedPointerCalls() {
     outs() << ">>>>>>>>>> Pointer calls that do not find any aliased function\n";
+    unsigned size = 0;
     auto it = unhandled_call_insts.begin();
     while (it != unhandled_call_insts.end()) {
         CallInst * inst = (CallInst*) * it;
         if (!inst->isInlineAsm()) {
+            size++;
             outs() << *inst << "\n";
         }
         it++;
     }
-    outs() << "<<<<<<<<<< Pointer calls that do not find any aliased function\n";
+    outs() << "<<<<<<<<<< Total: " << size << ".\n\n";
 }
 
 //// The followings are private functions
 
 int AAAnalyzer::isCompatible(FunctionType * t1, FunctionType * t2) {
+     if (!NoFunctionTypeCheck) {
+         return 1;
+     }
+    
     if (t1 == t2) {
         return 1;
     }
@@ -1135,12 +1123,18 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         Type* fty = pcall->calledValue->getType()->getPointerElementType();
         assert(fty->isFunctionTy() && "Error in AAAnalyzer::handle_pointer_function_calls!");
 
-        set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) fty);
-        set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
-
         // handle each unhandled, possible function
-        set<Function*> unhandled_function;
-        set_difference(cands->begin(), cands->end(),
+        set<void*> equivAndTypeCompSet;
+        set<void*>* equivSet = dgraph->retrieveDyckVertex(pcall->calledValue).first->getEquivalentSet();
+        set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) fty);
+        set_intersection(cands->begin(), cands->end(),
+                equivSet->begin(), equivSet->end(),
+                inserter(equivAndTypeCompSet, equivAndTypeCompSet.begin()));
+
+
+        set<void*> unhandled_function;
+        set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
+        set_difference(equivAndTypeCompSet.begin(), equivAndTypeCompSet.end(),
                 maycallfuncs->begin(), maycallfuncs->end(),
                 inserter(unhandled_function, unhandled_function.begin()));
 
@@ -1153,28 +1147,29 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
             continue;
         }
 
-        set<Function*>::iterator pfit = unhandled_function.begin();
+        set<void*>::iterator pfit = unhandled_function.begin();
         while (pfit != unhandled_function.end()) {
+            Function * mayAliasedFunctioin = (Function*) (*pfit);
             // print in console
             outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
 
-            AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(*pfit, pcall->calledValue);
-            if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
-                ret = true;
-                maycallfuncs->insert(*pfit);
+            AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(mayAliasedFunctioin, pcall->calledValue);
+            //if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
+            ret = true;
+            maycallfuncs->insert(mayAliasedFunctioin);
 
-                handle_common_function_call(pcall, caller, callgraph->getOrInsertFunction(*pfit));
-                handle_lib_invoke_call_inst(pcall->instruction, *pfit, &(pcall->args), caller);
+            handle_common_function_call(pcall, caller, callgraph->getOrInsertFunction(mayAliasedFunctioin));
+            handle_lib_invoke_call_inst(pcall->instruction, mayAliasedFunctioin, &(pcall->args), caller);
 
-                if (ar == AliasAnalysis::MustAlias) {
-                    // print in console
-                    pcall->mustAliasedPointerCall = true;
-                    pcall->mayAliasedCallees.clear();
-                    pcall->mayAliasedCallees.insert(*pfit);
-                    outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
-                    break;
-                }
+            if (ar == AliasAnalysis::MustAlias) {
+                // print in console
+                pcall->mustAliasedPointerCall = true;
+                pcall->mayAliasedCallees.clear();
+                pcall->mayAliasedCallees.insert(mayAliasedFunctioin);
+                outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+                break;
             }
+            //}
             pfit++;
         }
 

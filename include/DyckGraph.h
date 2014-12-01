@@ -19,6 +19,8 @@ private:
     set<DyckVertex*> vertices;
     set<DyckVertex*> reps;
     
+    set<DyckVertex*> assistant_vertices;
+    
     tr1::unordered_map<void *, DyckVertex*> val_ver_map;
 public:
     
@@ -39,6 +41,9 @@ public:
     /// From each representative, you can find its equivalent set.
     /// Use it after you call void qirunAlgorithm().
     set<DyckVertex*>& getRepresentatives();
+    
+    /// Get all assistant vertices
+    set<DyckVertex*>& getAssistantVertices();
     
     /// You are not recommended to use the function when the graph is big,
     /// because it is time-consuming.

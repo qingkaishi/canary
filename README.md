@@ -50,6 +50,17 @@ relations (dot style).
 * -count-fp
 Count how many functions that a function pointer may point to.
 
+* -no-function-type-check
+If the option is set, we do not check the function type when resolving pointer
+calls, otherwise, only type compatible function can be aliased with a function
+pointer.
+
+NOTE: f1 and f2 are compatible iff.
+> Both or netheir of them are var arg function;
+> Both or netheir of them has a non-void return value;
+> Same number of parameters;
+> Same type store sizes of each pair of parameters.
+
 * -dot-dyck-callgraph
 This option is used to print a call graph based on the alias analysis.
 You can use it with -with-labels option, which will add lables (call insts)
@@ -100,7 +111,6 @@ Email: qingkaishi@gmail.com
 TODO
 ------
 1. Upgrade canary:
-    1.1 rewrite dyckgraph library
-    1.2 support more presice aa of constant array
-    1.3 performance optimization
+> 1.1 support more presice aa of constant array
+> 1.2 performance optimization
 2. Recover canary record/replay transform pass.

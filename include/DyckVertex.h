@@ -30,7 +30,9 @@ private:
     map<void*, set<DyckVertex*>* > out_vers;
 
     DyckVertex* representative;
-    set<DyckVertex*>* equivclass;
+
+    /// only store non-null value
+    set<void*>* equivclass;
 
     /// Default constructor is not visible.
     /// please use DyckGraph::retrieveDyckVertex for initialization
@@ -109,9 +111,9 @@ public:
     /// Get the representative of the equivalent set that this vertex belongs to. 
     DyckVertex* getRepresentative();
 
-    /// Get the equivalent set of this vertex.
+    /// Get the equivalent set of non-null value.
     /// Use it after you call DyckGraph::qirunAlgorithm().
-    set<DyckVertex*>* getEquivalentSet();
+    set<void*>* getEquivalentSet();
 
     /// Return true if this vertex and v are in the same equivalent set.
     /// Use it after you call DyckGraph::qirunAlgorithm().

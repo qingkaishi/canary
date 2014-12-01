@@ -274,14 +274,9 @@ void DyckAliasAnalysis::fromDyckVertexToValue(set<DyckVertex*>& from, set<Value*
     while (svsIt != from.end()) {
         Value * val = (Value*) ((*svsIt)->getValue());
         if (val == NULL) {
-            set<DyckVertex*>* eset = (*svsIt)->getEquivalentSet();
-            set<DyckVertex*>::iterator eit = eset->begin();
-            while (eit != eset->end()) {
-                val = (Value*) ((*eit)->getValue());
-                if (val != NULL) {
-                    break;
-                }
-                eit++;
+            set<void*>* eset = (*svsIt)->getEquivalentSet();
+            if (!eset->empty()) {
+                val = (Value*) *(eset->begin());
             }
         }
 
@@ -468,7 +463,7 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     aaa->inter_procedure_analysis();
     outs() << "\nDone!\n\n";
     aaa->end_inter_procedure_analysis();
-    
+
     /* call graph */
     if (DotCallGraph) {
         DyckCallGraph *cg = aaa->getCallGraph();
@@ -494,8 +489,8 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
         this->printAliasSetInformation(M);
         outs() << "Done!\n\n";
     }
-    
-    DEBUG_WITH_TYPE("valg", dyck_graph->validation(__FILE__, __LINE__));
+
+    DEBUG_WITH_TYPE("validate-dyckgraph", dyck_graph->validation(__FILE__, __LINE__));
 
     /* instrumentation */
     //    if (TraceTransformer || LeapTransformer
@@ -651,14 +646,14 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
         double totalSize = 0;
         set<DyckVertex*>::iterator it = allreps.begin();
         while (it != allreps.end()) {
-            set<DyckVertex*>* aliasset = (*it)->getEquivalentSet();
-            
+            set<void*>* aliasset = (*it)->getEquivalentSet();
+
             unsigned long size = 0;
 
-            set<DyckVertex*>::iterator asIt = aliasset->begin();
+            set<void*>::iterator asIt = aliasset->begin();
             while (asIt != aliasset->end()) {
-                Value * val = ((Value*) (*asIt)->getValue());
-                if (val != NULL && val->getType()->isPointerTy()) {
+                Value * val = ((Value*) (*asIt));
+                if (val->getType()->isPointerTy()) {
                     size++;
                 }
 
@@ -689,7 +684,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
 
         fclose(log);
         outs() << "Done!\n";
-        
+
         outs() << "===== Alias Analysis Evaluator Report =====\n";
         outs() << "   " << pairNum << " Total Alias Queries Performed\n";
         outs() << "   " << noAliasNum << " no alias responses (" << (unsigned long) percentOfNoAlias << "%)\n\n";
@@ -699,7 +694,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
     {
         outs() << "Printing alias_rel.dot... ";
         outs().flush();
-        
+
         FILE * aliasRel = fopen("alias_rel.dot", "w");
         fprintf(aliasRel, "digraph rel{\n");
 
@@ -767,7 +762,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
     {
         outs() << "Printing alias_sets.log... ";
         outs().flush();
-        
+
         FILE * log = fopen("alias_sets.log", "w+");
 
         set<DyckVertex*> svs;
@@ -788,16 +783,15 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
             }
 
             Value * val = (Value*) (rep->getValue());
-            set<DyckVertex*>* eset = rep->getEquivalentSet();
-            set<DyckVertex*>::iterator eit = eset->begin();
+            set<void*>* eset = rep->getEquivalentSet();
+            set<void*>::iterator eit = eset->begin();
             while (eit != eset->end()) {
-                val = (Value*) ((*eit)->getValue());
-                if (val != NULL) {
-                    if (pthread_escaped) {
-                        fprintf(log, "{%d} %s", idx, val->getName().data());
-                    } else {
-                        fprintf(log, "[%d] %s", idx, val->getName().data());
-                    }
+                val = (Value*) ((*eit));
+                assert(val != NULL && "Error: val is null in an equiv set!");
+                if (pthread_escaped) {
+                    fprintf(log, "{%d} %s", idx, val->getName().data());
+                } else {
+                    fprintf(log, "[%d] %s", idx, val->getName().data());
                 }
                 eit++;
             }

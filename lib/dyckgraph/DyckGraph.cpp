@@ -72,7 +72,7 @@ bool DyckGraph::containsInWorkList(multimap<DyckVertex*, void*>& list, DyckVerte
 }
 
 void DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
-    
+
     x = x->getRepresentative();
     y = y->getRepresentative();
 
@@ -268,6 +268,7 @@ pair<DyckVertex*, bool> DyckGraph::retrieveDyckVertex(void* value, const char* n
     if (value == NULL) {
         DyckVertex* ver = new DyckVertex(NULL);
         this->addVertex(ver);
+        assistant_vertices.insert(ver);
         return std::make_pair(ver, false);
     }
 
@@ -307,6 +308,10 @@ set<DyckVertex*>& DyckGraph::getRepresentatives() {
     return reps;
 }
 
+set<DyckVertex*>& DyckGraph::getAssistantVertices() {
+    return assistant_vertices;
+}
+
 void DyckGraph::validation(const char* file, int line) {
     printf("Start validation... ");
     set<DyckVertex*>& reps = this->getRepresentatives();
@@ -321,8 +326,8 @@ void DyckGraph::validation(const char* file, int line) {
                 auto outsForLIt = outsForL->begin();
                 while (outsForLIt != outsForL->end()) {
                     DyckVertex* out = *outsForLIt;
-                    
-                    if(out->getRepresentative() != out) {
+
+                    if (out->getRepresentative() != out) {
                         printf("Assert Failed: out is not representative: %s : %d\n", file, line);
                         exit(-1);
                     }
@@ -332,7 +337,7 @@ void DyckGraph::validation(const char* file, int line) {
                 outsIt++;
             }
         }
-        
+
         {
             auto ins = rep->getInVertices();
             auto insIt = ins.begin();
@@ -341,12 +346,12 @@ void DyckGraph::validation(const char* file, int line) {
                 auto insForLIt = insForL->begin();
                 while (insForLIt != insForL->end()) {
                     DyckVertex* in = *insForLIt;
-                    
-                    if(in->getRepresentative() != in) {
+
+                    if (in->getRepresentative() != in) {
                         printf("Assert Failed: in is not representative: %s : %d\n", file, line);
                         exit(-1);
                     }
-                    
+
                     insForLIt++;
                 }
                 insIt++;
