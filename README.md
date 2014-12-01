@@ -56,9 +56,13 @@ calls, otherwise, only type compatible function can be aliased with a function
 pointer.
 
 NOTE: f1 and f2 are two type compatible functions iff.
+
 > Both or netheir of them are var arg function;
+
 > Both or netheir of them have a non-void return value;
+
 > Same number of parameters;
+
 > Same type store sizes of each pair of parameters.
 
 * -dot-dyck-callgraph
@@ -112,8 +116,8 @@ TODO
 ------
 * Upgrade canary:
 
-> 1 support more presice aa of constant array
+> 1. support more presice aa of constant array
 
-> 2 performance optimization
+> 2. performance optimization
 
 * Recover canary record/replay transform pass.
