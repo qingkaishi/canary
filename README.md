@@ -55,7 +55,7 @@ If the option is set, we do not check the function type when resolving pointer
 calls, otherwise, only type compatible function can be aliased with a function
 pointer.
 
-NOTE: f1 and f2 are two type compatible functions iff.
+NOTE: currently, f1 and f2 are two type compatible functions iff.
 
 > Both or netheir of them are var arg function;
 
@@ -63,7 +63,9 @@ NOTE: f1 and f2 are two type compatible functions iff.
 
 > Same number of parameters;
 
-> Same type store sizes of each pair of parameters.
+> Same type store sizes of each pair of parameters;
+
+> There is an explicit cast operation between type(f1) and type(f2).
 
 * -dot-dyck-callgraph
 This option is used to print a call graph based on the alias analysis.
