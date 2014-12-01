@@ -16,7 +16,7 @@ memcached.bc: $(OBJ)
 	@llvm-link memcached-memcached.o memcached-hash.o memcached-slabs.o memcached-items.o memcached-assoc.o memcached-thread.o memcached-daemon.o memcached-stats.o memcached-util.o memcached-cache.o -o ./memcached.bc
 
 memcached-memcached.o: memcached.c
-	@clang -c -emit-llvm -g -O2  -DHAVE_CONFIG_H -I.  -DNDEBUG -fno-vectorize -fno-slp-vectorize -pthread -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -o memcached-memcached.o ./memcached.c
+	@clang -c -emit-llvm -g  -DHAVE_CONFIG_H -I.  -DNDEBUG -fno-vectorize -fno-slp-vectorize -pthread -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -o memcached-memcached.o ./memcached.c
 
 memcached-hash.o: hash.c
 	@clang -c -emit-llvm   -DHAVE_CONFIG_H -I.  -DNDEBUG   -g -O2 -fno-vectorize -fno-slp-vectorize -pthread -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -o memcached-hash.o ./hash.c

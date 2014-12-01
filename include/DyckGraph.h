@@ -63,6 +63,9 @@ public:
     /// If the function does nothing, return true, otherwise return false.
     virtual bool qirunAlgorithm();
     
+    /// validation
+    void validation(const char*, int);
+    
 private:
     void removeFromWorkList(multimap<DyckVertex*, void*>& list, DyckVertex* v, void* l);
 

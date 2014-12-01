@@ -494,6 +494,8 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
         this->printAliasSetInformation(M);
         outs() << "Done!\n\n";
     }
+    
+    DEBUG_WITH_TYPE("valg", dyck_graph->validation(__FILE__, __LINE__));
 
     /* instrumentation */
     //    if (TraceTransformer || LeapTransformer

@@ -22,6 +22,8 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph*
 }
 
 AAAnalyzer::~AAAnalyzer() {
+    this->destroyFunctionGroups();
+    
     if (!((DyckAliasAnalysis*) aa)->callGraphPreserved()) {
         delete callgraph;
     }
@@ -32,7 +34,6 @@ void AAAnalyzer::start_intra_procedure_analysis() {
 }
 
 void AAAnalyzer::end_intra_procedure_analysis() {
-    this->destroyFunctionGroups();
 }
 
 void AAAnalyzer::start_inter_procedure_analysis() {
@@ -302,7 +303,7 @@ FunctionTypeNode* AAAnalyzer::initFunctionGroup(FunctionType* fty) {
 void AAAnalyzer::initFunctionGroups() {
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function* f = iterF;
-        if (f->isIntrinsic() || f->empty()) { //empty method will not used for inter-pro analysis
+        if (f->isIntrinsic()) {
             continue;
         }
 
@@ -409,7 +410,7 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* f
             valrep->addTarget(field, (void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
         }
     } else {
-        valrep->addTarget(field, (void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
+        valrep->addTarget(field->getRepresentative(), (void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
     }
 
     return field;
@@ -1129,21 +1130,25 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         set<Function*>* cands = this->getCompatibleFunctions((FunctionType*)fty);
         set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
 
-        // print in console
-        int CAND_TOTAL = cands->size();
-        int CAND_COUNT = 0;
-        if (CAND_TOTAL == 0 || pcall->mustAliasedPointerCall) {
-            outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
-            mit ++;
-            continue;
-        }
-
         // handle each unhandled, possible function
         set<Function*> unhandled_function;
         set_difference(cands->begin(), cands->end(), 
                         maycallfuncs->begin(), maycallfuncs->end(), 
                         inserter(unhandled_function, unhandled_function.begin()));
         
+        // print in console
+        int CAND_TOTAL = unhandled_function.size();
+        //errs() << "\nFunc #" << FUNCTION_COUNT << "\n";
+        //errs() << "TODO: " << cands->size() << " - " << maycallfuncs->size() << " = " << unhandled_function.size() << "\n";
+        //if(pcall->instruction!=NULL)
+        //errs() << "Instruction: " << *(pcall->instruction) << "\n";
+        int CAND_COUNT = 0;
+        if (CAND_TOTAL == 0 || pcall->mustAliasedPointerCall) {
+            outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+            mit ++;
+            continue;
+        }
+                
         set<Function*>::iterator pfit = unhandled_function.begin();
         while (pfit != unhandled_function.end()) {
             // print in console

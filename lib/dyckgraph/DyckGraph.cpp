@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tr1/hashtable.h>
+#include <string>
 
 void DyckGraph::printAsDot(const char* filename) const {
     FILE * f = fopen(filename, "w+");
@@ -71,7 +72,7 @@ bool DyckGraph::containsInWorkList(multimap<DyckVertex*, void*>& list, DyckVerte
 }
 
 void DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
-
+    
     x = x->getRepresentative();
     y = y->getRepresentative();
 
@@ -304,4 +305,54 @@ set<DyckVertex*>& DyckGraph::getVertices() {
 
 set<DyckVertex*>& DyckGraph::getRepresentatives() {
     return reps;
+}
+
+void DyckGraph::validation(const char* file, int line) {
+    printf("Start validation... ");
+    set<DyckVertex*>& reps = this->getRepresentatives();
+    auto repsIt = reps.begin();
+    while (repsIt != reps.end()) {
+        DyckVertex* rep = *repsIt;
+        {
+            auto outs = rep->getOutVertices();
+            auto outsIt = outs.begin();
+            while (outsIt != outs.end()) {
+                set<DyckVertex*>* outsForL = outsIt->second;
+                auto outsForLIt = outsForL->begin();
+                while (outsForLIt != outsForL->end()) {
+                    DyckVertex* out = *outsForLIt;
+                    
+                    if(out->getRepresentative() != out) {
+                        printf("Assert Failed: out is not representative: %s : %d\n", file, line);
+                        exit(-1);
+                    }
+
+                    outsForLIt++;
+                }
+                outsIt++;
+            }
+        }
+        
+        {
+            auto ins = rep->getInVertices();
+            auto insIt = ins.begin();
+            while (insIt != ins.end()) {
+                set<DyckVertex*>* insForL = insIt->second;
+                auto insForLIt = insForL->begin();
+                while (insForLIt != insForL->end()) {
+                    DyckVertex* in = *insForLIt;
+                    
+                    if(in->getRepresentative() != in) {
+                        printf("Assert Failed: in is not representative: %s : %d\n", file, line);
+                        exit(-1);
+                    }
+                    
+                    insForLIt++;
+                }
+                insIt++;
+            }
+        }
+        repsIt++;
+    }
+    printf("Done!\n\n");
 }
