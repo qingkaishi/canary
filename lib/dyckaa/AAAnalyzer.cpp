@@ -63,7 +63,7 @@ void AAAnalyzer::end_inter_procedure_analysis() {
         auto pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
             PointerCall* pc = *pcit;
-            if (!pc->mayAliasedCallees.empty() && pc->instruction != NULL)
+            if (pc->mayAliasedCallees.empty() && pc->instruction != NULL)
                 unhandled_call_insts.insert((Instruction*) pc->instruction);
 
             pcit++;
@@ -208,6 +208,17 @@ void AAAnalyzer::inter_procedure_analysis() {
 
 void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
     ret->insert(unhandled_call_insts.begin(), unhandled_call_insts.end());
+    
+    outs() << ">>>>>>>>>> Pointer Calls that do not find any aliased function\n";
+    auto it = unhandled_call_insts.begin();
+    while(it!=unhandled_call_insts.end()) {
+        CallInst * inst = (CallInst*)*it;
+        if(!inst->isInlineAsm()) {
+            outs() << *inst << "\n";
+        }
+        it++;
+    }
+    outs() << "<<<<<<<<<< Pointer Calls that do not find any aliased function\n";
 }
 
 //// The followings are private functions
@@ -1129,7 +1140,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         
         set<Function*>* cands = this->getCompatibleFunctions((FunctionType*)fty);
         set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
-
+        
         // handle each unhandled, possible function
         set<Function*> unhandled_function;
         set_difference(cands->begin(), cands->end(), 
@@ -1138,10 +1149,6 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         
         // print in console
         int CAND_TOTAL = unhandled_function.size();
-        //errs() << "\nFunc #" << FUNCTION_COUNT << "\n";
-        //errs() << "TODO: " << cands->size() << " - " << maycallfuncs->size() << " = " << unhandled_function.size() << "\n";
-        //if(pcall->instruction!=NULL)
-        //errs() << "Instruction: " << *(pcall->instruction) << "\n";
         int CAND_COUNT = 0;
         if (CAND_TOTAL == 0 || pcall->mustAliasedPointerCall) {
             outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";

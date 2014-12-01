@@ -5,7 +5,7 @@
 #
 LEVEL=../..
 
-CXXFLAGS:=-DENABLE_THREADS -emit-llvm -g -O2 -fno-vectorize -fno-slp-vectorize
+CXXFLAGS:=-DENABLE_THREADS -emit-llvm -g -fno-vectorize -fno-slp-vectorize
 CXX:=clang++
 
 all: canneal.bc
