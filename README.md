@@ -55,9 +55,9 @@ If the option is set, we do not check the function type when resolving pointer
 calls, otherwise, only type compatible function can be aliased with a function
 pointer.
 
-NOTE: f1 and f2 are compatible iff.
+NOTE: f1 and f2 are two type compatible functions iff.
 > Both or netheir of them are var arg function;
-> Both or netheir of them has a non-void return value;
+> Both or netheir of them have a non-void return value;
 > Same number of parameters;
 > Same type store sizes of each pair of parameters.
 
@@ -110,7 +110,8 @@ Email: qingkaishi@gmail.com
 
 TODO
 ------
-1. Upgrade canary:
+* Upgrade canary:
 > 1.1 support more presice aa of constant array
 > 1.2 performance optimization
-2. Recover canary record/replay transform pass.
+
+* Recover canary record/replay transform pass.
