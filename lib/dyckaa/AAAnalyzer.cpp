@@ -205,7 +205,7 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
 //// The followings are private functions
 
 int AAAnalyzer::isCompatible(FunctionType * t1, FunctionType * t2) {
-     if (!NoFunctionTypeCheck) {
+     if (NoFunctionTypeCheck) {
          return 1;
      }
     
