@@ -205,10 +205,10 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
 //// The followings are private functions
 
 int AAAnalyzer::isCompatible(FunctionType * t1, FunctionType * t2) {
-     if (NoFunctionTypeCheck) {
-         return 1;
-     }
-    
+    if (NoFunctionTypeCheck) {
+        return 1;
+    }
+
     if (t1 == t2) {
         return 1;
     }
@@ -462,7 +462,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
         Value * idx = gep->getOperand(++idxidx);
         Type * AggOrPointerTy = *(GTI++);
         Type * ElmtTy = *GTI;
-        
+
         if (/*!isa<ConstantInt>(idx) ||*/ !AggOrPointerTy->isSized()) {
             // current->addProperty("unknown-offset", (void*) 1);
             //break;
@@ -563,7 +563,7 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
         unsigned numElmt = vAgg->getNumOperands();
         for (unsigned i = 0; i < numElmt; i++) {
             Value * vi = vAgg->getOperand(i);
-            
+
             std::vector<unsigned> indices;
             indices.push_back(i);
             ArrayRef<unsigned> indicesRef(indices);
@@ -916,31 +916,28 @@ void AAAnalyzer::handle_extract_insert_value_inst(DyckVertex* aggV, Type* aggTy,
     for (unsigned int i = 0; i < indices.size(); i++) {
         assert(aggTy->isAggregateType() && "Error in handle_extract_insert_value_inst, not an agg (array/struct) type!");
 
-        if (aggTy->isSized()) {
-            if (!aggTy->isStructTy()) {
-                aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
+        if (!aggTy->isSized()) {
+        } else if (aggTy->isArrayTy()) {
+            aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
 #ifndef ARRAY_SIMPLIFIED
-                current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
+            current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
 #endif
-                if (i == indices.size() - 1) {
-                    this->makeAlias(currentStruct, wrapValue(insertedOrExtractedValue));
-                }
-            } else {
-                long offset = 0; // use addr offset as index
-                for (int x = 0; x < indices[i]; x++) {
-                    offset += aa->getTypeStoreSize(((CompositeType*) aggTy)->getTypeAtIndex(x));
-                }
-
-                if (i != indices.size() - 1) {
-                    currentStruct = this->addField(currentStruct, offset, NULL);
-                } else {
-                    currentStruct = this->addField(currentStruct, offset, wrapValue(insertedOrExtractedValue));
-                }
-
-                aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
+            if (i == indices.size() - 1) {
+                this->makeAlias(currentStruct, wrapValue(insertedOrExtractedValue));
             }
-        } else {
-            break;
+        } else /*if (aggTy->isStructTy())*/ {
+            long offset = 0; // use addr offset as index
+            for (int x = 0; x < indices[i]; x++) {
+                offset += aa->getTypeStoreSize(((CompositeType*) aggTy)->getTypeAtIndex(x));
+            }
+
+            if (i != indices.size() - 1) {
+                currentStruct = this->addField(currentStruct, offset, NULL);
+            } else {
+                currentStruct = this->addField(currentStruct, offset, wrapValue(insertedOrExtractedValue));
+            }
+
+            aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
         }
     }
 }
