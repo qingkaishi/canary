@@ -454,17 +454,19 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
     Value * ptr = gep->getPointerOperand();
     DyckVertex* current = wrapValue(ptr);
 
-    gep_type_iterator preGTI = gep_type_begin(gep); // preGTI is the PointerTy of ptr
+    gep_type_iterator GTI = gep_type_begin(gep); // preGTI is the PointerTy of ptr
 
     int num_indices = gep->getNumIndices();
     int idxidx = 0;
     while (idxidx < num_indices) {
         Value * idx = gep->getOperand(++idxidx);
-        Type * ty = *preGTI;
-        if (/*!isa<ConstantInt>(idx) ||*/ !ty->isSized()) {
+        Type * AggOrPointerTy = *(GTI++);
+        Type * ElmtTy = *GTI;
+        
+        if (/*!isa<ConstantInt>(idx) ||*/ !AggOrPointerTy->isSized()) {
             // current->addProperty("unknown-offset", (void*) 1);
             //break;
-        } else if (ty->isStructTy()) {
+        } else if (AggOrPointerTy->isStructTy()) {
             // example: gep y 0 constIdx
             // s1: y--deref-->?1--(fieldIdx idxLabel)-->?2
             DyckVertex* theStruct = this->addPtrTo(current, NULL);
@@ -480,7 +482,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
             long fieldIdx = (long) (*(ci->getValue().getRawData()));
             long addroffset = 0; // use addr offset as field index
             for (long x = 0; x < fieldIdx; x++) {
-                Type* tx = ty->getStructElementType(x);
+                Type* tx = AggOrPointerTy->getStructElementType(x);
                 addroffset += aa->getTypeStoreSize(tx);
             }
 
@@ -498,18 +500,15 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 
             // update current
             current = fieldPtr;
-        } else if (ty->isPointerTy() || ty->isArrayTy()) {
+        } else if (AggOrPointerTy->isPointerTy() || AggOrPointerTy->isArrayTy()) {
 #ifndef ARRAY_SIMPLIFIED
             current = addPtrOffset(current, getConstantIntRawData(cast<ConstantInt>(idx)) * dl.getTypeAllocSize(*GTI), dgraph);
 #endif
         } else {
             errs() << "ERROR in handle_gep: unknown type:\n";
-            errs() << "Type Id: " << ty->getTypeID() << "\n";
+            errs() << "Type Id: " << AggOrPointerTy->getTypeID() << "\n";
             exit(1);
         }
-
-        if (preGTI != gep_type_end(gep))
-            preGTI++;
     }
 
     return current;
@@ -559,38 +558,16 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
                 exit(-1);
             }
         }
-    } else if (isa<ConstantArray>(v)) {
-#ifndef ARRAY_SIMPLIFIED
-        DyckVertex* ptr = addPtrTo(NULL, vdv, dgraph);
-        DyckVertex* current = ptr;
-
+    } else if (isa<ConstantStruct>(v) || isa<ConstantArray>(v)) {
         Constant * vAgg = (Constant*) v;
-        int numElmt = vAgg->getNumOperands();
-        for (int i = 0; i < numElmt; i++) {
+        unsigned numElmt = vAgg->getNumOperands();
+        for (unsigned i = 0; i < numElmt; i++) {
             Value * vi = vAgg->getOperand(i);
-            DyckVertex* viptr = addPtrOffset(current, i * dl.getTypeAllocSize(vi->getType()), dgraph);
-            addPtrTo(viptr, wrapValue(vi, dgraph, dl), dgraph);
-        }
-#else
-        Constant * vAgg = (Constant*) v;
-        int numElmt = vAgg->getNumOperands();
-        for (int i = 0; i < numElmt; i++) {
-            Value * vi = vAgg->getOperand(i);
-            makeAlias(vdv, wrapValue(vi));
-        }
-#endif
-    } else if (isa<ConstantStruct>(v)) {
-        //DyckVertex* ptr = addPtrTo(NULL, vdv);
-        //DyckVertex* current = ptr;
-
-        Constant * vAgg = (Constant*) v;
-        int numElmt = vAgg->getNumOperands();
-        long offset = 0;
-        for (int i = 0; i < numElmt; i++) {
-            Value * vi = vAgg->getOperand(i);
-            addField(vdv, offset, wrapValue(vi));
-
-            offset += aa->getTypeStoreSize(vi->getType());
+            
+            std::vector<unsigned> indices;
+            indices.push_back(i);
+            ArrayRef<unsigned> indicesRef(indices);
+            this->handle_extract_insert_value_inst(vdv, vAgg->getType(), indicesRef, vi);
         }
     } else if (isa<GlobalValue>(v)) {
         if (isa<GlobalVariable>(v)) {
