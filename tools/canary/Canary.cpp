@@ -586,8 +586,6 @@ int main(int argc, char **argv) {
   Passes.add(createLibcAnnotationPass());
 
   // alias analysis passes
-  Passes.add(createBasicAliasAnalysisPass());
-  
   Passes.add(createDyckAliasAnalysisPass());
 
   // Check that the module is well formed on completion of optimization
