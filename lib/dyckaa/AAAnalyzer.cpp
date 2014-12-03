@@ -169,9 +169,13 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
         auto pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
             PointerCall* pc = *pcit;
-            if (pc->mayAliasedCallees.empty() && pc->instruction != NULL) {
+            if (pc->mayAliasedCallees.empty()) {
                 size++;
-                outs() << *(pc->instruction) << "\n";
+                if (pc->instruction != NULL) {
+                    outs() << *(pc->instruction) << "\n";
+                } else {
+                    outs() << "Implicit calls in " << df->getLLVMFunction()->getName() << "\n";
+                }
             }
 
             pcit++;
