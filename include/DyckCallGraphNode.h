@@ -73,6 +73,8 @@ private:
     // call instructions in the function
     set<CommonCall *> commonCalls; // common calls
     set<PointerCall*> pointerCalls; // pointer calls
+    
+    set<CallInst*> inlineAsms; // inline asm must be a call inst
 
 private:
     static int global_idx;
@@ -104,6 +106,10 @@ public:
     void addArg(Value * arg);
 
     void addVAArg(Value* vaarg);
+    
+    void addInlineAsm(CallInst* inlineAsm);
+    
+    set<CallInst*>& getInlineAsms();
 
     vector<Value*>& getArgs();
 

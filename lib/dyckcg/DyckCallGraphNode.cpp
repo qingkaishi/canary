@@ -118,3 +118,10 @@ Value* DyckCallGraphNode::getLandingPad(Value * invoke) {
     return NULL;
 }
 
+void DyckCallGraphNode::addInlineAsm(CallInst* inlineAsm){
+    this->inlineAsms.insert(inlineAsm);
+}
+    
+set<CallInst*>& DyckCallGraphNode::getInlineAsms(){
+    return this->inlineAsms;
+}

@@ -15,22 +15,13 @@ AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph*
     module = m;
     aa = a;
     dgraph = d;
-
-    if (((DyckAliasAnalysis*) aa)->callGraphPreserved()) {
-        callgraph = cg;
-    } else {
-        callgraph = new DyckCallGraph;
-    }
+    callgraph = cg;
 
     DEREF_LABEL = new DerefEdgeLabel;
 }
 
 AAAnalyzer::~AAAnalyzer() {
     this->destroyFunctionGroups();
-
-    if (!((DyckAliasAnalysis*) aa)->callGraphPreserved()) {
-        delete callgraph;
-    }
 }
 
 void AAAnalyzer::start_intra_procedure_analysis() {
@@ -52,23 +43,6 @@ void AAAnalyzer::start_inter_procedure_analysis() {
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
-    auto dfit = callgraph->begin();
-    while (dfit != callgraph->end()) {
-        DyckCallGraphNode * df = dfit->second;
-        set<PointerCall*>& unhandled = df->getPointerCalls();
-
-        auto pcit = unhandled.begin();
-        while (pcit != unhandled.end()) {
-            PointerCall* pc = *pcit;
-            if (pc->mayAliasedCallees.empty() && pc->instruction != NULL)
-                unhandled_call_insts.insert((Instruction*) pc->instruction);
-
-            pcit++;
-        }
-
-        dfit++;
-    }
-
     // @TODO delete all null-value dyckvertices
     int NumAssistantVertices = dgraph->getAssistantVertices().size();
     int NumVertices = dgraph->numVertices();
@@ -183,21 +157,27 @@ void AAAnalyzer::inter_procedure_analysis() {
     return;
 }
 
-void AAAnalyzer::getUnhandledCallInstructions(set<Instruction*>* ret) {
-    ret->insert(unhandled_call_insts.begin(), unhandled_call_insts.end());
-}
-
 void AAAnalyzer::printNoAliasedPointerCalls() {
-    outs() << ">>>>>>>>>> Pointer calls that do not find any aliased function\n";
     unsigned size = 0;
-    auto it = unhandled_call_insts.begin();
-    while (it != unhandled_call_insts.end()) {
-        CallInst * inst = (CallInst*) * it;
-        if (!inst->isInlineAsm()) {
-            size++;
-            outs() << *inst << "\n";
+
+    outs() << ">>>>>>>>>> Pointer calls that do not find any aliased function\n";
+    auto dfit = callgraph->begin();
+    while (dfit != callgraph->end()) {
+        DyckCallGraphNode * df = dfit->second;
+        set<PointerCall*>& unhandled = df->getPointerCalls();
+
+        auto pcit = unhandled.begin();
+        while (pcit != unhandled.end()) {
+            PointerCall* pc = *pcit;
+            if (pc->mayAliasedCallees.empty() && pc->instruction != NULL) {
+                size++;
+                outs() << *(pc->instruction) << "\n";
+            }
+
+            pcit++;
         }
-        it++;
+
+        dfit++;
     }
     outs() << "<<<<<<<<<< Total: " << size << ".\n\n";
 }
@@ -844,17 +824,17 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
             exit(-1);
 
             // for later use
-            InvokeInst * invoke = (InvokeInst*) inst;
-            LandingPadInst* lpd = invoke->getLandingPadInst();
-            parent_func->addLandingPad(invoke, lpd);
-
-            Value * cv = invoke->getCalledValue();
-            vector<Value*> args;
-            for (unsigned i = 0; i < invoke->getNumArgOperands(); i++) {
-                args.push_back(invoke->getArgOperand(i));
-            }
-
-            this->handle_invoke_call_inst(invoke, cv, &args, parent_func);
+            //            InvokeInst * invoke = (InvokeInst*) inst;
+            //            LandingPadInst* lpd = invoke->getLandingPadInst();
+            //            parent_func->addLandingPad(invoke, lpd);
+            //
+            //            Value * cv = invoke->getCalledValue();
+            //            vector<Value*> args;
+            //            for (unsigned i = 0; i < invoke->getNumArgOperands(); i++) {
+            //                args.push_back(invoke->getArgOperand(i));
+            //            }
+            //
+            //            this->handle_invoke_call_inst(invoke, cv, &args, parent_func);
         }
             break;
         case Instruction::Call:
@@ -862,7 +842,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
             CallInst * callinst = (CallInst*) inst;
 
             if (callinst->isInlineAsm()) {
-                unhandled_call_insts.insert(callinst);
+                parent_func->addInlineAsm(callinst);
                 break;
             }
 

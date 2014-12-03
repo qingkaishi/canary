@@ -57,10 +57,7 @@ static bool notDifferentParent(const Value *O1, const Value *O2) {
 
 DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
     dyck_graph = new DyckGraph;
-
-    if (this->callGraphPreserved()) {
-        call_graph = new DyckCallGraph;
-    }
+    call_graph = new DyckCallGraph;
 }
 
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
@@ -438,10 +435,7 @@ bool DyckAliasAnalysis::callGraphPreserved() {
 }
 
 DyckCallGraph* DyckAliasAnalysis::getCallGraph() {
-    if (!PreserveCallGraph) {
-        errs() << "Error when getCallGraph, please add -preserve-dyck-callgraph option when using opt.\n";
-        exit(-1);
-    }
+    assert(this->callGraphPreserved() && "Please add -preserve-dyck-callgraph option when using opt or canary.\n");
     return call_graph;
 }
 
@@ -479,10 +473,11 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
         outs() << "Done!\n\n";
     }
 
-    set<Instruction*> unhandled_calls; // Currently, it is used only for canary-record-transformer
-    aaa->getUnhandledCallInstructions(&unhandled_calls);
-
     delete aaa;
+
+    if (!this->callGraphPreserved()) {
+        delete this->call_graph;
+    }
 
     if (PrintAliasSetInformation) {
         outs() << "Printing alias set information...\n";
@@ -495,6 +490,8 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     /* instrumentation */
     //    if (TraceTransformer || LeapTransformer
     //            || CanaryRecordTransformer || CanaryReplayTransformer) {
+    //    set<Instruction*> unhandled_calls; // Currently, it is used only for canary-record-transformer
+    //    aaa->getUnhandledCallInstructions(&unhandled_calls);
     //        outs() << ("Thread escape analysis ...\n");
     //        set<DyckVertex*> svs;
     //        set<Value*> llvm_svs;

@@ -60,7 +60,6 @@ private:
 
 private:
     DyckCallGraph* callgraph;
-    set<Instruction*> unhandled_call_insts; // canary will change all invoke to call, TODO invoke
     
 public:
     AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg);
@@ -75,7 +74,6 @@ public:
     void intra_procedure_analysis();
     void inter_procedure_analysis();
     
-    void getUnhandledCallInstructions(set<Instruction*>* ret);
     void printNoAliasedPointerCalls();
     
     DyckCallGraph* getCallGraph(){
