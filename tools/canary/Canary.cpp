@@ -69,8 +69,11 @@ using namespace llvm;
 using namespace opt_tool;
 
 /*my optional pass*/
-static RegisterPass<Transformer4Trace> X("trace-transformer", "Transform programs to record a trace.");
-static RegisterPass<Transformer4Leap> Y("leap-transformer", "Transform programs using Leap transformer.");
+static cl::opt<bool>
+TraceTrans("trace-transformer", cl::desc("Transform programs to record a trace."));
+
+static cl::opt<bool>
+LeapTrans("leap-transformer", cl::desc("Transform programs using Leap transformer."));
 
 // The OptimizationList is automatically populated with registered Passes by the
 // PassNameParser.
@@ -587,6 +590,14 @@ int main(int argc, char **argv) {
 
   // alias analysis passes
   Passes.add(createDyckAliasAnalysisPass());
+  
+  if(TraceTrans) {
+      Passes.add(new Transformer4Trace());
+  }
+  
+  if(LeapTrans) {
+      Passes.add(new Transformer4Leap());
+  }
 
   // Check that the module is well formed on completion of optimization
   if (!NoVerify && !VerifyEach) {
