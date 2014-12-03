@@ -1080,15 +1080,15 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         assert(fty->isFunctionTy() && "Error in AAAnalyzer::handle_pointer_function_calls!");
 
         // handle each unhandled, possible function
-        set<void*> equivAndTypeCompSet;
-        set<void*>* equivSet = dgraph->retrieveDyckVertex(pcall->calledValue).first->getEquivalentSet();
+        set<Value*> equivAndTypeCompSet;
+        const set<Value*>* equivSet = aa->getAliasSet(pcall->calledValue);//dgraph->retrieveDyckVertex(pcall->calledValue).first->getEquivalentSet();
         set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) fty);
         set_intersection(cands->begin(), cands->end(),
                 equivSet->begin(), equivSet->end(),
                 inserter(equivAndTypeCompSet, equivAndTypeCompSet.begin()));
 
 
-        set<void*> unhandled_function;
+        set<Value*> unhandled_function;
         set<Function*>* maycallfuncs = &(pcall->mayAliasedCallees);
         set_difference(equivAndTypeCompSet.begin(), equivAndTypeCompSet.end(),
                 maycallfuncs->begin(), maycallfuncs->end(),
@@ -1103,7 +1103,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
             continue;
         }
 
-        set<void*>::iterator pfit = unhandled_function.begin();
+        auto pfit = unhandled_function.begin();
         while (pfit != unhandled_function.end()) {
             Function * mayAliasedFunctioin = (Function*) (*pfit);
             // print in console

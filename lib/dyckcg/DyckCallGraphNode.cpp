@@ -6,6 +6,9 @@
 #include "DyckCallGraphNode.h"
 
 Call::Call(Instruction* inst, Value * calledValue, vector<Value*>* args) {
+    assert(calledValue!=NULL && "Error when create a call: called value is null!");
+    assert(args!=NULL && "Error when create a call: args is null!");
+    
     this->calledValue = calledValue;
     this->instruction = inst;
     vector<Value*>::iterator aIt = args->begin();

@@ -133,7 +133,7 @@ void Transformer::transform(Module* module, AliasAnalysis* AAptr) {
 
     for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
         Function& f = *iterF;
-        if (!this->functionToTransform(module,&f)) {
+        if (!this->functionToTransform(module, &f)) {
             outs() << "Remaining... " << (functionsNum - handledNum++) << " functions             \r";
             continue;
         }
@@ -144,13 +144,13 @@ void Transformer::transform(Module* module, AliasAnalysis* AAptr) {
         vector<AllocaInst*> allocas;
         for (ilist_iterator<BasicBlock> iterB = f.getBasicBlockList().begin(); iterB != f.getBasicBlockList().end(); iterB++) {
             BasicBlock &b = *iterB;
-            if (!this->blockToTransform(module,&b)) {
+            if (!this->blockToTransform(module, &b)) {
                 continue;
             }
             for (ilist_iterator<Instruction> iterI = b.getInstList().begin(); iterI != b.getInstList().end(); iterI++) {
                 Instruction &inst = *iterI;
 
-                if (!this->instructionToTransform(module,&inst)) {
+                if (!this->instructionToTransform(module, &inst)) {
                     continue;
                 }
 
@@ -173,23 +173,23 @@ void Transformer::transform(Module* module, AliasAnalysis* AAptr) {
                 }
 
                 if (isa<LoadInst>(inst)) {
-                    this->transformLoadInst(module,(LoadInst*) & inst, AA);
+                    this->transformLoadInst(module, (LoadInst*) & inst, AA);
                 }
 
                 if (isa<StoreInst>(inst)) {
-                    this->transformStoreInst(module,(StoreInst*) & inst, AA);
+                    this->transformStoreInst(module, (StoreInst*) & inst, AA);
                 }
 
                 if (isa<AtomicRMWInst>(inst)) {
-                    this->transformAtomicRMWInst(module,(AtomicRMWInst*) & inst, AA);
+                    this->transformAtomicRMWInst(module, (AtomicRMWInst*) & inst, AA);
                 }
 
                 if (isa<AtomicCmpXchgInst>(inst)) {
-                    this->transformAtomicCmpXchgInst(module,(AtomicCmpXchgInst*) & inst, AA);
+                    this->transformAtomicCmpXchgInst(module, (AtomicCmpXchgInst*) & inst, AA);
                 }
 
                 if (isa<VAArgInst>(inst)) {
-                    this->transformVAArgInst(module,(VAArgInst*) & inst, AA);
+                    this->transformVAArgInst(module, (VAArgInst*) & inst, AA);
                 }
 
                 // all invokes have been lowered to calls
@@ -200,16 +200,23 @@ void Transformer::transform(Module* module, AliasAnalysis* AAptr) {
                     if (calledValue == NULL) continue;
 
                     if (isa<Function>(calledValue)) {
-                        handleCalls(module,(CallInst*) & inst, (Function*) calledValue, AA);
+                        handleCalls(module, (CallInst*) & inst, (Function*) calledValue, AA);
                     } else if (calledValue->getType()->isPointerTy()) {
-                        set<Function*> may;
-                        ((DyckAliasAnalysis*) & AA)->get_aliased_functions(&may, NULL, (CallInst*) & calledValue, module);
-
-                        set<Function*>::iterator it = may.begin();
-                        while (it != may.end()) {
-                            Function* cf = *it;
-                            handleCalls(module,(CallInst*) & inst, cf, AA);
-                            it++;
+                        Call * c = ((DyckAliasAnalysis*) & AA)->getCallGraph()->getOrInsertFunction(&f)->getCall(&call);
+                        if (c != NULL) {
+                            if (isa<Function>(c->calledValue)) {
+                                handleCalls(module, (CallInst*) & inst, (Function*) (c->calledValue), AA);
+                            } else {
+                                set<Function*>& may = ((PointerCall*) c)->mayAliasedCallees;
+                                set<Function*>::iterator it = may.begin();
+                                while (it != may.end()) {
+                                    Function* cf = *it;
+                                    handleCalls(module, (CallInst*) & inst, cf, AA);
+                                    it++;
+                                }
+                            }
+                        } else {
+                            assert(call.isInlineAsm() && "Error in Transformer: transform: a non-inlineasm instruction cannot get Call!");
                         }
                     }
                 }
@@ -226,38 +233,38 @@ bool Transformer::handleCalls(Module* module, CallInst* call, Function* calledFu
     Function &cf = *calledFunction;
     // fork & join
     if (cf.getName().str() == "pthread_create" && cf.getArgumentList().size() == 4) {
-        transformPthreadCreate(module,call, AA);
+        transformPthreadCreate(module, call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_join") {
-        transformPthreadJoin(module,call, AA);
+        transformPthreadJoin(module, call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_mutex_lock") {
         // lock & unlock
-        transformPthreadMutexLock(module,call, AA);
+        transformPthreadMutexLock(module, call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_mutex_unlock") {
-        transformPthreadMutexUnlock(module,call, AA);
+        transformPthreadMutexUnlock(module, call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_cond_wait") {
         // wait & notify
-        transformPthreadCondWait(module,call, AA);
+        transformPthreadCondWait(module, call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_cond_timedwait") {
         // wait & notify
-        transformPthreadCondTimeWait(module,call, AA);
+        transformPthreadCondTimeWait(module, call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_cond_signal") {
-        transformPthreadCondSignal(module,call, AA);
+        transformPthreadCondSignal(module, call, AA);
         return true;
     } else if (cf.getName().str() == "pthread_mutex_init") {
         transformPthreadMutexInit(module, call, AA);
         return true;
     } else if (cf.getName().str().find("pthread") == 0) {
-        transformOtherPthreadFunctions(module,call, AA);
+        transformOtherPthreadFunctions(module, call, AA);
         return true;
     } else if (cf.getName().str() == "exit") {
         // system exit
-        transformSystemExit(module,call, AA);
+        transformSystemExit(module, call, AA);
         return true;
     } else if (cf.getName().str() == "malloc" || cf.getName().str() == "calloc"
             || cf.getName().str() == "realloc"
@@ -270,28 +277,28 @@ bool Transformer::handleCalls(Module* module, CallInst* call, Function* calledFu
             || cf.getName().str() == "_Znwm"
             || cf.getName().str() == "_ZnwmRKSt9nothrow_t") {
         // new / malloc
-        transformAddressInit(module,call, AA);
+        transformAddressInit(module, call, AA);
         return true;
     } else if (cf.isIntrinsic()) {
         switch (cf.getIntrinsicID()) {
             case Intrinsic::vacopy:
             {
-                transformVACpy(module,call, AA);
+                transformVACpy(module, call, AA);
             }
                 break;
             case Intrinsic::memmove:
             case Intrinsic::memcpy:
             {
-                transformMemCpyMov(module,call, AA);
+                transformMemCpyMov(module, call, AA);
             }
                 break;
             case Intrinsic::memset:
             {
-                transformMemSet(module,call, AA);
+                transformMemSet(module, call, AA);
             }
                 break;
             default:
-                transformOtherIntrinsics(module,call, AA);
+                transformOtherIntrinsics(module, call, AA);
                 break;
         }
         return true;

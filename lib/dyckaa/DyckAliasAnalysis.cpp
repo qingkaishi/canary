@@ -168,43 +168,9 @@ RegisterAnalysisGroup<AliasAnalysis> Y(X);
 // Register this pass...
 char DyckAliasAnalysis::ID = 0;
 
-set<Function*>* DyckAliasAnalysis::get_aliased_functions(set<Function*>* ret, set<Function*>* uset, Value* calledValue, Module * module) {
-    if (ret == NULL || calledValue == NULL) {
-        errs() << "[ERROR] In getAliasedFunctions: ret or value are null!\n";
-        exit(1);
-    }
-
-    if (uset == NULL && module != NULL) {
-        for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-            Function* f = iterF;
-            AliasResult ar = this->alias(f, calledValue);
-            if (ar == MustAlias) {
-                ret->clear();
-                ret->insert(f);
-                return ret;
-            }
-            if (ar == MayAlias) {
-                ret->insert(f);
-            }
-        }
-    } else {
-        set<Function*>::iterator usetIt = uset->begin();
-        while (usetIt != uset->end()) {
-            Function* f = *usetIt;
-            AliasResult ar = this->alias(f, calledValue);
-            if (ar == MustAlias) {
-                ret->clear();
-                ret->insert(f);
-                return ret;
-            }
-            if (ar == MayAlias) {
-                ret->insert(f);
-            }
-            usetIt++;
-        }
-    }
-
-    return ret;
+const set<Value*>* DyckAliasAnalysis::getAliasSet(Value * ptr) {
+    DyckVertex* v = dyck_graph->retrieveDyckVertex(ptr).first;
+    return (const set<Value*>*) v->getEquivalentSet();
 }
 
 bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex * v2) {

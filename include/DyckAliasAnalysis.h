@@ -55,9 +55,7 @@ public:
         return alias(V1, UnknownSize, V2, UnknownSize);
     }
 
-    /// search aliased functions in uset if uset != NULL
-    /// otherwise, we will search all functions in the module
-    virtual set<Function*>* get_aliased_functions(set<Function*>* ret, set<Function*>* uset, Value* call, Module* m);
+    virtual const set<Value*>* getAliasSet(Value * ptr);
 
     virtual ModRefResult getModRefInfo(ImmutableCallSite CS,
             const Location &Loc) {
