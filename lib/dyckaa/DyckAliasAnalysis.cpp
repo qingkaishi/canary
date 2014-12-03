@@ -60,6 +60,11 @@ DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
     call_graph = new DyckCallGraph;
 }
 
+DyckAliasAnalysis::~DyckAliasAnalysis() {
+    delete call_graph;
+    delete dyck_graph;
+}
+
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<AliasAnalysis>();
     AU.addRequired<TargetLibraryInfo>();
@@ -474,9 +479,11 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
     }
 
     delete aaa;
+    aaa = NULL;
 
     if (!this->callGraphPreserved()) {
         delete this->call_graph;
+        this->call_graph = NULL;
     }
 
     if (PrintAliasSetInformation) {

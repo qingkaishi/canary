@@ -35,6 +35,8 @@ public:
     static char ID; // Class identification, replacement for typeinfo
 
     DyckAliasAnalysis();
+    
+    virtual ~DyckAliasAnalysis();
 
     virtual bool runOnModule(Module &M);
 
