@@ -88,17 +88,10 @@ void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 
 DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
         const Location &LocB) {
-    AliasResult ret = AliasAnalysis::alias(LocA, LocB);
+    AliasResult ret = MayAlias;
     if (notDifferentParent(LocA.Ptr, LocB.Ptr)) {
-        if (ret == NoAlias) {
-            return ret;
-        }
-
-        if (ret == MustAlias) {
-            return ret;
-        }
-
-        if (ret == PartialAlias) {
+        ret = AliasAnalysis::alias(LocA, LocB);
+        if (ret != MayAlias) {
             return ret;
         }
     }
@@ -106,7 +99,7 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
     if ((isa<Argument>(LocA.Ptr) && ((Argument*) LocA.Ptr)->getParent()->empty())
             || (isa<Argument>(LocB.Ptr) && ((Argument*) LocB.Ptr)->getParent()->empty())) {
         outs() << "[WARNING] Arguments of empty functions are not supported, MAYALIAS is returned!\n";
-        return ret;
+        return MayAlias;
     }
 
     if (LocA.Ptr == LocB.Ptr) {
