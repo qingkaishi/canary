@@ -5,7 +5,7 @@
 
 #include "DyckCallGraphNode.h"
 
-Call::Call(Value* inst, Value * calledValue, vector<Value*>* args) {
+Call::Call(Instruction* inst, Value * calledValue, vector<Value*>* args) {
     this->calledValue = calledValue;
     this->instruction = inst;
     vector<Value*>::iterator aIt = args->begin();
@@ -15,10 +15,10 @@ Call::Call(Value* inst, Value * calledValue, vector<Value*>* args) {
     }
 }
 
-CommonCall::CommonCall(Value* inst, Function * func, vector<Value*>* args) : Call(inst, func, args) {
+CommonCall::CommonCall(Instruction* inst, Function * func, vector<Value*>* args) : Call(inst, func, args) {
 }
 
-PointerCall::PointerCall(Value* inst, Value* calledValue, vector<Value*>* args) : Call(inst, calledValue, args), mustAliasedPointerCall(false) {
+PointerCall::PointerCall(Instruction* inst, Value* calledValue, vector<Value*>* args) : Call(inst, calledValue, args), mustAliasedPointerCall(false) {
 }
 
 int DyckCallGraphNode::global_idx = 0;
@@ -60,6 +60,7 @@ set<PointerCall *>& DyckCallGraphNode::getPointerCalls() {
 }
 
 void DyckCallGraphNode::addPointerCall(PointerCall* call) {
+    instructionCallMap.insert(pair<Instruction*, Call*>(call->instruction, call));
     pointerCalls.insert(call);
 }
 
@@ -72,6 +73,7 @@ set<CommonCall *>& DyckCallGraphNode::getCommonCalls() {
 }
 
 void DyckCallGraphNode::addCommonCall(CommonCall * call) {
+    instructionCallMap.insert(pair<Instruction*, Call*>(call->instruction, call));
     commonCalls.insert(call);
 }
 
@@ -124,4 +126,11 @@ void DyckCallGraphNode::addInlineAsm(CallInst* inlineAsm){
     
 set<CallInst*>& DyckCallGraphNode::getInlineAsms(){
     return this->inlineAsms;
+}
+
+Call* DyckCallGraphNode::getCall(Instruction* inst) {
+    if(this->instructionCallMap.count(inst)) {
+        return instructionCallMap[inst];
+    }
+    return NULL;
 }

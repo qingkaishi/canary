@@ -924,7 +924,7 @@ void AAAnalyzer::handle_extract_insert_value_inst(DyckVertex* aggV, Type* aggTy,
     }
 }
 
-void AAAnalyzer::handle_invoke_call_inst(Value* ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent) {
+void AAAnalyzer::handle_invoke_call_inst(Instruction* ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent) {
     if (isa<Function>(cv)) {
         if (((Function*) cv)->isIntrinsic()) {
             handle_instrinsic((Instruction*) ret);
@@ -1208,11 +1208,10 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
         case 4:
         {
             if (functionName == "pthread_create") {
-                Value * ret = NULL;
                 vector<Value*> xargs;
                 xargs.push_back(args->at(3));
                 DyckCallGraphNode* parent = callgraph->getOrInsertFunction(f);
-                this->handle_invoke_call_inst(ret, args->at(2), &xargs, parent);
+                this->handle_invoke_call_inst(NULL, args->at(2), &xargs, parent);
             }
         }
             break;

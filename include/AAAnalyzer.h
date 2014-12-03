@@ -58,7 +58,7 @@ private:
     void handle_inst(Instruction *inst, DyckCallGraphNode * parent);
     void handle_instrinsic(Instruction *inst);
     void handle_extract_insert_value_inst(DyckVertex* structureV, Type* aggTy, ArrayRef<unsigned>& indices, Value* insertedOrExtractedValue);
-    void handle_invoke_call_inst(Value * ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent);
+    void handle_invoke_call_inst(Instruction * ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent);
     void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, DyckCallGraphNode* parent);
 
 private:
