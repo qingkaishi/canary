@@ -17,42 +17,19 @@
 
 using namespace std;
 
+class DyckAliasAnalysis;
+
 typedef struct FunctionTypeNode {
     FunctionType * type;
     FunctionTypeNode * root;
     set<Function *> compatibleFuncs;
 } FunctionTypeNode;
 
-class AAAnalyzer {
+class AAAnalyzer {   
 private:
     Module* module;
-    AliasAnalysis* aa;
+    DyckAliasAnalysis* aa;
     DyckGraph* dgraph;
-    
-private:
-    EdgeLabel * DEREF_LABEL;
-    
-    map<long, EdgeLabel*> OFFSET_LABEL_MAP;
-    EdgeLabel* getOrInsertOffsetEdgeLabel(long offset){
-        if(OFFSET_LABEL_MAP.count(offset)) {
-            return OFFSET_LABEL_MAP[offset];
-        } else {
-            EdgeLabel* ret = new PointerOffsetEdgeLabel(offset);
-            OFFSET_LABEL_MAP.insert(pair<long, EdgeLabel*>(offset, ret));
-            return ret;
-        }
-    }
-    
-    map<long, EdgeLabel*> INDEX_LABEL_MAP;
-    EdgeLabel* getOrInsertIndexEdgeLabel(long offset){
-        if(INDEX_LABEL_MAP.count(offset)) {
-            return INDEX_LABEL_MAP[offset];
-        } else {
-            EdgeLabel* ret = new FieldIndexEdgeLabel(offset);
-            INDEX_LABEL_MAP.insert(pair<long, EdgeLabel*>(offset, ret));
-            return ret;
-        }
-    }
 
 private:
     map<Type*, FunctionTypeNode*> functionTyNodeMap;
@@ -62,7 +39,7 @@ private:
     DyckCallGraph* callgraph;
     
 public:
-    AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg);
+    AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg);
     ~AAAnalyzer();
 
     void start_intra_procedure_analysis();
@@ -74,11 +51,8 @@ public:
     void intra_procedure_analysis();
     void inter_procedure_analysis();
     
+private:
     void printNoAliasedPointerCalls();
-    
-    DyckCallGraph* getCallGraph(){
-        return callgraph;
-    }
 
 private:
     void handle_inst(Instruction *inst, DyckCallGraphNode * parent);

@@ -11,13 +11,11 @@ NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
 
 #define ARRAY_SIMPLIFIED
 
-AAAnalyzer::AAAnalyzer(Module* m, AliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
+AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
     module = m;
     aa = a;
     dgraph = d;
     callgraph = cg;
-
-    DEREF_LABEL = new DerefEdgeLabel;
 }
 
 AAAnalyzer::~AAAnalyzer() {
@@ -382,15 +380,15 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* f
     DyckVertex* valrep = val->getRepresentative();
 
     if (field == NULL) {
-        set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
+        set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
         if (valrepset != NULL && !valrepset->empty()) {
             field = *(valrepset->begin());
         } else {
             field = dgraph->retrieveDyckVertex(NULL).first;
-            valrep->addTarget(field, (void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
+            valrep->addTarget(field, (void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
         }
     } else {
-        valrep->addTarget(field->getRepresentative(), (void*) (this->getOrInsertIndexEdgeLabel(fieldIndex)));
+        valrep->addTarget(field->getRepresentative(), (void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
     }
 
     return field;
@@ -404,22 +402,22 @@ DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
 
     if (address == NULL) {
         address = dgraph->retrieveDyckVertex(NULL).first;
-        address->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
+        address->addTarget(val->getRepresentative(), (void*) aa->DEREF_LABEL);
         return address;
     } else if (val == NULL) {
         DyckVertex* addrep = address->getRepresentative();
-        set<DyckVertex*>* derefset = addrep->getOutVertices((void*) DEREF_LABEL);
+        set<DyckVertex*>* derefset = addrep->getOutVertices((void*) aa->DEREF_LABEL);
         if (derefset != NULL && !derefset->empty()) {
             val = *(derefset->begin());
         } else {
             val = dgraph->retrieveDyckVertex(NULL).first;
-            addrep->addTarget(val, (void*) DEREF_LABEL);
+            addrep->addTarget(val, (void*) aa->DEREF_LABEL);
         }
 
         return val;
     } else {
         DyckVertex* addrep = address->getRepresentative();
-        addrep->addTarget(val->getRepresentative(), (void*) DEREF_LABEL);
+        addrep->addTarget(val->getRepresentative(), (void*) aa->DEREF_LABEL);
         return addrep;
     }
 
@@ -477,7 +475,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
                 fieldPtr = this->addPtrTo(NULL, field);
                 /// the label representation and feature impl is temporal. @FIXME
                 // s3: y--(fieldIdx offLabel)-->?3
-                current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (this->getOrInsertOffsetEdgeLabel(addroffset)));
+                current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (aa->getOrInsertOffsetEdgeLabel(addroffset)));
             } else {
                 this->addPtrTo(fieldPtr, field);
             }
@@ -1111,7 +1109,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
             // print in console
             outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
 
-            AliasAnalysis::AliasResult ar = ((DyckAliasAnalysis*) aa)->function_alias(mayAliasedFunctioin, pcall->calledValue);
+            AliasAnalysis::AliasResult ar = aa->function_alias(mayAliasedFunctioin, pcall->calledValue);
             //if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
             ret = true;
             maycallfuncs->insert(mayAliasedFunctioin);

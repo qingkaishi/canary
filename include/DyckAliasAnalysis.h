@@ -24,6 +24,7 @@
 
 #include "DyckGraph.h"
 #include "DyckCallGraph.h"
+#include "AAAnalyzer.h"
 
 #include <set>
 
@@ -105,6 +106,34 @@ public:
 private:
     DyckGraph* dyck_graph;
     DyckCallGraph * call_graph;
+    
+private:
+    friend class AAAnalyzer;
+    
+    EdgeLabel * DEREF_LABEL;
+    map<long, EdgeLabel*> OFFSET_LABEL_MAP;
+    map<long, EdgeLabel*> INDEX_LABEL_MAP;
+    
+private:
+    EdgeLabel* getOrInsertOffsetEdgeLabel(long offset){
+        if(OFFSET_LABEL_MAP.count(offset)) {
+            return OFFSET_LABEL_MAP[offset];
+        } else {
+            EdgeLabel* ret = new PointerOffsetEdgeLabel(offset);
+            OFFSET_LABEL_MAP.insert(pair<long, EdgeLabel*>(offset, ret));
+            return ret;
+        }
+    }
+    
+    EdgeLabel* getOrInsertIndexEdgeLabel(long offset){
+        if(INDEX_LABEL_MAP.count(offset)) {
+            return INDEX_LABEL_MAP[offset];
+        } else {
+            EdgeLabel* ret = new FieldIndexEdgeLabel(offset);
+            INDEX_LABEL_MAP.insert(pair<long, EdgeLabel*>(offset, ret));
+            return ret;
+        }
+    }
 
 private:
     bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);

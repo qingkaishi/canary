@@ -3,8 +3,6 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "AAAnalyzer.h"
-
 #include "DyckAliasAnalysis.h"
 #include "DyckCallGraph.h"
 
@@ -58,11 +56,28 @@ static bool notDifferentParent(const Value *O1, const Value *O2) {
 DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
     dyck_graph = new DyckGraph;
     call_graph = new DyckCallGraph;
+    
+    DEREF_LABEL = new DerefEdgeLabel;
 }
 
 DyckAliasAnalysis::~DyckAliasAnalysis() {
     delete call_graph;
     delete dyck_graph;
+    
+    // delete edge labels
+    delete DEREF_LABEL;
+    
+    auto olIt = OFFSET_LABEL_MAP.begin();
+    while(olIt!=OFFSET_LABEL_MAP.end()) {
+        delete olIt->second;
+        olIt++;
+    }
+    
+    auto ilIt = INDEX_LABEL_MAP.begin();
+    while(ilIt!=INDEX_LABEL_MAP.end()) {
+        delete ilIt->second;
+        ilIt++;
+    }
 }
 
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
@@ -465,16 +480,14 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
 
     /* call graph */
     if (DotCallGraph) {
-        DyckCallGraph *cg = aaa->getCallGraph();
         outs() << "Printing call graph...\n";
-        cg->dotCallGraph(M.getModuleIdentifier());
+        call_graph->dotCallGraph(M.getModuleIdentifier());
         outs() << "Done!\n\n";
     }
 
     if (CountFP) {
-        DyckCallGraph *cg = aaa->getCallGraph();
         outs() << "Printing function pointer information...\n";
-        cg->printFunctionPointersInformation(M.getModuleIdentifier());
+        call_graph->printFunctionPointersInformation(M.getModuleIdentifier());
         outs() << "Done!\n\n";
     }
 
