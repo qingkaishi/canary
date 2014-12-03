@@ -59,8 +59,6 @@ public:
     /// otherwise, we will search all functions in the module
     virtual set<Function*>* get_aliased_functions(set<Function*>* ret, set<Function*>* uset, Value* call, Module* m);
 
-    virtual AliasResult function_alias(const Function* function, Value* calledValue);
-
     virtual ModRefResult getModRefInfo(ImmutableCallSite CS,
             const Location &Loc) {
         return AliasAnalysis::getModRefInfo(CS, Loc);

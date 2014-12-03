@@ -56,25 +56,25 @@ static bool notDifferentParent(const Value *O1, const Value *O2) {
 DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
     dyck_graph = new DyckGraph;
     call_graph = new DyckCallGraph;
-    
+
     DEREF_LABEL = new DerefEdgeLabel;
 }
 
 DyckAliasAnalysis::~DyckAliasAnalysis() {
     delete call_graph;
     delete dyck_graph;
-    
+
     // delete edge labels
     delete DEREF_LABEL;
-    
+
     auto olIt = OFFSET_LABEL_MAP.begin();
-    while(olIt!=OFFSET_LABEL_MAP.end()) {
+    while (olIt != OFFSET_LABEL_MAP.end()) {
         delete olIt->second;
         olIt++;
     }
-    
+
     auto ilIt = INDEX_LABEL_MAP.begin();
-    while(ilIt!=INDEX_LABEL_MAP.end()) {
+    while (ilIt != INDEX_LABEL_MAP.end()) {
         delete ilIt->second;
         ilIt++;
     }
@@ -88,8 +88,8 @@ void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 
 DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
         const Location &LocB) {
+    AliasResult ret = AliasAnalysis::alias(LocA, LocB);
     if (notDifferentParent(LocA.Ptr, LocB.Ptr)) {
-        AliasResult ret = AliasAnalysis::alias(LocA, LocB);
         if (ret == NoAlias) {
             return ret;
         }
@@ -106,7 +106,11 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
     if ((isa<Argument>(LocA.Ptr) && ((Argument*) LocA.Ptr)->getParent()->empty())
             || (isa<Argument>(LocB.Ptr) && ((Argument*) LocB.Ptr)->getParent()->empty())) {
         outs() << "[WARNING] Arguments of empty functions are not supported, MAYALIAS is returned!\n";
-        return MayAlias;
+        return ret;
+    }
+
+    if (LocA.Ptr == LocB.Ptr) {
+        return MustAlias;
     }
 
     pair < DyckVertex*, bool> retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (LocA.Ptr));
@@ -116,36 +120,35 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
     DyckVertex * VB = retpair.first->getRepresentative();
 
     if (VA == VB) {
-        return MayAlias;
+        ret = MayAlias;
+    } else if (isPartialAlias(VA, VB)) {
+        ret = PartialAlias;
     } else {
-        if (isPartialAlias(VA, VB)) {
-            return PartialAlias;
-        } else {
-            return NoAlias;
-        }
+        ret = NoAlias;
     }
-}
 
-DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function* function, Value* calledValue) {
-    AliasResult ar = this->alias(calledValue, function);
+    if (ret == MayAlias && (isa<Function>(LocA.Ptr) || isa<Function>(LocB.Ptr))) {
+        Function* function = isa<Function>(LocA.Ptr) ? (Function*) LocA.Ptr : (Function*) LocB.Ptr;
+        const Value* calledValue = function == LocA.Ptr ? LocB.Ptr : LocA.Ptr;
 
-    if (ar == MayAlias || ar == PartialAlias) {
-        if (calledValue == function) {
-            return MustAlias;
-        }
+        Value * cvcopy = const_cast<Value*>(calledValue);
+        Value * temp = cvcopy;
+        do {
+            temp = cvcopy;
 
-        Value * cvcopy = calledValue;
-        if (isa<ConstantExpr>(calledValue)) {
-            Value * cvcopy = calledValue;
             while (isa<ConstantExpr>(cvcopy) && ((ConstantExpr*) cvcopy)->isCast()) {
-                cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0);
+                cvcopy = ((ConstantExpr*) cvcopy)->getOperand(0)->stripPointerCastsNoFollowAliases();
             }
-        } else if (isa<GlobalAlias>(calledValue)) {
-            Value * cvcopy = calledValue;
+
+            while (isa<Instruction>(cvcopy) && ((Instruction*) cvcopy)->isCast()) {
+                cvcopy = ((Instruction*) cvcopy)->getOperand(0)->stripPointerCastsNoFollowAliases();
+            }
+
             while (isa<GlobalAlias>(cvcopy)) {
                 cvcopy = ((GlobalAlias*) cvcopy)->getAliasee()->stripPointerCastsNoFollowAliases();
             }
-        }
+
+        } while (cvcopy != temp);
 
         if (isa<Function>(cvcopy)) {
             if (cvcopy == function) {
@@ -153,15 +156,10 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::function_alias(const Function*
             } else {
                 return NoAlias;
             }
-        } else {
-            return MayAlias;
         }
     }
 
-    if (ar == PartialAlias)
-        ar = NoAlias;
-
-    return ar;
+    return ret;
 }
 
 RegisterPass<DyckAliasAnalysis> X("dyckaa", "Alias Analysis based on PLDI 2013 paper: Qirun Zhang, Michael R. Lyu, Hao Yuan, and Zhendong Su. Fast Algorithms for Dyck-CFL-Reachability with Applications to Alias Analysis.");
@@ -179,7 +177,7 @@ set<Function*>* DyckAliasAnalysis::get_aliased_functions(set<Function*>* ret, se
     if (uset == NULL && module != NULL) {
         for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
             Function* f = iterF;
-            AliasResult ar = this->function_alias(f, calledValue);
+            AliasResult ar = this->alias(f, calledValue);
             if (ar == MustAlias) {
                 ret->clear();
                 ret->insert(f);
@@ -193,7 +191,7 @@ set<Function*>* DyckAliasAnalysis::get_aliased_functions(set<Function*>* ret, se
         set<Function*>::iterator usetIt = uset->begin();
         while (usetIt != uset->end()) {
             Function* f = *usetIt;
-            AliasResult ar = this->function_alias(f, calledValue);
+            AliasResult ar = this->alias(f, calledValue);
             if (ar == MustAlias) {
                 ret->clear();
                 ret->insert(f);
@@ -406,7 +404,7 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * f
                 Instruction *rawInst = iterI;
                 if (isa<CallInst> (rawInst)) {
                     CallInst *inst = (CallInst*) rawInst; // all invokes are lowered to call
-                    if (this->function_alias(func, inst->getCalledValue())) {
+                    if (this->alias(func, inst->getCalledValue())) {
                         if (func->hasName() && func->getName() == "pthread_create") {
                             DyckVertex * rt = dyck_graph->retrieveDyckVertex(inst->getArgOperand(3)).first->getRepresentative();
                             workStack.push(rt);

@@ -1109,7 +1109,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
             // print in console
             outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
 
-            AliasAnalysis::AliasResult ar = aa->function_alias(mayAliasedFunctioin, pcall->calledValue);
+            AliasAnalysis::AliasResult ar = aa->alias(mayAliasedFunctioin, pcall->calledValue);
             //if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
             ret = true;
             maycallfuncs->insert(mayAliasedFunctioin);
