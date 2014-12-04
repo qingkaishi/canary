@@ -16,7 +16,7 @@ gcc 4.8.2.
 
 If you use canary, please cite canary as below (latex style). 
 
-\footnote{Canary. \url{https://github.com/qingkaishi/canary}}
+> \footnote{Canary. \url{https://github.com/qingkaishi/canary}}
 
 Building Canary
 ------
