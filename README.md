@@ -14,6 +14,10 @@ plase check out the latest version and try again.).
 We have built and tested it on *32-bit* x86 linux architectures using
 gcc 4.8.2.
 
+If you use canary, please cite canary as below (latex style). 
+
+\footnote{Canary. \url{https://github.com/qingkaishi/canary}}
+
 Building Canary
 ------
 
