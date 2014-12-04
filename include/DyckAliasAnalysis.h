@@ -36,7 +36,7 @@ public:
     static char ID; // Class identification, replacement for typeinfo
 
     DyckAliasAnalysis();
-    
+
     virtual ~DyckAliasAnalysis();
 
     virtual bool runOnModule(Module &M);
@@ -55,6 +55,7 @@ public:
         return alias(V1, UnknownSize, V2, UnknownSize);
     }
 
+    /// Get the may/must alias set.
     virtual const set<Value*>* getAliasSet(Value * ptr);
 
     virtual ModRefResult getModRefInfo(ImmutableCallSite CS,
@@ -102,17 +103,18 @@ public:
 private:
     DyckGraph* dyck_graph;
     DyckCallGraph * call_graph;
-    
+
 private:
     friend class AAAnalyzer;
-    
+
     EdgeLabel * DEREF_LABEL;
     map<long, EdgeLabel*> OFFSET_LABEL_MAP;
     map<long, EdgeLabel*> INDEX_LABEL_MAP;
-    
+
 private:
-    EdgeLabel* getOrInsertOffsetEdgeLabel(long offset){
-        if(OFFSET_LABEL_MAP.count(offset)) {
+
+    EdgeLabel* getOrInsertOffsetEdgeLabel(long offset) {
+        if (OFFSET_LABEL_MAP.count(offset)) {
             return OFFSET_LABEL_MAP[offset];
         } else {
             EdgeLabel* ret = new PointerOffsetEdgeLabel(offset);
@@ -120,9 +122,9 @@ private:
             return ret;
         }
     }
-    
-    EdgeLabel* getOrInsertIndexEdgeLabel(long offset){
-        if(INDEX_LABEL_MAP.count(offset)) {
+
+    EdgeLabel* getOrInsertIndexEdgeLabel(long offset) {
+        if (INDEX_LABEL_MAP.count(offset)) {
             return INDEX_LABEL_MAP[offset];
         } else {
             EdgeLabel* ret = new FieldIndexEdgeLabel(offset);
@@ -132,8 +134,8 @@ private:
     }
 
 private:
-    bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
-    
+    bool isPartialAlias(DyckVertex *VA, DyckVertex *VB);
+
     /// Three kinds of information will be printed.
     /// 1. Alias Sets will be printed to the console
     /// 2. The relation of Alias Sets will be output into "alias_rel.dot"
@@ -143,11 +145,14 @@ private:
 
     void getEscapedPointersTo(set<DyckVertex*>* ret, Function * func); // escaped to 'func'
     void getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from); // escaped from 'from'
-    
- public:  
-    void getEscapedPointersTo(std::vector<const set<Value*>*>* ret, Function * func); // escaped to 'func'
-    void getEscapedPointersFrom(std::vector<const set<Value*>*>* ret, Value * from); // escaped from 'from'
-    
+
+public:
+    /// Get the vector of the may/must alias set that escape to 'func'
+    void getEscapedPointersTo(std::vector<const set<Value*>*>* ret, Function * func);
+
+    /// Get the vector of the may/must alias set that escape from 'from'
+    void getEscapedPointersFrom(std::vector<const set<Value*>*>* ret, Value * from);
+
     bool callGraphPreserved();
     DyckCallGraph* getCallGraph();
 
