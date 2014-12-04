@@ -332,7 +332,8 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * f
                 Instruction *rawInst = iterI;
                 if (isa<CallInst> (rawInst)) {
                     CallInst *inst = (CallInst*) rawInst; // all invokes are lowered to call
-                    if (this->alias(func, inst->getCalledValue())) {
+                    AliasResult ar = this->alias(func, inst->getCalledValue());
+                    if (ar == MayAlias || ar == MustAlias) {
                         if (func->hasName() && func->getName() == "pthread_create") {
                             DyckVertex * rt = dyck_graph->retrieveDyckVertex(inst->getArgOperand(3)).first->getRepresentative();
                             workStack.push(rt);
