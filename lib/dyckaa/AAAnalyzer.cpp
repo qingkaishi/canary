@@ -1081,7 +1081,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
 
         // handle each unhandled, possible function
         set<Value*> equivAndTypeCompSet;
-        const set<Value*>* equivSet = aa->getAliasSet(pcall->calledValue);//dgraph->retrieveDyckVertex(pcall->calledValue).first->getEquivalentSet();
+        const set<Value*>* equivSet = aa->getAliasSet(pcall->calledValue); //dgraph->retrieveDyckVertex(pcall->calledValue).first->getEquivalentSet();
         set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) fty);
         set_intersection(cands->begin(), cands->end(),
                 equivSet->begin(), equivSet->end(),
@@ -1110,22 +1110,22 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
             outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
 
             AliasAnalysis::AliasResult ar = aa->alias(mayAliasedFunctioin, pcall->calledValue);
-            //if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
-            ret = true;
-            maycallfuncs->insert(mayAliasedFunctioin);
+            if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {
+                ret = true;
+                maycallfuncs->insert(mayAliasedFunctioin);
 
-            handle_common_function_call(pcall, caller, callgraph->getOrInsertFunction(mayAliasedFunctioin));
-            handle_lib_invoke_call_inst(pcall->instruction, mayAliasedFunctioin, &(pcall->args), caller);
+                handle_common_function_call(pcall, caller, callgraph->getOrInsertFunction(mayAliasedFunctioin));
+                handle_lib_invoke_call_inst(pcall->instruction, mayAliasedFunctioin, &(pcall->args), caller);
 
-            if (ar == AliasAnalysis::MustAlias) {
-                // print in console
-                pcall->mustAliasedPointerCall = true;
-                pcall->mayAliasedCallees.clear();
-                pcall->mayAliasedCallees.insert(mayAliasedFunctioin);
-                outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
-                break;
+                if (ar == AliasAnalysis::MustAlias) {
+                    // print in console
+                    pcall->mustAliasedPointerCall = true;
+                    pcall->mayAliasedCallees.clear();
+                    pcall->mayAliasedCallees.insert(mayAliasedFunctioin);
+                    outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+                    break;
+                }
             }
-            //}
             pfit++;
         }
 
