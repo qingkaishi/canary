@@ -8,11 +8,10 @@ analysis", "LEAP: lightweight deterministic multi-processor replay of
 concurrent java programs", "Persuasive prediction of concurrency 
 access anomalies", etc. You can read them for details.
 
-Please use Canary with llvm-3.6.0svn (If you cannot built it successfully,
-plase check out the latest version and try again.).
-
 We have built and tested it on *32-bit* x86 linux architectures using
-gcc 4.8.2.
+gcc 4.8.2 and llvm-3.6.0svn. If you cannot built it successfully,
+plase check out the latest version of llvm-3.6.0svn and try again. 
+If you still fail to build it, please report a bug. Thanks!
 
 If you use Canary, please cite Canary as below (latex style). 
 
