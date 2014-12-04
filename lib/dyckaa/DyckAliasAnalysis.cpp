@@ -88,6 +88,10 @@ void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 
 DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
         const Location &LocB) {
+    if (LocA.Ptr->stripPointerCastsNoFollowAliases() == LocB.Ptr->stripPointerCastsNoFollowAliases()) {
+        return MustAlias;
+    }
+
     AliasResult ret = MayAlias;
     if (notDifferentParent(LocA.Ptr, LocB.Ptr)) {
         ret = AliasAnalysis::alias(LocA, LocB);
@@ -102,10 +106,6 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
         return MayAlias;
     }
 
-    if (LocA.Ptr == LocB.Ptr) {
-        return MustAlias;
-    }
-
     pair < DyckVertex*, bool> retpair = dyck_graph->retrieveDyckVertex(const_cast<Value*> (LocA.Ptr));
     DyckVertex * VA = retpair.first->getRepresentative();
 
@@ -114,14 +114,10 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
 
     if (VA == VB) {
         ret = MayAlias;
-    } else if (isPartialAlias(VA, VB)) {
+    } else if (isPartialAlias(VA, VB) || isPartialAlias(VB, VA)) {
         ret = PartialAlias;
     } else {
         ret = NoAlias;
-    }
-    
-    if (ret == PartialAlias && (isa<Function>(LocA.Ptr) || isa<Function>(LocB.Ptr))) {
-        return NoAlias;
     }
 
     if (ret == MayAlias && (isa<Function>(LocA.Ptr) || isa<Function>(LocB.Ptr))) {
@@ -218,30 +214,6 @@ bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex * v2) {
                 olIt++;
             }
         }
-
-
-        { // push in srcs
-            set<void*>& inlabels = top->getInLabels();
-            set<void*>::iterator ilIt = inlabels.begin();
-            while (ilIt != inlabels.end()) {
-                EdgeLabel* labelValue = (EdgeLabel*) (*ilIt);
-                if (labelValue->isLabelTy(EdgeLabel::OFFSET_TYPE)) { /// address offset; @FIXME
-                    set<DyckVertex*>* srcs = top->getInVertices(*ilIt);
-
-                    set<DyckVertex*>::iterator sit = srcs->begin();
-                    while (sit != srcs->end()) {
-                        // if it has not been visited
-                        if (visited.find(*sit) == visited.end()) {
-                            workStack.push(*sit);
-                        }
-                        sit++;
-                    }
-
-                }
-                ilIt++;
-            }
-        }
-
     }
 
     return false;
@@ -252,7 +224,7 @@ void DyckAliasAnalysis::getEscapedPointersFrom(std::vector<const set<Value*>*>* 
 
     set<DyckVertex*> temp;
     getEscapedPointersFrom(&temp, from);
-    
+
     auto tempIt = temp.begin();
     while (tempIt != temp.end()) {
         DyckVertex* t = *tempIt;

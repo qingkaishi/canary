@@ -9,8 +9,6 @@ static cl::opt<bool>
 NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
         cl::desc("Do not check function type when resolving pointer calls."));
 
-#define ARRAY_SIMPLIFIED
-
 AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
     module = m;
     aa = a;
@@ -355,25 +353,6 @@ void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
     }
 }
 
-#ifndef ARRAY_SIMPLIFIED
-/// return the offset vertex
-
-static DyckVertex* addPtrOffset(DyckVertex* val, int offset, DyckGraph* dgraph) {
-    DyckVertex * valrep = val->getRepresentative();
-    if (offset == 0 || valrep->hasProperty("unknown-offset")) {
-        return valrep;
-    } else if (offset > 0) {
-        DyckVertex * dv = init(NULL, dgraph);
-        val->getRepresentative()->addTarget(dv, (void*) offset);
-        return dv;
-    } else {
-        DyckVertex * dv = init(NULL, dgraph);
-        dv->addTarget(val->getRepresentative(), (void*) (-offset));
-        return dv;
-    }
-}
-#endif
-
 /// return the structure's field vertex
 
 DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* field) {
@@ -443,49 +422,28 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
     while (idxidx < num_indices) {
         Value * idx = gep->getOperand(++idxidx);
         Type * AggOrPointerTy = *(GTI++);
-        Type * ElmtTy = *GTI;
+        // Type * ElmtTy = *GTI;
 
-        if (/*!isa<ConstantInt>(idx) ||*/ !AggOrPointerTy->isSized()) {
-            // current->addProperty("unknown-offset", (void*) 1);
-            //break;
-        } else if (AggOrPointerTy->isStructTy()) {
+        if (AggOrPointerTy->isStructTy()) {
             // example: gep y 0 constIdx
             // s1: y--deref-->?1--(fieldIdx idxLabel)-->?2
             DyckVertex* theStruct = this->addPtrTo(current, NULL);
 
             ConstantInt * ci = cast<ConstantInt>(idx);
-            if (ci == NULL) {
-                errs() << ("ERROR: when dealing with gep: \n");
-                errs() << *gep << "\n";
-                exit(1);
-            }
-            // field index need not be the same as original value
-            // make it be a negative integer
-            long fieldIdx = (long) (*(ci->getValue().getRawData()));
-            long addroffset = 0; // use addr offset as field index
-            for (long x = 0; x < fieldIdx; x++) {
-                Type* tx = AggOrPointerTy->getStructElementType(x);
-                addroffset += aa->getTypeStoreSize(tx);
-            }
+            assert(ci != NULL && "ERROR: when dealing with gep");
 
-            DyckVertex* field = this->addField(theStruct, addroffset, NULL);
-            DyckVertex* fieldPtr = current;
-            if (addroffset != 0) {
-                // s2: ?3--deref-->?2 (see else: if idx = 0, offset = 0, then the same ptr)
-                fieldPtr = this->addPtrTo(NULL, field);
-                /// the label representation and feature impl is temporal. @FIXME
-                // s3: y--(fieldIdx offLabel)-->?3
-                current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (aa->getOrInsertOffsetEdgeLabel(addroffset)));
-            } else {
-                this->addPtrTo(fieldPtr, field);
-            }
+            // s2: ?3--deref-->?2
+            unsigned fieldIdx = (unsigned)(*(ci->getValue().getRawData()));
+            DyckVertex* field = this->addField(theStruct, fieldIdx, NULL);
+            DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
+            
+            /// the label representation and feature impl is temporal. @FIXME
+            // s3: y--(fieldIdx offLabel)-->?3
+            current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (aa->getOrInsertOffsetEdgeLabel(fieldIdx)));
 
             // update current
             current = fieldPtr;
         } else if (AggOrPointerTy->isPointerTy() || AggOrPointerTy->isArrayTy()) {
-#ifndef ARRAY_SIMPLIFIED
-            current = addPtrOffset(current, getConstantIntRawData(cast<ConstantInt>(idx)) * dl.getTypeAllocSize(*GTI), dgraph);
-#endif
         } else {
             errs() << "ERROR in handle_gep: unknown type:\n";
             errs() << "Type Id: " << AggOrPointerTy->getTypeID() << "\n";
@@ -495,8 +453,6 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 
     return current;
 }
-
-// constant is handled here.
 
 DyckVertex* AAAnalyzer::wrapValue(Value * v) {
     // if the vertex of v exists, return it, otherwise create one
@@ -898,25 +854,16 @@ void AAAnalyzer::handle_extract_insert_value_inst(DyckVertex* aggV, Type* aggTy,
     for (unsigned int i = 0; i < indices.size(); i++) {
         assert(aggTy->isAggregateType() && "Error in handle_extract_insert_value_inst, not an agg (array/struct) type!");
 
-        if (!aggTy->isSized()) {
-        } else if (aggTy->isArrayTy()) {
+        if (aggTy->isArrayTy()) {
             aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
-#ifndef ARRAY_SIMPLIFIED
-            current = addPtrOffset(current, (int) indices[i] * dl.getTypeAllocSize(aggTy), dgraph);
-#endif
             if (i == indices.size() - 1) {
                 this->makeAlias(currentStruct, wrapValue(insertedOrExtractedValue));
             }
         } else /*if (aggTy->isStructTy())*/ {
-            long offset = 0; // use addr offset as index
-            for (int x = 0; x < indices[i]; x++) {
-                offset += aa->getTypeStoreSize(((CompositeType*) aggTy)->getTypeAtIndex(x));
-            }
-
             if (i != indices.size() - 1) {
-                currentStruct = this->addField(currentStruct, offset, NULL);
+                currentStruct = this->addField(currentStruct, indices[i], NULL);
             } else {
-                currentStruct = this->addField(currentStruct, offset, wrapValue(insertedOrExtractedValue));
+                currentStruct = this->addField(currentStruct, indices[i], wrapValue(insertedOrExtractedValue));
             }
 
             aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);

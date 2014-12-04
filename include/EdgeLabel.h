@@ -23,7 +23,7 @@ private:
 public:
     DerefEdgeLabel() {
         desc.clear();
-        desc.append("deref");
+        desc.append("D");
     }
     virtual std::string& getEdgeLabelDescription() { return desc;}
     virtual bool isLabelTy(LABEL_TY type) { return type == EdgeLabel::DEREF_TYPE;}
@@ -37,7 +37,7 @@ private:
 public:
     PointerOffsetEdgeLabel(long bytes) : offset_bytes(bytes){
         desc.clear();
-        desc.append("off");
+        desc.append("@");
         
         char temp[1024];
         sprintf(temp, "%ld", bytes);

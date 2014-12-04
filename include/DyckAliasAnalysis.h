@@ -134,6 +134,9 @@ private:
     }
 
 private:
+    
+    /// Determine whether the object that VB points to can be got by 
+    /// extractvalue instruction from the object VA points to.
     bool isPartialAlias(DyckVertex *VA, DyckVertex *VB);
 
     /// Three kinds of information will be printed.
