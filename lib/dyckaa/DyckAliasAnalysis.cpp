@@ -617,7 +617,10 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
         fprintf(aliasRel, "digraph rel{\n");
 
         set<DyckVertex*> svs;
-        this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
+        Function* PThreadCreate = M.getFunction("pthread_create");
+        if (PThreadCreate != NULL) {
+            this->getEscapedPointersTo(&svs, PThreadCreate);
+        }
 
         map<DyckVertex*, int> theMap;
         int idx = 0;
@@ -684,7 +687,10 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
         FILE * log = fopen("alias_sets.log", "w+");
 
         set<DyckVertex*> svs;
-        this->getEscapedPointersTo(&svs, M.getFunction("pthread_create"));
+        Function* PThreadCreate = M.getFunction("pthread_create");
+        if (PThreadCreate != NULL) {
+            this->getEscapedPointersTo(&svs, PThreadCreate);
+        }
 
         fprintf(log, "================= Alias Sets ==================\n");
         fprintf(log, "===== {.} means pthread escaped alias set =====\n");

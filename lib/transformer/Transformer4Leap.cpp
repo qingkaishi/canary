@@ -17,7 +17,7 @@ int Transformer4Leap::stmt_idx = 0;
 
 char Transformer4Leap::ID = 0;
 
-Transformer4Leap::Transformer4Leap() : ModulePass(ID)  { 
+Transformer4Leap::Transformer4Leap() : ModulePass(ID) {
 }
 
 bool Transformer4Leap::debug() {
@@ -25,9 +25,9 @@ bool Transformer4Leap::debug() {
 }
 
 void Transformer4Leap::beforeTransform(Module* m, AliasAnalysis& AA) {
-     // do not remove it, it is used in the macro
-     ptrsize = AA.getDataLayout()->getPointerSize();
-     
+    // do not remove it, it is used in the macro
+    ptrsize = AA.getDataLayout()->getPointerSize();
+
     ///initialize functions
     // do not remove context, it is used in the macro FUNCTION_ARG_TYPE
     LLVMContext& context = m->getContext();
@@ -301,7 +301,7 @@ void Transformer4Leap::transformOtherFunctionCalls(Module* module, CallInst* cal
     }
 }
 
-bool Transformer4Leap::isInstrumentationFunction(Module* module, Function * called){
+bool Transformer4Leap::isInstrumentationFunction(Module* module, Function * called) {
     return called == F_init || called == F_exit
             || called == F_preload || called == F_load
             || called == F_prestore || called == F_store
@@ -317,21 +317,21 @@ bool Transformer4Leap::isInstrumentationFunction(Module* module, Function * call
 
 int Transformer4Leap::getValueIndex(Module* module, Value* v, AliasAnalysis & AA) {
     v = v->stripPointerCastsNoFollowAliases();
-    while(isa<GlobalAlias>(v)){
+    while (isa<GlobalAlias>(v)) {
         // aliase can be either global or bitcast of global
-        v = ((GlobalAlias*)v)->getAliasee()->stripPointerCastsNoFollowAliases();
+        v = ((GlobalAlias*) v)->getAliasee()->stripPointerCastsNoFollowAliases();
     }
-    
+
     // If the value is a global constant, its value is immutable throughout the runtime 
     // execution of the program. Assigning a value into the constant leads to undefined behavior.
     // We do not care about such values.
-    if(isa<GlobalVariable>(v) && ((GlobalVariable*)v)->isConstant()){
+    if (isa<GlobalVariable>(v) && ((GlobalVariable*) v)->isConstant()) {
         return -1;
     }
-    
-    for(unsigned i = 0; i<sharedVariables.size(); i++ ){
+
+    for (unsigned i = 0; i < sharedVariables.size(); i++) {
         const set<Value*> * aliasSet = sharedVariables[i];
-        if(aliasSet->count(v)) {
+        if (aliasSet->count(v)) {
             return i;
         }
     }
@@ -339,13 +339,16 @@ int Transformer4Leap::getValueIndex(Module* module, Value* v, AliasAnalysis & AA
     return -1;
 }
 
-bool Transformer4Leap::runOnModule(Module& M){
+bool Transformer4Leap::runOnModule(Module& M) {
     DyckAliasAnalysis & AA = this->getAnalysis<DyckAliasAnalysis>();
-    
-    AA.getEscapedPointersTo(&sharedVariables, M.getFunction("pthread_create"));
-    
+
+    Function* PThreadCreate = M.getFunction("pthread_create");
+    if (PThreadCreate != NULL) {
+        AA.getEscapedPointersTo(&sharedVariables, PThreadCreate);
+    }
+
     this->transform(&M, &AA);
-    
+
     outs() << "\nPleaase add -ltsxleaprecord or -lleaprecord / -lleapreplay for record / replay when you compile the transformed bitcode file to an executable file.\n";
     return true;
 }

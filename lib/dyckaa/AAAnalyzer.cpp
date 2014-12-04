@@ -1028,7 +1028,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
 
         // handle each unhandled, possible function
         set<Value*> equivAndTypeCompSet;
-        const set<Value*>* equivSet = aa->getAliasSet(pcall->calledValue); //dgraph->retrieveDyckVertex(pcall->calledValue).first->getEquivalentSet();
+        const set<Value*>* equivSet = aa->getAliasSet(pcall->calledValue);
         set<Function*>* cands = this->getCompatibleFunctions((FunctionType*) fty);
         set_intersection(cands->begin(), cands->end(),
                 equivSet->begin(), equivSet->end(),
@@ -1054,7 +1054,12 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
         while (pfit != unhandled_function.end()) {
             Function * mayAliasedFunctioin = (Function*) (*pfit);
             // print in console
-            outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << ((100 * (++CAND_COUNT)) / CAND_TOTAL) << "%         \r";
+            int RATE = ((100 * (++CAND_COUNT)) / CAND_TOTAL);
+            if(percentage == 100 && RATE == 100) {
+                outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+            }else{
+                outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << RATE << "%         \r";
+            }
 
             AliasAnalysis::AliasResult ar = aa->alias(mayAliasedFunctioin, pcall->calledValue);
             if (ar == AliasAnalysis::MayAlias || ar == AliasAnalysis::MustAlias) {

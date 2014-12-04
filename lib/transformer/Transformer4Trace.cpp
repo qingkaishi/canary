@@ -389,7 +389,10 @@ Value* Transformer4Trace::getOtInsertLineNumberValue(Module* module, Instruction
 bool Transformer4Trace::runOnModule(Module& M){
     DyckAliasAnalysis & AA = this->getAnalysis<DyckAliasAnalysis>();
     
-    AA.getEscapedPointersTo(&sharedVariables, M.getFunction("pthread_create"));
+    Function* PThreadCreate = M.getFunction("pthread_create");
+    if (PThreadCreate != NULL) {
+        AA.getEscapedPointersTo(&sharedVariables, PThreadCreate);
+    }
     
     this->transform(&M, &AA);
     
