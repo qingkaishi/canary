@@ -82,7 +82,7 @@ multi-processor replay of concurrent java programs". Here is an example.
 
 ```bash
 # transform
-canary -leap-transformer <bitcode_file> -o <output_file>
+canary -preserve-dyck-callgraph -leap-transformer <bitcode_file> -o <output_file>
 # link a record version
 clang++ <ouput_file> -o <executable> -lleaprecord
 # execute it
@@ -96,7 +96,7 @@ A transformer for Pecan. Please read "Persuasive prediction of concurrency
 access anomalies". Here is an example.
 
 ```bash
-canary -trace-transformer <bitcode_file> -o <output_file>
+canary -preserve-dyck-callgraph -trace-transformer <bitcode_file> -o <output_file>
 # link a record version 
 clang++ <ouput_file> -o <executable> -ltrace
 # a log file will be produced after executing it; using the following command

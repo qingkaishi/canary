@@ -124,7 +124,7 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
         Function* function = isa<Function>(LocA.Ptr) ? (Function*) LocA.Ptr : (Function*) LocB.Ptr;
         const Value* calledValue = function == LocA.Ptr ? LocB.Ptr : LocA.Ptr;
 
-        Value * cvcopy = const_cast<Value*>(calledValue);
+        Value * cvcopy = const_cast<Value*> (calledValue);
         Value * temp = cvcopy;
         do {
             temp = cvcopy;
@@ -243,58 +243,28 @@ bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex * v2) {
     return false;
 }
 
-void DyckAliasAnalysis::fromDyckVertexToValue(set<DyckVertex*>& from, set<Value*>& to) {
-    set<DyckVertex*>::iterator svsIt = from.begin();
-    while (svsIt != from.end()) {
-        Value * val = (Value*) ((*svsIt)->getValue());
-        if (val == NULL) {
-            set<void*>* eset = (*svsIt)->getEquivalentSet();
-            if (!eset->empty()) {
-                val = (Value*) *(eset->begin());
-            }
-        }
-
-        if (val != NULL) {
-            // If A is a partial alias of B, A will not be put in ret, because
-            // we will consider them as a pair of may alias during instrumentation.
-            bool add = true;
-            set<Value*>::iterator tempIt = to.begin();
-            while (tempIt != to.end()) {
-                Value * existed = *tempIt;
-                if (!this->isNoAlias(existed, val)) {
-                    add = false;
-                    break;
-                }
-
-                tempIt++;
-            }
-            if (add) {
-                to.insert(val);
-            }
-        }
-
-        svsIt++;
-    }
-}
-
-void DyckAliasAnalysis::getEscapedPointersFrom(set<Value*>* ret, Value * from) {
-    if (ret == NULL || from == NULL || (isa<Argument>(from) && ((Argument*) from)->getParent()->empty())) {
-        errs() << "[ERROR] In getEscapingPointers: ret or from are null! Or from is an empty function's argument\n";
-        return;
-    }
+void DyckAliasAnalysis::getEscapedPointersFrom(std::vector<const set<Value*>*>* ret, Value * from) {
+    assert(ret != NULL && "Error in DyckAliasAnalysis::getEscapedPointersFrom: ret == NULL");
 
     set<DyckVertex*> temp;
     getEscapedPointersFrom(&temp, from);
-    this->fromDyckVertexToValue(temp, *ret);
+    
+    auto tempIt = temp.begin();
+    while (tempIt != temp.end()) {
+        DyckVertex* t = *tempIt;
+        ret->push_back((const set<Value*>*)t->getEquivalentSet());
+        tempIt++;
+    }
 }
 
 void DyckAliasAnalysis::getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from) {
-    if (ret == NULL || from == NULL || (isa<Argument>(from) && ((Argument*) from)->getParent()->empty())) {
-        errs() << "[ERROR] In getEscapingPointers: ret or from are null! Or from is an empty function's argument\n";
-        return;
+    assert(ret != NULL && "Error in DyckAliasAnalysis::getEscapedPointersFrom: ret == NULL");
+    assert(from != NULL && "Error in DyckAliasAnalysis::getEscapedPointersFrom: from == NULL");
+    if (isa<Argument>(from)) {
+        assert(!((Argument*) from)->getParent()->empty() && "Error in DyckAliasAnalysis::getEscapedPointersFrom: from is an empty function's argument");
     }
 
-    set<DyckVertex*> visited;
+    set<DyckVertex*>& visited = *ret;
     stack<DyckVertex*> workStack;
 
     workStack.push(dyck_graph->retrieveDyckVertex(from).first->getRepresentative());
@@ -321,30 +291,29 @@ void DyckAliasAnalysis::getEscapedPointersFrom(set<DyckVertex*>* ret, Value * fr
             tit++;
         }
     }
-
-    ret->insert(visited.begin(), visited.end());
 }
 
-void DyckAliasAnalysis::getEscapedPointersTo(set<Value*>* ret, Function * func) {
-    if (ret == NULL || func == NULL) {
-        errs() << "Warning in getEscapingPointers: ret or func are null!\n";
-        return;
-    }
+void DyckAliasAnalysis::getEscapedPointersTo(std::vector<const set<Value*>*>* ret, Function * func) {
+    assert(ret != NULL && "Error in DyckAliasAnalysis::getEscapedPointersTo: ret == NULL");
 
     set<DyckVertex*> temp;
     getEscapedPointersTo(&temp, func);
-    this->fromDyckVertexToValue(temp, *ret);
+
+    auto tempIt = temp.begin();
+    while (tempIt != temp.end()) {
+        DyckVertex* t = *tempIt;
+        ret->push_back((const set<Value*>*)t->getEquivalentSet());
+        tempIt++;
+    }
 }
 
 void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * func) {
-    if (ret == NULL || func == NULL) {
-        errs() << "Warning in getEscapingPointers: ret or func are null!\n";
-        return;
-    }
+    assert(ret != NULL && "Error in DyckAliasAnalysis::getEscapedPointersTo: ret == NULL");
+    assert(func != NULL && "Error in DyckAliasAnalysis::getEscapedPointersTo: func == NULL");
 
     Module* module = func->getParent();
 
-    set<DyckVertex*> visited;
+    set<DyckVertex*>& visited = *ret;
     stack<DyckVertex*> workStack;
 
     iplist<GlobalVariable>::iterator git = module->global_begin();
@@ -403,8 +372,6 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex*>* ret, Function * f
             tit++;
         }
     }
-
-    ret->insert(visited.begin(), visited.end());
 }
 
 bool DyckAliasAnalysis::callGraphPreserved() {

@@ -14,8 +14,6 @@
 
 class Transformer4Leap : public Transformer, public ModulePass {
 private:
-    map<Value *, int> sv_idx_map;
-
     Function *F_preload, *F_load, *F_prestore, *F_store;
     Function *F_prelock, *F_lock, *F_preunlock, *F_unlock;
     Function *F_prefork, *F_fork, *F_prejoin, *F_join;
@@ -26,7 +24,7 @@ private:
 
 private:
     size_t ptrsize; // = sizeof(int*)
-    set<Value*> sharedVariables;
+    std::vector<const set<Value*>*> sharedVariables;
 
 public:
     static char ID;

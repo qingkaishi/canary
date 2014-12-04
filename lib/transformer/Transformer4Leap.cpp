@@ -66,7 +66,7 @@ void Transformer4Leap::beforeTransform(Module* m, AliasAnalysis& AA) {
 void Transformer4Leap::afterTransform(Module* module, AliasAnalysis& AA) {
     Function * mainFunction = module->getFunction("main");
     if (mainFunction != NULL) {
-        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), sv_idx_map.size());
+        ConstantInt* tmp = ConstantInt::get(Type::getIntNTy(module->getContext(), INT_BIT_SIZE), this->sharedVariables.size());
         this->insertCallInstAtHead(mainFunction, F_init, tmp, NULL);
         this->insertCallInstAtTail(mainFunction, F_exit, tmp, NULL);
     }
@@ -322,23 +322,18 @@ int Transformer4Leap::getValueIndex(Module* module, Value* v, AliasAnalysis & AA
         v = ((GlobalAlias*)v)->getAliasee()->stripPointerCastsNoFollowAliases();
     }
     
+    // If the value is a global constant, its value is immutable throughout the runtime 
+    // execution of the program. Assigning a value into the constant leads to undefined behavior.
+    // We do not care about such values.
     if(isa<GlobalVariable>(v) && ((GlobalVariable*)v)->isConstant()){
         return -1;
     }
     
-    set<Value*>::iterator it = sharedVariables.begin();
-    while (it != sharedVariables.end()) {
-        Value * rep = *it;
-        if (AA.alias(v, rep) != AliasAnalysis::NoAlias) {
-            if(sv_idx_map.count(rep)){
-                return sv_idx_map[rep];
-            } else {
-                int idx = sv_idx_map.size();
-                sv_idx_map.insert(pair<Value*, int>(rep, idx));
-                return idx;
-            }
+    for(unsigned i = 0; i<sharedVariables.size(); i++ ){
+        const set<Value*> * aliasSet = sharedVariables[i];
+        if(aliasSet->count(v)) {
+            return i;
         }
-        it++;
     }
 
     return -1;

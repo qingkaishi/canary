@@ -133,7 +133,6 @@ private:
 
 private:
     bool isPartialAlias(DyckVertex *v1, DyckVertex *v2);
-    void fromDyckVertexToValue(set<DyckVertex*>& from, set<Value*>& to);
     
     /// Three kinds of information will be printed.
     /// 1. Alias Sets will be printed to the console
@@ -146,8 +145,8 @@ private:
     void getEscapedPointersFrom(set<DyckVertex*>* ret, Value * from); // escaped from 'from'
     
  public:  
-    void getEscapedPointersTo(set<Value*>* ret, Function * func); // escaped to 'func'
-    void getEscapedPointersFrom(set<Value*>* ret, Value * from); // escaped from 'from'
+    void getEscapedPointersTo(std::vector<const set<Value*>*>* ret, Function * func); // escaped to 'func'
+    void getEscapedPointersFrom(std::vector<const set<Value*>*>* ret, Value * from); // escaped from 'from'
     
     bool callGraphPreserved();
     DyckCallGraph* getCallGraph();
