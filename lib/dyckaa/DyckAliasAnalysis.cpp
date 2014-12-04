@@ -119,6 +119,10 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA,
     } else {
         ret = NoAlias;
     }
+    
+    if (ret == PartialAlias && (isa<Function>(LocA.Ptr) || isa<Function>(LocB.Ptr))) {
+        return NoAlias;
+    }
 
     if (ret == MayAlias && (isa<Function>(LocA.Ptr) || isa<Function>(LocB.Ptr))) {
         Function* function = isa<Function>(LocA.Ptr) ? (Function*) LocA.Ptr : (Function*) LocB.Ptr;
