@@ -28,14 +28,6 @@ void AAAnalyzer::end_intra_procedure_analysis() {
 }
 
 void AAAnalyzer::start_inter_procedure_analysis() {
-    // do nothing
-    Function * gf = module->getFunction("pthread_getspecific");
-    Function * sf = module->getFunction("pthread_setspecific");
-    Function * cf = module->getFunction("pthread_key_create");
-
-    if (gf || sf || cf) {
-        errs() << "Warning: dyckaa does not handle pthread_getspecific/setspecific/key_create\n";
-    }
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
@@ -73,20 +65,16 @@ void AAAnalyzer::intra_procedure_analysis() {
     return;
 }
 
-static int INTERT = 0; // how many times inter_procedure_analysis() is called
-static int FUNCTION_COUNT = 0;
-
 void AAAnalyzer::inter_procedure_analysis() {
     map<DyckCallGraphNode*, set<CommonCall*>* > handledCommonCalls;
 
+    int INTERT = 0;
     while (1) {
-        dgraph->qirunAlgorithm();
-
-        FUNCTION_COUNT = 0;
+        outs() << "\nIteration #" << ++INTERT << "... \n";
 
         bool finished = true;
+        dgraph->qirunAlgorithm();
 
-        outs() << "\nIteration #" << ++INTERT << "... \n";
         { // direct calls
             outs() << "Handling direct calls...";
             outs().flush();
@@ -127,11 +115,12 @@ void AAAnalyzer::inter_procedure_analysis() {
         }
 
         { // indirect call
+            int FUNCTION_COUNT = 0;
             auto dfit = callgraph->begin();
             while (dfit != callgraph->end()) {
                 DyckCallGraphNode * df = dfit->second;
 
-                if (handle_pointer_function_calls(df)) {
+                if (handle_pointer_function_calls(df, ++FUNCTION_COUNT)) {
                     finished = false;
                 }
                 ++dfit;
@@ -433,10 +422,10 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
             assert(ci != NULL && "ERROR: when dealing with gep");
 
             // s2: ?3--deref-->?2
-            unsigned fieldIdx = (unsigned)(*(ci->getValue().getRawData()));
+            unsigned fieldIdx = (unsigned) (*(ci->getValue().getRawData()));
             DyckVertex* field = this->addField(theStruct, fieldIdx, NULL);
             DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
-            
+
             /// the label representation and feature impl is temporal. @FIXME
             // s3: y--(fieldIdx offLabel)-->?3
             current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (aa->getOrInsertOffsetEdgeLabel(fieldIdx)));
@@ -994,9 +983,7 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
     }
 }
 
-bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
-    FUNCTION_COUNT++;
-
+bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FUNCTION_COUNT) {
     bool ret = false;
 
     set<PointerCall*>& pointercalls = caller->getPointerCalls();
@@ -1045,9 +1032,9 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller) {
             Function * mayAliasedFunctioin = (Function*) (*pfit);
             // print in console
             int RATE = ((100 * (++CAND_COUNT)) / CAND_TOTAL);
-            if(percentage == 100 && RATE == 100) {
+            if (percentage == 100 && RATE == 100) {
                 outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
-            }else{
+            } else {
                 outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << RATE << "%         \r";
             }
 
@@ -1089,6 +1076,11 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
             if (functionName == "strdup" || functionName == "__strdup" || functionName == "strdupa") {
                 // content alias r/1st
                 this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
+            } else if (functionName == "pthread_getspecific" && ret != NULL) {
+                DyckVertex* keyRep = wrapValue(args->at(0))->getRepresentative();
+                DyckVertex* valRep = wrapValue(ret)->getRepresentative();
+                // we use label -1 to indicate that it is a key:value pair
+                keyRep->addTarget(valRep, aa->getOrInsertIndexEdgeLabel(-1));
             }
         }
             break;
@@ -1119,6 +1111,11 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
             } else if (functionName == "strtok") {
                 // content alias r/1st
                 this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
+            } else if (functionName == "pthread_setspecific") {
+                DyckVertex* keyRep = wrapValue(args->at(0))->getRepresentative();
+                DyckVertex* valRep = wrapValue(args->at(1))->getRepresentative();
+                // we use label -1 to indicate that it is a key:value pair
+                keyRep->addTarget(valRep, aa->getOrInsertIndexEdgeLabel(-1));
             }
         }
             break;

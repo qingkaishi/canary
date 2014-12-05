@@ -30,14 +30,12 @@ private:
     Module* module;
     DyckAliasAnalysis* aa;
     DyckGraph* dgraph;
+    DyckCallGraph* callgraph;
 
 private:
     map<Type*, FunctionTypeNode*> functionTyNodeMap;
     set<FunctionTypeNode *> tyroots;
 
-private:
-    DyckCallGraph* callgraph;
-    
 public:
     AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg);
     ~AAAnalyzer();
@@ -50,7 +48,7 @@ public:
 
     void intra_procedure_analysis();
     void inter_procedure_analysis();
-    
+
 private:
     void printNoAliasedPointerCalls();
 
@@ -62,13 +60,13 @@ private:
     void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, DyckCallGraphNode* parent);
 
 private:
-    bool handle_pointer_function_calls(DyckCallGraphNode* caller);
+    bool handle_pointer_function_calls(DyckCallGraphNode* caller, int counter);
     void handle_common_function_call(Call* c, DyckCallGraphNode* caller, DyckCallGraphNode* callee);
-    
+
 private:
     int isCompatible(FunctionType * t1, FunctionType * t2);
     set<Function*>* getCompatibleFunctions(FunctionType * fty);
-    
+
     FunctionTypeNode* initFunctionGroup(FunctionType* fty);
     void initFunctionGroups();
     void destroyFunctionGroups();
