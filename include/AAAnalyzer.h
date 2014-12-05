@@ -25,7 +25,7 @@ typedef struct FunctionTypeNode {
     set<Function *> compatibleFuncs;
 } FunctionTypeNode;
 
-class AAAnalyzer {   
+class AAAnalyzer {
 private:
     Module* module;
     DyckAliasAnalysis* aa;

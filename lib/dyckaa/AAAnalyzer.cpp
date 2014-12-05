@@ -642,15 +642,11 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 
             // vector operations
         case Instruction::ExtractElement:
-        {
-        }
-            break;
         case Instruction::InsertElement:
-        {
-        }
-            break;
         case Instruction::ShuffleVector:
         {
+            errs() << "[Error] Please add -fno-vectorize -fno-slp-vectorize to clang -c -emit-llvm when generating bitcode files.\n";
+            exit(1);
         }
             break;
 
@@ -679,9 +675,6 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 
             // memory accessing and addressing operations
         case Instruction::Alloca:
-        {
-        }
-            break;
         case Instruction::Fence:
         {
         }
@@ -741,9 +734,6 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 
             // conversion operations
         case Instruction::AddrSpaceCast:
-        {
-            outs() << "[INFO] Detect AddrSpaceCast Instruction: " << *inst << "\n";
-        }
         case Instruction::Trunc:
         case Instruction::ZExt:
         case Instruction::SExt:
