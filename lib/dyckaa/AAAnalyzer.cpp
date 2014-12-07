@@ -306,40 +306,15 @@ void AAAnalyzer::destroyFunctionGroups() {
 }
 
 void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
-    if (!this->isCompatible(ft1, ft2)) {
+        FunctionTypeNode * ftn1 = this->initFunctionGroup(ft1)->root;
+        FunctionTypeNode * ftn2 = this->initFunctionGroup(ft2)->root;
 
-        FunctionTypeNode * ftn1 = this->initFunctionGroup(ft1);
-        FunctionTypeNode * ftn2 = this->initFunctionGroup(ft2);
+        if (ftn1 == ftn2) return;
 
-        if (ftn1->root == ftn2->root) return;
-
-        outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n";
-
-        if (ftn1->root->compatibleFuncs.size() > ftn2->root->compatibleFuncs.size()) {
-            FunctionTypeNode * temp = ftn1;
-            ftn1 = ftn2;
-            ftn2 = temp;
-        }
-
-        ftn1->root = ftn2->root; // 1->2
-        set<Function*>::iterator ftnIt = ftn1->compatibleFuncs.begin();
-        while (ftnIt != ftn1->compatibleFuncs.end()) {
-            FunctionType* f = (*ftnIt)->getFunctionType();
-
-            if (!functionTyNodeMap.count(f)) {
-                errs() << "Error in combination of function groups!" << "\n";
-                exit(-1);
-            }
-
-            FunctionTypeNode * ftn = functionTyNodeMap[f];
-            ftn->root = ftn2->root;
-
-            ftnIt++;
-        }
-
+        DEBUG_WITH_TYPE("combine-function-groups", outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n");
+        
+        ftn1->compatibleFuncs.insert(ftn2->compatibleFuncs.begin(), ftn2->compatibleFuncs.end());
         ftn2->compatibleFuncs.insert(ftn1->compatibleFuncs.begin(), ftn1->compatibleFuncs.end());
-        ftn1->compatibleFuncs.clear();
-    }
 }
 
 /// return the structure's field vertex
@@ -462,15 +437,11 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
             makeAlias(vdv, got);
 
             // combine function groups
-            if (!isa<Function>(((ConstantExpr*) v)->getOperand(0))) {
-                Type* origTy = ((ConstantExpr*) v)->getOperand(0)->getType();
-                Type* castTy = v->getType();
-                if (origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
-                        && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
-                    combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
-                }
-            } else {
-                // This case has been handled in initFunctionGroup
+            Type* origTy = ((ConstantExpr*) v)->getOperand(0)->getType();
+            Type* castTy = v->getType();
+            if (origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
+                    && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
+                combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
             }
         } else {
             unsigned opcode = ((ConstantExpr*) v)->getOpcode();
@@ -743,13 +714,9 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
             Type* origTy = itpv->getType();
             Type* castTy = inst->getType();
 
-            if (!isa<Function>(itpv)) {
-                if (origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
-                        && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
-                    combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
-                }
-            } else {
-                // this case has been handled in initFunctionGroups
+            if (origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy()
+                    && castTy->isPointerTy() && castTy->getPointerElementType()->isFunctionTy()) {
+                combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
             }
         }
             break;
