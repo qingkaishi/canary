@@ -13,6 +13,9 @@ gcc 4.8.2 and llvm-3.6.0svn. If you cannot built it successfully,
 plase check out the latest version of llvm-3.6.0svn and try again. 
 If you still fail to build it, please report a bug. Thanks!
 
+llvm git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@223464 91177308-0d34-0410-b5e6-96231b3b80d8
+clang 
+
 If you use Canary, please cite Canary as below (latex style). 
 
 > \footnote{Canary. \url{https://github.com/qingkaishi/canary}}
@@ -68,7 +71,8 @@ NOTE: currently, f1 and f2 are two type compatible functions iff.
 
 > Same type store sizes of each pair of parameters;
 
-> There is an explicit cast operation between type(f1) and type(f2).
+> There is an explicit cast operation between type(f1) and type(f2) 
+(it works with option -with-function-cast-comb).
 
 * -dot-dyck-callgraph
 This option is used to print a call graph based on the alias analysis.

@@ -9,6 +9,10 @@ static cl::opt<bool>
 NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
         cl::desc("Do not check function type when resolving pointer calls."));
 
+static cl::opt<bool>
+WithFunctionCastComb("with-function-cast-comb", cl::init(false), cl::Hidden,
+        cl::desc("Combine compatible functions if there is a cast between the two types."));
+
 AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
     module = m;
     aa = a;
@@ -306,15 +310,19 @@ void AAAnalyzer::destroyFunctionGroups() {
 }
 
 void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
-        FunctionTypeNode * ftn1 = this->initFunctionGroup(ft1)->root;
-        FunctionTypeNode * ftn2 = this->initFunctionGroup(ft2)->root;
+    if (!WithFunctionCastComb) {
+        return;
+    }
 
-        if (ftn1 == ftn2) return;
+    FunctionTypeNode * ftn1 = this->initFunctionGroup(ft1)->root;
+    FunctionTypeNode * ftn2 = this->initFunctionGroup(ft2)->root;
 
-        DEBUG_WITH_TYPE("combine-function-groups", outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n");
-        
-        ftn1->compatibleFuncs.insert(ftn2->compatibleFuncs.begin(), ftn2->compatibleFuncs.end());
-        ftn2->compatibleFuncs.insert(ftn1->compatibleFuncs.begin(), ftn1->compatibleFuncs.end());
+    if (ftn1 == ftn2) return;
+
+    DEBUG_WITH_TYPE("combine-function-groups", outs() << "[CANARY] Combining " << *ft1 << " and " << *ft2 << "... \n");
+
+    ftn1->compatibleFuncs.insert(ftn2->compatibleFuncs.begin(), ftn2->compatibleFuncs.end());
+    ftn2->compatibleFuncs.insert(ftn1->compatibleFuncs.begin(), ftn1->compatibleFuncs.end());
 }
 
 /// return the structure's field vertex
