@@ -13,8 +13,16 @@ gcc 4.8.2 and llvm-3.6.0svn. If you cannot built it successfully,
 plase check out the latest version of llvm-3.6.0svn and try again. 
 If you still fail to build it, please report a bug. Thanks!
 
-llvm git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@223464 91177308-0d34-0410-b5e6-96231b3b80d8
-clang 
+Please checkout and build llvm according to 
+http://clang.llvm.org/get_started.html#build
+
+> llvm version: r222119
+
+> clang version: r222105
+
+> extra clang tools version: r222027
+
+> compiler-rt version: r222095
 
 If you use Canary, please cite Canary as below (latex style). 
 
