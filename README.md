@@ -28,6 +28,10 @@ If you use Canary, please cite Canary as below (latex style).
 
 > \footnote{Canary. \url{https://github.com/qingkaishi/canary}}
 
+News
+-----
+Canary has been adopted by ClearWater Inc.
+
 Building Canary
 ------
 
