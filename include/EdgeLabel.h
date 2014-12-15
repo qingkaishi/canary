@@ -12,30 +12,30 @@
 class EdgeLabel {
 public:
     enum LABEL_TY {DEREF_TYPE, OFFSET_TYPE, INDEX_TYPE};
-public:
-    virtual std::string& getEdgeLabelDescription();
-    virtual bool isLabelTy(LABEL_TY type);
-};
-
-class DerefEdgeLabel : public EdgeLabel {
 private:
     std::string desc;
 public:
+    virtual std::string& getEdgeLabelDescription() { return desc; }
+    virtual bool isLabelTy(LABEL_TY type){ return false; }
+    virtual ~EdgeLabel(){}
+};
+
+class DerefEdgeLabel : public EdgeLabel {
+public:
     DerefEdgeLabel() {
+        std::string& desc = EdgeLabel::getEdgeLabelDescription();
         desc.clear();
         desc.append("D");
     }
-    virtual std::string& getEdgeLabelDescription() { return desc;}
     virtual bool isLabelTy(LABEL_TY type) { return type == EdgeLabel::DEREF_TYPE;}
 };
 
 class PointerOffsetEdgeLabel : public EdgeLabel {
 private:
     long offset_bytes;
-    std::string desc;
-    
 public:
     PointerOffsetEdgeLabel(long bytes) : offset_bytes(bytes){
+        std::string& desc = EdgeLabel::getEdgeLabelDescription();
         desc.clear();
         desc.append("@");
         
@@ -43,27 +43,28 @@ public:
         sprintf(temp, "%ld", bytes);
         desc.append(temp);
     }
+
+    long getOffsetBytes() { return offset_bytes; }
     
-    virtual std::string& getEdgeLabelDescription() { return desc;}
     virtual bool isLabelTy(LABEL_TY type) { return type == EdgeLabel::OFFSET_TYPE;}
 };
 
 class FieldIndexEdgeLabel : public EdgeLabel {
 private:
-    long offset_bytes;
-    std::string desc;
-    
+    long field_index;
 public:
-    FieldIndexEdgeLabel(long bytes) : offset_bytes(bytes){
+    FieldIndexEdgeLabel(long idx) : field_index(idx){
+        std::string& desc = EdgeLabel::getEdgeLabelDescription();
         desc.clear();
         desc.append("#");
         
         char temp[1024];
-        sprintf(temp, "%ld", bytes);
+        sprintf(temp, "%ld", idx);
         desc.append(temp);
     }
+
+    long getFieldIndex() { return field_index; }
     
-    virtual std::string& getEdgeLabelDescription() { return desc;}
     virtual bool isLabelTy(LABEL_TY type) { return type == EdgeLabel::INDEX_TYPE;}
 };
 

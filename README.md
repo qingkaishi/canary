@@ -141,4 +141,3 @@ TODO
 
 > 2. performance optimization
 
-* Recover canary-record/replay transform pass.
