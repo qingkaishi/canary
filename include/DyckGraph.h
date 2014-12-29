@@ -66,7 +66,7 @@ public:
     /// Find the paper here: http://dl.acm.org/citation.cfm?id=2491956.2462159&coll=DL&dl=ACM&CFID=379446910&CFTOKEN=65130716 .
     /// Note that if there are two edges: a->b and a->c, b and c will be put into the same equivelant class.
     /// If the function does nothing, return true, otherwise return false.
-    virtual bool qirunAlgorithm();
+    bool qirunAlgorithm();
     
     /// validation
     void validation(const char*, int);
