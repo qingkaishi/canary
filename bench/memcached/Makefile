@@ -7,13 +7,16 @@ LEVEL=../..
 
 OBJ=memcached-memcached.o memcached-hash.o memcached-slabs.o memcached-items.o memcached-assoc.o memcached-thread.o memcached-daemon.o memcached-stats.o memcached-util.o memcached-cache.o
 
-all: clients memcached.bc
+all: clients libeventdir memcached.bc
+
+libeventdir:
+	@$(MAKE) -C ./libevent
 
 clients:
 	@$(MAKE) -C client
 
-memcached.bc: $(OBJ)
-	@llvm-link memcached-memcached.o memcached-hash.o memcached-slabs.o memcached-items.o memcached-assoc.o memcached-thread.o memcached-daemon.o memcached-stats.o memcached-util.o memcached-cache.o -o ./memcached.bc
+memcached.bc: $(OBJ) libeventdir
+	@llvm-link memcached-memcached.o memcached-hash.o memcached-slabs.o memcached-items.o memcached-assoc.o memcached-thread.o memcached-daemon.o memcached-stats.o memcached-util.o memcached-cache.o ./libevent/libevent.bc -o ./memcached.bc
 
 memcached-memcached.o: memcached.c
 	@clang -c -emit-llvm -g  -DHAVE_CONFIG_H -I.  -DNDEBUG -fno-vectorize -fno-slp-vectorize -pthread -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -o memcached-memcached.o ./memcached.c
