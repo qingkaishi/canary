@@ -74,9 +74,9 @@ check_rough_version("gcc -dumpversion", "gcc",
                     "Error: gcc's version should be >= 4.8! Termination.",
                     4, 8)
 
-check_file_with_optional_dirs("boost/foreach.hpp", 
-                              ["/usr/include", "/usr/local/include"], 
-                              "Error: boost library is needed for support. Termination.")
+#check_file_with_optional_dirs("boost/foreach.hpp", 
+#                              ["/usr/include", "/usr/local/include"], 
+#                              "Error: boost library is needed for support. Termination.")
 
 #--------------------- build -----------------------
 
@@ -89,17 +89,21 @@ def llvm_config(option):
 DIRS = ["lib", "tools"]
 EXTRA_DIST = "include"
 
-LLVM_LIBS = []
+
 LLVM_LIB_PATHS = []
 ldflags = llvm_config("--ldflags")
 ldflags_split = ldflags.split(" ")
 for ld in ldflags_split:
-    if ld.startswith("-l") is True:
-        LLVM_LIBS.append(ld[2:].strip())
-
     if ld.startswith("-L") is True:
         LLVM_LIB_PATHS.append(ld[2:].strip())
 
+
+syslibs = llvm_config("--system-libs")
+syslibs_split = syslibs.split(" ")
+LLVM_LIBS = []
+for syslib in syslibs_split:
+    if syslib.startswith("-l") is True:
+        LLVM_LIBS.append(syslib[2:].strip())
 
 env=Environment(
                 CXX        = "clang++",
@@ -111,7 +115,7 @@ env=Environment(
                 CPPPATH    = ["./", "#include/", llvm_config("--includedir")], 
                 BIN        = "#bin", 
                 LIBPATH    = ['#bin', llvm_config("--libdir")] + LLVM_LIB_PATHS,
-                LIBS       = LLVM_LIBS + ["m", "dl", "pthread", "z"]
+                LIBS       = LLVM_LIBS
                )
 
 

@@ -4,7 +4,7 @@ Import('env')
 TOOLNAME="canary"
 TOOLNAME=env['BIN']+"/"+TOOLNAME
 
-USEDLIBS = ["CanaryDyckAA", "CanaryDyckGraph", "CanaryTransformer", "CanaryCallGraph", "CanaryAnnotation"]
+USEDLIBS = ["CanaryDyckAA", "CanaryTransformer", "CanaryCallGraph", "CanaryAnnotation", "CanaryDyckGraph"]
 LINK_COMPONENTS = ["bitreader", "bitwriter", "asmparser", "irreader", "instrumentation", "scalaropts", "objcarcopts", "ipo", "vectorize", "all-targets", "codegen"]
 
 usedlibs_split = llvm_config("--libs " + " ".join(LINK_COMPONENTS)).split("-l")

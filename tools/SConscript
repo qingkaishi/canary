@@ -1,7 +1,25 @@
 Import('env')
 Import('llvm_config')
+import os
+import sys
 
-DIRS = ["pecan", "canary"]
+def check_file_with_optional_dirs(file_name, dirs, msg):
+    print "Checking for " + file_name + "."
+    for dir in dirs:
+        if os.path.exists(dir + "/" + file_name):
+            return True
+
+    print msg
+    return False
+
+ret=check_file_with_optional_dirs("boost/foreach.hpp", 
+                              ["/usr/include", "/usr/local/include"], 
+                              "Warning: boost library is needed for pecan. pecan will not be built.")
+
+if ret is True:
+    DIRS = ["pecan", "canary"]
+else:
+    DIRS = ["canary"]
 
 SCONSCRIPTS = []
 for DIR in DIRS:
