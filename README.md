@@ -9,20 +9,7 @@ concurrent java programs", "Persuasive prediction of concurrency
 access anomalies", etc. You can read them for details.
 
 We have built and tested it on *32-bit* x86 linux architectures using
-gcc 4.8.2 and llvm-3.6.0svn. If you cannot built it successfully,
-plase check out the latest version of llvm-3.6.0svn and try again. 
-If you still fail to build it, please report a bug. Thanks!
-
-Please checkout and build llvm according to 
-http://clang.llvm.org/get_started.html#build
-
-> llvm version: r222119
-
-> clang version: r222105
-
-> extra clang tools version: r222027
-
-> compiler-rt version: r222095
+gcc 4.8.2 and llvm-3.6.
 
 If you use Canary, please cite Canary as below (latex style). 
 

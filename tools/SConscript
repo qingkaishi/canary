@@ -14,7 +14,7 @@ def check_file_with_optional_dirs(file_name, dirs, msg):
 
 ret=check_file_with_optional_dirs("boost/foreach.hpp", 
                               ["/usr/include", "/usr/local/include"], 
-                              "Warning: boost library is needed for pecan. pecan will not be built.")
+                              "!!! Warning: boost library is needed for pecan. pecan will not be built.")
 
 if ret is True:
     DIRS = ["pecan", "canary"]
