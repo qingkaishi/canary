@@ -18,5 +18,5 @@ canary.zip
 .sconsign.dblite
 bin
 *~
-#.cproject
-#.project
+.cproject
+.project
