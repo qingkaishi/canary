@@ -54,7 +54,7 @@ public:
 	}
 
 	/// Get the may/must alias set.
-	virtual const set<Value*>* getAliasSet(Value * ptr);
+	virtual const set<Value*>* getAliasSet(Value * ptr) const;
 
 	virtual ModRefResult getModRefInfo(ImmutableCallSite CS, const Location &Loc) {
 		return AliasAnalysis::getModRefInfo(CS, Loc);
@@ -108,7 +108,6 @@ private:
 	map<long, EdgeLabel*> INDEX_LABEL_MAP;
 
 private:
-
 	EdgeLabel* getOrInsertOffsetEdgeLabel(long offset) {
 		if (OFFSET_LABEL_MAP.count(offset)) {
 			return OFFSET_LABEL_MAP[offset];
@@ -154,6 +153,11 @@ public:
 
 	bool callGraphPreserved();
 	DyckCallGraph* getCallGraph();
+
+	/// Get the set of objects that a pointer may point to,
+	/// e.g. for %a = load i32* %b, {%a} will be returned for the
+	/// pointer %b
+	void getPointstoObjects(std::set<Value*>& objects, Value* pointer);
 
 };
 

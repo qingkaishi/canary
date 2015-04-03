@@ -13,7 +13,7 @@
 #include "EdgeLabel.h"
 #include "DyckAliasAnalysis.h"
 #include <map>
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 using namespace std;
 
@@ -55,9 +55,10 @@ private:
 private:
 	void handle_inst(Instruction *inst, DyckCallGraphNode * parent);
 	void handle_instrinsic(Instruction *inst);
-	void handle_extract_insert_value_inst(DyckVertex* structureV, Type* aggTy, ArrayRef<unsigned>& indices, Value* insertedOrExtractedValue);
-	void handle_invoke_call_inst(Instruction * ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent);
-	void handle_lib_invoke_call_inst(Value * ret, Function* cv, vector<Value*>* args, DyckCallGraphNode* parent);
+	void handle_extract_insert_value_inst(Value* aggValue, Type* aggTy, ArrayRef<unsigned>& indices, Value* insertedOrExtractedValue);
+	void handle_extract_insert_elmt_inst(Value* vec, Value* elmt);
+	void handle_invoke_call_inst(Instruction * ret, Value* cv, vector<Value*>* args, DyckCallGraphNode * parent);
+	void handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Value*>* args, DyckCallGraphNode* parent);
 
 private:
 	bool handle_pointer_function_calls(DyckCallGraphNode* caller, int counter);
@@ -75,7 +76,7 @@ private:
 private:
 	DyckVertex* addField(DyckVertex* val, long fieldIndex, DyckVertex* field);
 	DyckVertex* addPtrTo(DyckVertex* address, DyckVertex* val);
-	void makeAlias(DyckVertex* x, DyckVertex* y);
+	DyckVertex* makeAlias(DyckVertex* x, DyckVertex* y);
 	void makeContentAlias(DyckVertex* x, DyckVertex* y);
 
 	DyckVertex* handle_gep(GEPOperator* gep);

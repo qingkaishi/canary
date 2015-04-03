@@ -3,6 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
+#define DEBUG_TYPE "dyckaa"
 #include "AAAnalyzer.h"
 
 static cl::opt<bool> NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
@@ -33,13 +34,6 @@ void AAAnalyzer::start_inter_procedure_analysis() {
 }
 
 void AAAnalyzer::end_inter_procedure_analysis() {
-	// @TODO delete all null-value dyckvertices
-	int NumAssistantVertices = dgraph->getAssistantVertices().size();
-	int NumVertices = dgraph->numVertices();
-	unsigned BytesToFree = sizeof(DyckVertex) * NumAssistantVertices;
-	outs() << "# Assistant nodes: " << NumAssistantVertices << "(" << (NumAssistantVertices * 100 / NumVertices) << "%), " << BytesToFree / 1024
-			<< "KB.\n\n";
-
 	DEBUG_WITH_TYPE("pointercalls", this->printNoAliasedPointerCalls());
 }
 
@@ -59,6 +53,7 @@ void AAAnalyzer::intra_procedure_analysis() {
 				Instruction *inst = iterI;
 				instNum++;
 
+				DEBUG_WITH_TYPE("inst", errs() << *inst << "\n");
 				handle_inst(inst, df);
 			}
 		}
@@ -326,18 +321,16 @@ void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
 /// return the structure's field vertex
 
 DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* field) {
-	DyckVertex* valrep = val->getRepresentative();
-
 	if (field == NULL) {
-		set<DyckVertex*>* valrepset = valrep->getOutVertices((void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
+		set<DyckVertex*>* valrepset = val->getOutVertices((void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
 		if (valrepset != NULL && !valrepset->empty()) {
 			field = *(valrepset->begin());
 		} else {
 			field = dgraph->retrieveDyckVertex(NULL).first;
-			valrep->addTarget(field, (void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
+			val->addTarget(field, (void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
 		}
 	} else {
-		valrep->addTarget(field->getRepresentative(), (void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
+		val->addTarget(field, (void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
 	}
 
 	return field;
@@ -351,30 +344,28 @@ DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
 
 	if (address == NULL) {
 		address = dgraph->retrieveDyckVertex(NULL).first;
-		address->addTarget(val->getRepresentative(), (void*) aa->DEREF_LABEL);
+		address->addTarget(val, (void*) aa->DEREF_LABEL);
 		return address;
 	} else if (val == NULL) {
-		DyckVertex* addrep = address->getRepresentative();
-		set<DyckVertex*>* derefset = addrep->getOutVertices((void*) aa->DEREF_LABEL);
+		set<DyckVertex*>* derefset = address->getOutVertices((void*) aa->DEREF_LABEL);
 		if (derefset != NULL && !derefset->empty()) {
 			val = *(derefset->begin());
 		} else {
 			val = dgraph->retrieveDyckVertex(NULL).first;
-			addrep->addTarget(val, (void*) aa->DEREF_LABEL);
+			address->addTarget(val, (void*) aa->DEREF_LABEL);
 		}
 
 		return val;
 	} else {
-		DyckVertex* addrep = address->getRepresentative();
-		addrep->addTarget(val->getRepresentative(), (void*) aa->DEREF_LABEL);
-		return addrep;
+		address->addTarget(val, (void*) aa->DEREF_LABEL);
+		return address;
 	}
 
 }
 
-void AAAnalyzer::makeAlias(DyckVertex* x, DyckVertex* y) {
+DyckVertex* AAAnalyzer::makeAlias(DyckVertex* x, DyckVertex* y) {
 	// combine x's rep and y's rep
-	dgraph->combine(x, y);
+	return dgraph->combine(x, y);
 }
 
 void AAAnalyzer::makeContentAlias(DyckVertex* x, DyckVertex* y) {
@@ -407,9 +398,9 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 			DyckVertex* field = this->addField(theStruct, fieldIdx, NULL);
 			DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
 
-			/// the label representation and feature impl is temporal. @FIXME
+			/// the label representation and feature impl is temporal.
 			// s3: y--(fieldIdx offLabel)-->?3
-			current->getRepresentative()->addTarget(fieldPtr->getRepresentative(), (void*) (aa->getOrInsertOffsetEdgeLabel(fieldIdx)));
+			current->addTarget(fieldPtr, (void*) (aa->getOrInsertOffsetEdgeLabel(fieldIdx)));
 
 			// update current
 			current = fieldPtr;
@@ -431,35 +422,71 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 		return retpair.first;
 	}
 	DyckVertex* vdv = retpair.first;
+
 	// constantTy are handled as below.
 	if (isa<ConstantExpr>(v)) {
-		// constant expr should be handled like a assignment instruction
-		if (isa<GEPOperator>(v)) {
-			DyckVertex * got = handle_gep((GEPOperator*) v);
-			makeAlias(vdv, got);
-		} else if (((ConstantExpr*) v)->isCast()) {
-			// errs() << *v << "\n";
+		unsigned opcode = ((ConstantExpr*) v)->getOpcode();
+		if (opcode >= Instruction::CastOpsBegin && opcode <= Instruction::CastOpsEnd) {
 			DyckVertex * got = wrapValue(((ConstantExpr*) v)->getOperand(0));
-			makeAlias(vdv, got);
-
-			// combine function groups
-			Type* origTy = ((ConstantExpr*) v)->getOperand(0)->getType();
-			Type* castTy = v->getType();
-			if (origTy->isPointerTy() && origTy->getPointerElementType()->isFunctionTy() && castTy->isPointerTy()
-					&& castTy->getPointerElementType()->isFunctionTy()) {
-				combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
+			vdv = wrapValue(v);
+			vdv = makeAlias(vdv, got);
+		} else if (opcode == Instruction::GetElementPtr) {
+			DyckVertex * got = handle_gep((GEPOperator*) v);
+			vdv = wrapValue(v);
+			vdv = makeAlias(vdv, got);
+		} else if (opcode == Instruction::Select) {
+			DyckVertex * opt0 = wrapValue(((ConstantExpr*) v)->getOperand(0));
+			DyckVertex * opt1 = wrapValue(((ConstantExpr*) v)->getOperand(1));
+			vdv = wrapValue(v);
+			vdv = makeAlias(vdv, opt0);
+			vdv = makeAlias(vdv, opt1);
+		} else if (opcode == Instruction::ExtractValue) {
+			Value * agg = ((ConstantExpr*) v)->getOperand(0);
+			vector<unsigned> indicesVec;
+			for (unsigned i = 1; i < ((ConstantExpr*) v)->getNumOperands(); i++) {
+				ConstantInt * index = (ConstantInt*) ((ConstantExpr*) v)->getOperand(1);
+				indicesVec.push_back((unsigned) (*(index->getValue().getRawData())));
 			}
+			ArrayRef<unsigned> indices(indicesVec);
+			this->handle_extract_insert_value_inst(agg, agg->getType(), indices, v);
+		} else if (opcode == Instruction::InsertValue) {
+			DyckVertex* resultV = wrapValue(v);
+			Value * agg = ((ConstantExpr*) v)->getOperand(0);
+			if (!isa<UndefValue>(agg)) {
+				makeAlias(resultV, wrapValue(agg));
+			}
+			vector<unsigned> indicesVec;
+			for (unsigned i = 2; i < ((ConstantExpr*) v)->getNumOperands(); i++) {
+				ConstantInt * index = (ConstantInt*) ((ConstantExpr*) v)->getOperand(1);
+				indicesVec.push_back((unsigned) (*(index->getValue().getRawData())));
+			}
+			ArrayRef<unsigned> indices(indicesVec);
+			this->handle_extract_insert_value_inst(v, agg->getType(), indices, ((ConstantExpr*) v)->getOperand(1));
+		} else if (opcode == Instruction::ExtractElement) {
+			Value* vect = ((ConstantExpr*) v)->getOperand(0);
+			this->handle_extract_insert_elmt_inst(vect, v);
+		} else if (opcode == Instruction::InsertElement) {
+			Value* vect = ((ConstantExpr*) v)->getOperand(0);
+			Value* elmt2insert = ((ConstantExpr*) v)->getOperand(1);
+			this->handle_extract_insert_elmt_inst(vect, elmt2insert);
+			this->handle_extract_insert_elmt_inst(v, elmt2insert);
+		} else if (opcode == Instruction::ShuffleVector) {
+			Value* vect1 = ((ConstantExpr*) v)->getOperand(0);
+			Value* vect2 = ((ConstantExpr*) v)->getOperand(1);
+			Value* vectRet = v;
+			this->makeAlias(wrapValue(vectRet), wrapValue(vect1));
+			this->makeAlias(wrapValue(vectRet), wrapValue(vect2));
 		} else {
-			unsigned opcode = ((ConstantExpr*) v)->getOpcode();
-			if (opcode >= Instruction::BinaryOpsBegin && opcode <= Instruction::BinaryOpsEnd) {
-				// do nothing
-			} else {
-				errs() << "ERROR when handle the following constant expression\n";
-				errs() << *v << "\n";
-				errs() << ((ConstantExpr*) v)->getOpcode() << "\n";
-				errs() << ((ConstantExpr*) v)->getOpcodeName() << "\n";
-				errs().flush();
-				exit(-1);
+			// binary constant expr
+			// cmp constant expr
+			// other unary constant expr
+			bool binaryOrUnaryOrCmpConstExpr = (opcode >= Instruction::BinaryOpsBegin && opcode <= Instruction::BinaryOpsEnd)
+					|| (opcode == Instruction::ICmp && opcode == Instruction::FCmp) || (((ConstantExpr*) v)->getNumOperands() == 1);
+			assert(binaryOrUnaryOrCmpConstExpr);
+			for (unsigned i = 0; i < ((ConstantExpr*) v)->getNumOperands(); i++) {
+				// e.g. i1 icmp ne (i8* bitcast (i32 (i32*, void (i8*)*)* @__pthread_key_create to i8*), i8* null)
+				// we should handle op<0>
+				wrapValue(((ConstantExpr*) v)->getOperand(i));
 			}
 		}
 	} else if (isa<ConstantStruct>(v) || isa<ConstantArray>(v)) {
@@ -471,8 +498,17 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 			std::vector<unsigned> indices;
 			indices.push_back(i);
 			ArrayRef<unsigned> indicesRef(indices);
-			this->handle_extract_insert_value_inst(vdv, vAgg->getType(), indicesRef, vi);
+			this->handle_extract_insert_value_inst(v, vAgg->getType(), indicesRef, vi);
 		}
+		vdv = wrapValue(v);
+	} else if (isa<ConstantVector>(v)) {
+		auto CV = (ConstantVector*) v;
+		unsigned numElmt = CV->getNumOperands();
+		for (unsigned i = 0; i < numElmt; i++) {
+			Value * vi = CV->getOperand(i);
+			this->handle_extract_insert_elmt_inst(CV, vi);
+		}
+		vdv = wrapValue(v);
 	} else if (isa<GlobalValue>(v)) {
 		if (isa<GlobalVariable>(v)) {
 			GlobalVariable * global = (GlobalVariable *) v;
@@ -480,34 +516,44 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 				Value * initializer = global->getInitializer();
 				if (!isa<UndefValue>(initializer)) {
 					DyckVertex * initVer = wrapValue(initializer);
+					vdv = wrapValue(v);
 					addPtrTo(vdv, initVer);
 				}
 			}
 		} else if (isa<GlobalAlias>(v)) {
 			GlobalAlias * global = (GlobalAlias *) v;
 			Value * aliasee = global->getAliasee();
-			makeAlias(vdv, wrapValue(aliasee));
+			auto aliaseeV = wrapValue(aliasee);
+			vdv = wrapValue(v);
+			vdv = makeAlias(vdv, aliaseeV);
 		} else if (isa<Function>(v)) {
 			// do nothing
-		} // no else
+		} else {
+			assert(false);
+		}
 	} else if (isa<ConstantInt>(v) || isa<ConstantFP>(v) || isa<ConstantPointerNull>(v) || isa<UndefValue>(v)) {
-		// do nothing
-	} else if (isa<ConstantDataArray>(v) || isa<ConstantAggregateZero>(v)) {
-		// do nothing
+// do nothing
+	} else if (isa<ConstantDataArray>(v) || isa<ConstantDataVector>(v)) {
+// ConstantDataSequential
+
+// ConstantDataVector/Array - A vector/array constant whose element type is a simple
+// 1/2/4/8-byte integer or float/double, and whose elements are just simple
+// data values (i.e. ConstantInt/ConstantFP).  This Constant node has no
+// operands because it stores all of the elements of the constant as densely
+// packed data, instead of as Value*'s.
+
+// e.g.
+//    constant [12 x i8] c"I am happy!\00"
+//    constant <2 x i64> <i64 -1, i64 -1>
+
+// since the elements are not pointers, we do nothing here.
 	} else if (isa<BlockAddress>(v)) {
-		// do nothing
-	} else if (isa<ConstantDataVector>(v)) {
-		errs() << "ERROR when handle the following ConstantDataSequential, ConstantDataVector\n";
-		errs() << *v << "\n";
-		errs() << "PROMPT: Please use -fno-vectorize and -fno-slp-vectorize at compile time.\n";
-		errs().flush();
-		exit(-1);
-	} else if (isa<ConstantVector>(v)) {
-		errs() << "ERROR when handle the following ConstantVector\n";
-		errs() << *v << "\n";
-		errs() << "PROMPT: Please use -fno-vectorize and -fno-slp-vectorize at compile time.\n";
-		errs().flush();
-		exit(-1);
+// do nothing
+	} else if (isa<ConstantAggregateZero>(v)) {
+// do nothing
+// e.g.
+//    [1 x i8] zeroinitializer
+//    %struct.color_cap zeroinitializer
 	} else if (isa<Constant>(v)) {
 		errs() << "ERROR when handle the following constant value\n";
 		errs() << *v << "\n";
@@ -534,7 +580,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		break;
 	case Intrinsic::vacopy: // the same with memmove/memcpy
 
-		//Standard C Library Intrinsics
+//Standard C Library Intrinsics
 	case Intrinsic::memmove:
 	case Intrinsic::memcpy: {
 		Value * src_ptr = call->getArgOperand(0);
@@ -555,6 +601,33 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		addPtrTo(wrapValue(ptr), wrapValue(val));
 	}
 		break;
+	case Intrinsic::masked_load: {
+		Value* vec_return = call;
+		Value* vec_passthru = call->getArgOperand(2);
+		Value* ptr = call->getArgOperand(0);
+
+		// semantics:
+		// vec_load = load ptr
+		// vec_return = select mask vec_load vec_passthru
+
+		this->makeAlias(wrapValue(vec_return), wrapValue(vec_passthru));
+		this->addPtrTo(wrapValue(ptr), wrapValue(vec_return));
+	}
+		break;
+	case Intrinsic::masked_store: {
+		//call void @llvm.masked.store.v16f32(<16 x float> %value, <16 x float>* %ptr, i32 4,  <16 x i1> %mask)
+
+		//;; The result of the following instructions is identical aside from potential data races and memory access exceptions
+		//%oldval = load <16 x float>, <16 x float>* %ptr, align 4
+		//%res = select <16 x i1> %mask, <16 x float> %value, <16 x float> %oldval
+		//store <16 x float> %res, <16 x float>* %ptr, align 4
+
+		Value* vec = call->getArgOperand(0);
+		Value* ptr = call->getArgOperand(1);
+
+		this->addPtrTo(wrapValue(ptr), wrapValue(vec));
+	}
+		break;
 		/// @todo other C lib intrinsics
 
 		//Accurate Garbage Collection Intrinsics
@@ -564,6 +637,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		//Trampoline Intrinsics
 		//Memory Use Markers
 		//General Intrinsics
+		//Stack Map Intrinsics
 
 		//Arithmetic with Overflow Intrinsics
 		//Specialised Arithmetic Intrinsics
@@ -580,7 +654,6 @@ set<Function*>* AAAnalyzer::getCompatibleFunctions(FunctionType * fty) {
 }
 
 void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func) {
-	DEBUG_WITH_TYPE("inst", errs() << *inst << "\n");
 	switch (inst->getOpcode()) {
 	// common/bitwise binary operations
 	// Terminator instructions
@@ -603,11 +676,26 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		break;
 
 		// vector operations
-	case Instruction::ExtractElement:
-	case Instruction::InsertElement:
+	case Instruction::ExtractElement: {
+		Value* vect = ((ExtractElementInst*) inst)->getVectorOperand();
+		this->handle_extract_insert_elmt_inst(vect, inst);
+	}
+		break;
+	case Instruction::InsertElement: {
+		Value* vect = ((InsertElementInst*) inst)->getOperand(0);
+		Value* elmt2insert = ((InsertElementInst*) inst)->getOperand(1);
+		this->handle_extract_insert_elmt_inst(vect, elmt2insert);
+		this->handle_extract_insert_elmt_inst(inst, elmt2insert);
+	}
+		break;
 	case Instruction::ShuffleVector: {
-		errs() << "[Error] Please add -fno-vectorize -fno-slp-vectorize to clang -c -emit-llvm when generating bitcode files.\n";
-		exit(1);
+		Value* vect1 = ((ShuffleVectorInst*) inst)->getOperand(0);
+		Value* vect2 = ((ShuffleVectorInst*) inst)->getOperand(1);
+		Value* vectRet = inst;
+
+		this->makeAlias(wrapValue(vectRet), wrapValue(vect1));
+		this->makeAlias(wrapValue(vectRet), wrapValue(vect2));
+
 	}
 		break;
 
@@ -616,7 +704,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value * agg = ((ExtractValueInst*) inst)->getAggregateOperand();
 		ArrayRef<unsigned> indices = ((ExtractValueInst*) inst)->getIndices();
 
-		this->handle_extract_insert_value_inst(wrapValue(agg), agg->getType(), indices, inst);
+		this->handle_extract_insert_value_inst(agg, agg->getType(), indices, inst);
 	}
 		break;
 	case Instruction::InsertValue: {
@@ -628,7 +716,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 
 		ArrayRef<unsigned> indices = ((InsertValueInst*) inst)->getIndices();
 
-		this->handle_extract_insert_value_inst(resultV, inst->getType(), indices, ((InsertValueInst*) inst)->getInsertedValueOperand());
+		this->handle_extract_insert_value_inst(inst, inst->getType(), indices, ((InsertValueInst*) inst)->getInsertedValueOperand());
 	}
 		break;
 
@@ -781,30 +869,37 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 	}
 }
 
-void AAAnalyzer::handle_extract_insert_value_inst(DyckVertex* aggV, Type* aggTy, ArrayRef<unsigned>& indices, Value* insertedOrExtractedValue) {
-	DyckVertex* currentStruct = aggV;
+void AAAnalyzer::handle_extract_insert_value_inst(Value* aggV, Type* aggTy, ArrayRef<unsigned>& indices, Value* insertedOrExtractedValue) {
+	auto toInOrExVal = wrapValue(insertedOrExtractedValue);
+	auto currentStruct = wrapValue(aggV);
 
 	for (unsigned int i = 0; i < indices.size(); i++) {
 		assert(aggTy->isAggregateType() && "Error in handle_extract_insert_value_inst, not an agg (array/struct) type!");
 
 		if (aggTy->isArrayTy()) {
-			aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
 			if (i == indices.size() - 1) {
-				this->makeAlias(currentStruct, wrapValue(insertedOrExtractedValue));
+				currentStruct = this->makeAlias(currentStruct, toInOrExVal);
 			}
 		} else /*if (aggTy->isStructTy())*/{
 			if (i != indices.size() - 1) {
 				currentStruct = this->addField(currentStruct, indices[i], NULL);
 			} else {
-				currentStruct = this->addField(currentStruct, indices[i], wrapValue(insertedOrExtractedValue));
+				currentStruct = this->addField(currentStruct, indices[i], toInOrExVal);
 			}
-
-			aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
 		}
+
+		aggTy = ((CompositeType*) aggTy)->getTypeAtIndex(indices[i]);
 	}
 }
 
-void AAAnalyzer::handle_invoke_call_inst(Instruction* ret, Value* cv, vector<Value*>* args, DyckCallGraphNode* parent) {
+void AAAnalyzer::handle_extract_insert_elmt_inst(Value* v, Value* elmt) {
+	auto elmtVer = wrapValue(elmt);
+	auto vecVer = wrapValue(v);
+
+	this->makeAlias(vecVer, elmtVer);
+}
+
+void AAAnalyzer::handle_invoke_call_inst(Instruction * ret, Value* cv, vector<Value*>* args, DyckCallGraphNode * parent) {
 	if (isa<Function>(cv)) {
 		if (((Function*) cv)->isIntrinsic()) {
 			handle_instrinsic((Instruction*) ret);
@@ -871,8 +966,8 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 	//        }
 	//    }
 
-	//return<->call
-	if (c->instruction != NULL) {
+	if (c->instruction != nullptr) {
+		//return<->call
 		Type * calledValueTy = ((CallInst*) c->instruction)->getCalledValue()->getType();
 		assert(calledValueTy->isPointerTy() && "A called value is not a pointer type!");
 		Type * calledFuncTy = calledValueTy->getPointerElementType();
@@ -884,7 +979,7 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 
 			set<Value*>::iterator retIt = rets.begin();
 			while (retIt != rets.end()) {
-				Value* val = *retIt;
+				Value* val = (Value*) *retIt;
 				if (aa->getTypeStoreSize(retTy) >= aa->getTypeStoreSize(val->getType())) {
 					makeAlias(wrapValue(val), wrapValue(c->instruction));
 				}
@@ -896,16 +991,17 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 	// parameter<->arg
 	Function * func = callee->getLLVMFunction();
 	if (!func->isIntrinsic()) {
-		vector<Value*>& parameters = callee->getArgs();
-		vector<Value*>& arguments = c->args;
+		iplist<Argument>& parameters = func->getArgumentList();
 
 		unsigned NumPars = parameters.size();
-		unsigned NumArgs = arguments.size();
+		unsigned NumArgs = c->args.size();
 
 		unsigned iterationNum = NumPars < NumArgs ? NumPars : NumArgs;
-		for (unsigned i = 0; i < iterationNum; i++) {
-			Value* par = parameters[i];
-			Value* arg = arguments[i];
+
+		auto pIt = parameters.begin();
+		for (unsigned i = 0; i < iterationNum; i++, pIt++) {
+			Value* par = (Value*) (&(*pIt));
+			Value* arg = c->args[i];
 
 			makeAlias(wrapValue(par), wrapValue(arg));
 
@@ -921,15 +1017,15 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 			unsigned NumVarPars = var_parameters.size();
 
 			for (unsigned int i = NumPars; i < NumArgs; i++) {
-				Value * arg = arguments[i];
+				Value * arg = c->args[i];
 				DyckVertex* argV = wrapValue(arg);
 
 				for (unsigned j = 0; j < NumVarPars; j++) {
-					Value * var_par = var_parameters[j];
+					Value * var_par = (Value*) var_parameters[j];
 
 					// for var arg function, we only can get var args according to exact types.
 					if (aa->getTypeStoreSize(var_par->getType()) == aa->getTypeStoreSize(arg->getType())) {
-						makeAlias(argV, wrapValue(var_par));
+						argV = makeAlias(argV, wrapValue(var_par));
 					}
 				}
 			}
@@ -943,7 +1039,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 	set<PointerCall*>& pointercalls = caller->getPointerCalls();
 	set<PointerCall*>::iterator mit = pointercalls.begin();
 
-	// print in console
+// print in console
 	int PTCALL_TOTAL = pointercalls.size();
 	int PTCALL_COUNT = 0;
 	if (PTCALL_TOTAL == 0)
@@ -1017,7 +1113,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 }
 
 void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Value*>* args, DyckCallGraphNode* parent) {
-	// args must be the real arguments, not the parameters.
+// args must be the real arguments, not the parameters.
 	if (!f->empty() || f->isIntrinsic())
 		return;
 
@@ -1028,8 +1124,8 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 			// content alias r/1st
 			this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
 		} else if (functionName == "pthread_getspecific" && ret != NULL) {
-			DyckVertex* keyRep = wrapValue(args->at(0))->getRepresentative();
-			DyckVertex* valRep = wrapValue(ret)->getRepresentative();
+			DyckVertex* keyRep = wrapValue(args->at(0));
+			DyckVertex* valRep = wrapValue(ret);
 			// we use label -1 to indicate that it is a key:value pair
 			keyRep->addTarget(valRep, aa->getOrInsertIndexEdgeLabel(-1));
 		}
@@ -1062,8 +1158,8 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 			// content alias r/1st
 			this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
 		} else if (functionName == "pthread_setspecific") {
-			DyckVertex* keyRep = wrapValue(args->at(0))->getRepresentative();
-			DyckVertex* valRep = wrapValue(args->at(1))->getRepresentative();
+			DyckVertex* keyRep = wrapValue(args->at(0));
+			DyckVertex* valRep = wrapValue(args->at(1));
 			// we use label -1 to indicate that it is a key:value pair
 			keyRep->addTarget(valRep, aa->getOrInsertIndexEdgeLabel(-1));
 		}
