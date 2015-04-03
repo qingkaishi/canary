@@ -126,7 +126,5 @@ TODO
 ------
 * Upgrade Canary:
 
-> 1. support more presice aa of constant array
-
-> 2. performance optimization
+> 1. inter-proceduare analysis: performance optimization
 
