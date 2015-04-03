@@ -6,16 +6,17 @@
 #include "DyckGraph.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <tr1/hashtable.h>
+#include <hashtable.h>
 #include <string>
+#include <assert.h>
 
 void DyckGraph::printAsDot(const char* filename) const {
 	FILE * f = fopen(filename, "w+");
 
 	fprintf(f, "digraph ptg {\n");
 
-	set<DyckVertex*>::iterator vit = reps.begin();
-	while (vit != reps.end()) {
+	set<DyckVertex*>::iterator vit = vertices.begin();
+	while (vit != vertices.end()) {
 		if ((*vit)->getName() != NULL)
 			fprintf(f, "\ta%d[label=\"%s\"];\n", (*vit)->getIndex(), (*vit)->getName());
 		else
@@ -71,13 +72,9 @@ bool DyckGraph::containsInWorkList(multimap<DyckVertex*, void*>& list, DyckVerte
 	return false;
 }
 
-void DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
-
-	x = x->getRepresentative();
-	y = y->getRepresentative();
-
+DyckVertex* DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 	if (x == y) {
-		return;
+		return x;
 	}
 
 	if (x->degree() < y->degree()) {
@@ -138,9 +135,18 @@ void DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 
 		yilit++;
 	}
-
-	this->getRepresentatives().erase(y);
-	y->setRepresentative(x->getRepresentative());
+//     printf("+++++++++++++++++++++++++++++++++\n");
+	auto vals = y->getEquivalentSet();
+	for (auto& val : *vals) {
+		val_ver_map[val] = x;
+//             printf("+ %d (%p) -> %d (%p)\n", y->getIndex(), val, x->getIndex(), x);
+	}
+//     printf("+++++++++++++++++++++++++++++++++\n");
+	y->mvEquivalentSetTo(x);
+	vertices.erase(y);
+//     printf("DELETE %d\n", y->getIndex());
+	delete y;
+	return x;
 }
 
 bool DyckGraph::qirunAlgorithm() {
@@ -148,8 +154,8 @@ bool DyckGraph::qirunAlgorithm() {
 
 	multimap<DyckVertex*, void*> worklist;
 
-	set<DyckVertex*>::iterator vit = reps.begin();
-	while (vit != reps.end()) {
+	set<DyckVertex*>::iterator vit = vertices.begin();
+	while (vit != vertices.end()) {
 		set<void*>& outlabels = (*vit)->getOutLabels();
 		set<void*>::iterator lit = outlabels.begin();
 		while (lit != outlabels.end()) {
@@ -182,11 +188,14 @@ bool DyckGraph::qirunAlgorithm() {
 			y = temp;
 		}
 		//outs()<<"HERE0.3\n"; outs().flush();
-		if (x->getRepresentative() != y->getRepresentative()) {
-			reps.erase(y->getRepresentative());
+		assert(x != y);
+		vertices.erase(y);
+		auto vals = y->getEquivalentSet();
+		for (auto& val : *vals) {
+			val_ver_map[val] = x;
 		}
 		//outs()<<"HERE0.4\n"; outs().flush();
-		y->setRepresentative(x->getRepresentative());
+		y->mvEquivalentSetTo(x/*->getRepresentative()*/);
 		//outs()<<"HERE1\n"; outs().flush();
 		set<void*>& youtlabels = y->getOutLabels();
 		set<void*>::iterator yolit = youtlabels.begin();
@@ -259,6 +268,8 @@ bool DyckGraph::qirunAlgorithm() {
 
 			yilit++;
 		}
+
+		delete y;
 	}
 
 	return ret;
@@ -267,8 +278,7 @@ bool DyckGraph::qirunAlgorithm() {
 pair<DyckVertex*, bool> DyckGraph::retrieveDyckVertex(void* value, const char* name) {
 	if (value == NULL) {
 		DyckVertex* ver = new DyckVertex(NULL);
-		this->addVertex(ver);
-		assistant_vertices.insert(ver);
+		vertices.insert(ver);
 		return std::make_pair(ver, false);
 	}
 
@@ -276,7 +286,7 @@ pair<DyckVertex*, bool> DyckGraph::retrieveDyckVertex(void* value, const char* n
 		return std::make_pair(val_ver_map[value], true);
 	} else {
 		DyckVertex* ver = new DyckVertex(value, name);
-		this->addVertex(ver);
+		vertices.insert(ver);
 		val_ver_map.insert(pair<void *, DyckVertex*>(value, ver));
 		return std::make_pair(ver, false);
 	}
@@ -287,76 +297,25 @@ unsigned int DyckGraph::numVertices() {
 }
 
 unsigned int DyckGraph::numEquivalentClasses() {
-	return reps.size();
-}
-
-bool DyckGraph::addVertex(DyckVertex* ver) {
-	if (vertices.insert(ver).second) {
-		DyckVertex * rep = ver->getRepresentative();
-		if (!reps.count(rep))
-			reps.insert(rep);
-		return true;
-	}
-	return false;
+	return vertices.size();
 }
 
 set<DyckVertex*>& DyckGraph::getVertices() {
 	return vertices;
 }
 
-set<DyckVertex*>& DyckGraph::getRepresentatives() {
-	return reps;
-}
-
-set<DyckVertex*>& DyckGraph::getAssistantVertices() {
-	return assistant_vertices;
-}
-
 void DyckGraph::validation(const char* file, int line) {
 	printf("Start validation... ");
-	set<DyckVertex*>& reps = this->getRepresentatives();
+	set<DyckVertex*>& reps = this->getVertices();
 	auto repsIt = reps.begin();
 	while (repsIt != reps.end()) {
 		DyckVertex* rep = *repsIt;
-		{
-			auto outs = rep->getOutVertices();
-			auto outsIt = outs.begin();
-			while (outsIt != outs.end()) {
-				set<DyckVertex*>* outsForL = outsIt->second;
-				auto outsForLIt = outsForL->begin();
-				while (outsForLIt != outsForL->end()) {
-					DyckVertex* out = *outsForLIt;
 
-					if (out->getRepresentative() != out) {
-						printf("Assert Failed: out is not representative: %s : %d\n", file, line);
-						exit(-1);
-					}
-
-					outsForLIt++;
-				}
-				outsIt++;
-			}
+		auto repVal = rep->getEquivalentSet();
+		for (auto val : *repVal) {
+			assert(val_ver_map[val] == rep);
 		}
 
-		{
-			auto ins = rep->getInVertices();
-			auto insIt = ins.begin();
-			while (insIt != ins.end()) {
-				set<DyckVertex*>* insForL = insIt->second;
-				auto insForLIt = insForL->begin();
-				while (insForLIt != insForL->end()) {
-					DyckVertex* in = *insForLIt;
-
-					if (in->getRepresentative() != in) {
-						printf("Assert Failed: in is not representative: %s : %d\n", file, line);
-						exit(-1);
-					}
-
-					insForLIt++;
-				}
-				insIt++;
-			}
-		}
 		repsIt++;
 	}
 	printf("Done!\n\n");

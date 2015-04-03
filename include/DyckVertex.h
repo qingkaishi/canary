@@ -21,7 +21,6 @@ private:
 	static int global_indx;
 	int index;
 	const char * name;
-	void * value;
 
 	set<void*> in_lables;
 	set<void*> out_lables;
@@ -29,10 +28,8 @@ private:
 	map<void*, set<DyckVertex*>*> in_vers;
 	map<void*, set<DyckVertex*>*> out_vers;
 
-	DyckVertex* representative;
-
 	/// only store non-null value
-	set<void*>* equivclass;
+	set<void*> equivclass;
 
 	/// Default constructor is not visible.
 	/// please use DyckGraph::retrieveDyckVertex for initialization
@@ -57,12 +54,6 @@ public:
 
 	/// Get its name
 	const char * getName();
-
-	/// Get its value
-	void * getValue();
-
-	/// Set the value
-	void setValue(void *);
 
 	/// Get the source vertices corresponding the label
 	set<DyckVertex*>* getInVertices(void * label);
@@ -105,19 +96,11 @@ public:
 	/// For qirun's algorithm DyckGraph::qirunAlgorithm().
 	/// The representatives of all the vertices in the equivalent set of this vertex
 	/// will be set to be rep.
-	void setRepresentative(DyckVertex* rep);
-
-	/// For qirun's algorithm DyckGraph::qirunAlgorithm().
-	/// Get the representative of the equivalent set that this vertex belongs to.
-	DyckVertex* getRepresentative();
+	void mvEquivalentSetTo(DyckVertex* rep);
 
 	/// Get the equivalent set of non-null value.
 	/// Use it after you call DyckGraph::qirunAlgorithm().
 	set<void*>* getEquivalentSet();
-
-	/// Return true if this vertex and v are in the same equivalent set.
-	/// Use it after you call DyckGraph::qirunAlgorithm().
-	bool inSameEquivalentSet(DyckVertex* v);
 
 private:
 	void addSource(DyckVertex* ver, void* label);

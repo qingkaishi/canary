@@ -11,17 +11,13 @@ int DyckVertex::global_indx = 0;
 DyckVertex::DyckVertex(void * v, const char * itsname) {
 	name = itsname;
 	index = global_indx++;
-	value = v;
-	representative = this;
-	equivclass = new set<void*>;
 
-	if (value != NULL) {
-		equivclass->insert(value);
+	if (v != NULL) {
+		equivclass.insert(v);
 	}
 }
 
 DyckVertex::~DyckVertex() {
-	delete equivclass;
 }
 
 const char * DyckVertex::getName() {
@@ -47,7 +43,6 @@ unsigned int DyckVertex::degree() {
 
 	map<void*, set<DyckVertex*>*>::iterator iit = in_vers.begin();
 	while (iit != in_vers.end()) {
-
 		ret = ret + iit->second->size();
 		iit++;
 	}
@@ -63,21 +58,11 @@ unsigned int DyckVertex::degree() {
 }
 
 set<void*>* DyckVertex::getEquivalentSet() {
-	DyckVertex* rep = this->getRepresentative();
-	set<void*>* alias = rep->equivclass;
-	assert(alias != NULL && "ERROR in DyckVertex::getAliases(DyckVertex*) \n");
-	return alias;
+	return &this->equivclass;
 }
 
-bool DyckVertex::inSameEquivalentSet(DyckVertex* v1) {
-	return this->getRepresentative() == v1->getRepresentative();
-}
-
-void DyckVertex::setRepresentative(DyckVertex* rootRep) {
-	rootRep = rootRep->getRepresentative();
-	DyckVertex * thisRep = this->getRepresentative();
-
-	if (rootRep == thisRep) {
+void DyckVertex::mvEquivalentSetTo(DyckVertex* rootRep) {
+	if (rootRep == this) {
 		return;
 	}
 
@@ -85,21 +70,6 @@ void DyckVertex::setRepresentative(DyckVertex* rootRep) {
 	set<void*> * thisecls = this->getEquivalentSet();
 
 	rootecls->insert(thisecls->begin(), thisecls->end());
-
-	thisRep->representative = rootRep;
-	delete thisecls;
-	thisRep->equivclass = NULL; // set null after delete
-}
-
-DyckVertex* DyckVertex::getRepresentative() {
-	if (this == representative) {
-		return representative;
-	} else {
-		DyckVertex* ret = representative->getRepresentative();
-		if (this->representative != ret)
-			this->representative = ret; // it will be efficient next time
-		return ret;
-	}
 }
 
 set<void*>& DyckVertex::getOutLabels() {
@@ -143,20 +113,12 @@ void DyckVertex::removeTarget(DyckVertex* ver, void* label) {
 	ver->removeSource(this, label);
 }
 
-void * DyckVertex::getValue() {
-	return value;
-}
-
 bool DyckVertex::containsTarget(DyckVertex* tar, void* label) {
 	if (out_vers.count(label)) {
 		return out_vers[label]->find(tar) != out_vers[label]->end();
 	}
 
 	return false;
-}
-
-void DyckVertex::setValue(void * v) {
-	this->value = v;
 }
 
 set<DyckVertex*>* DyckVertex::getInVertices(void * label) {
