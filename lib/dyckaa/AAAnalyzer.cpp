@@ -64,7 +64,7 @@ void AAAnalyzer::intra_procedure_analysis() {
 }
 
 void AAAnalyzer::inter_procedure_analysis() {
-	map<DyckCallGraphNode*, set<CommonCall*>*> handledCommonCalls;
+	map<DyckCallGraphNode*, set<CommonCall*>> handledCommonCalls;
 
 	int INTERT = 0;
 	while (1) {
@@ -79,26 +79,19 @@ void AAAnalyzer::inter_procedure_analysis() {
 			auto dfit = callgraph->begin();
 			while (dfit != callgraph->end()) {
 				DyckCallGraphNode * df = dfit->second;
-				// ----------------------------------------------------
-				set<CommonCall*>* df_handledCommonCalls = NULL;
-				if (handledCommonCalls.count(df)) {
-					df_handledCommonCalls = handledCommonCalls[df];
-				} else {
-					df_handledCommonCalls = new set<CommonCall*>;
-					handledCommonCalls.insert(pair<DyckCallGraphNode*, set<CommonCall*>*>(df, df_handledCommonCalls));
-				}
-				// ----------------------------------------------------
-				set<CommonCall*>& callInsts = df->getCommonCalls();
+				set<CommonCall*>& df_handledCommonCalls = handledCommonCalls[df];
+				set<CommonCall*>& df_commonCalls = df->getCommonCalls();
 
+				// df_unHandledCommonCalls = df_commonCalls - df_handledCommonCalls
 				set<CommonCall*> df_unHandledCommonCalls;
-				set_difference(callInsts.begin(), callInsts.end(), df_handledCommonCalls->begin(), df_handledCommonCalls->end(),
+				set_difference(df_commonCalls.begin(), df_commonCalls.end(), df_handledCommonCalls.begin(), df_handledCommonCalls.end(),
 						inserter(df_unHandledCommonCalls, df_unHandledCommonCalls.begin()));
 
 				auto cit = df_unHandledCommonCalls.begin();
 				while (cit != df_unHandledCommonCalls.end()) {
 					finished = false;
 					CommonCall * theComCall = *cit;
-					df_handledCommonCalls->insert(theComCall);
+					df_handledCommonCalls.insert(theComCall);
 
 					Value * cv = theComCall->calledValue;
 					assert(isa<Function>(cv) && "Error: it is not a function in common calls!");
@@ -127,13 +120,6 @@ void AAAnalyzer::inter_procedure_analysis() {
 		if (finished) {
 			break;
 		}
-	}
-
-	// ---------------------------------------------------------
-	auto mIt = handledCommonCalls.begin();
-	while (mIt != handledCommonCalls.end()) {
-		delete mIt->second;
-		mIt++;
 	}
 
 	return;
@@ -399,7 +385,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 			DyckVertex* field = this->addField(theStruct, fieldIdx, NULL);
 			DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
 
-			/// the label representation and feature impl is temporal.
+			// the label representation and feature impl is temporal.
 			// s3: y--(fieldIdx offLabel)-->?3
 			current->addTarget(fieldPtr, (void*) (aa->getOrInsertOffsetEdgeLabel(fieldIdx)));
 
@@ -649,7 +635,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		mask |= 3;
 	}
 		break;
-		/// @todo other C lib intrinsics
+		// TODO other C lib intrinsics
 
 		//Accurate Garbage Collection Intrinsics
 		//Code Generator Intrinsics
@@ -838,7 +824,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value * itpv = inst->getOperand(0);
 		makeAlias(wrapValue(inst), wrapValue(itpv));
 
-		///  function pointer cast
+		//  function pointer cast
 		Type* origTy = itpv->getType();
 		Type* castTy = inst->getType();
 
