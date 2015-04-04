@@ -781,7 +781,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		addPtrTo(wrapValue(ptrRmw), wrapValue(retRmw));
 
 		Value * newRmw = ((AtomicRMWInst*) inst)->getValOperand();
-		auto newRmwVer = wrapValue(newRmw);
+		wrapValue(newRmw);
 
 		switch (((AtomicRMWInst*) inst)->getOperation()) {
 		case AtomicRMWInst::Max:
