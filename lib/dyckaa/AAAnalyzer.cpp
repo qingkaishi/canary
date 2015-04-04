@@ -385,12 +385,13 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 		Type * AggOrPointerTy = *(GTI++);
 		// Type * ElmtTy = *GTI;
 
+		ConstantInt * ci = dyn_cast<ConstantInt>(idx);
+
 		if (AggOrPointerTy->isStructTy()) {
 			// example: gep y 0 constIdx
 			// s1: y--deref-->?1--(fieldIdx idxLabel)-->?2
 			DyckVertex* theStruct = this->addPtrTo(current, NULL);
 
-			ConstantInt * ci = cast<ConstantInt>(idx);
 			assert(ci != NULL && "ERROR: when dealing with gep");
 
 			// s2: ?3--deref-->?2
@@ -405,6 +406,8 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 			// update current
 			current = fieldPtr;
 		} else if (AggOrPointerTy->isPointerTy() || AggOrPointerTy->isArrayTy()) {
+			if (ci == nullptr)
+				wrapValue(idx);
 		} else {
 			errs() << "ERROR in handle_gep: unknown type:\n";
 			errs() << "Type Id: " << AggOrPointerTy->getTypeID() << "\n";
@@ -435,8 +438,9 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 			vdv = wrapValue(v);
 			vdv = makeAlias(vdv, got);
 		} else if (opcode == Instruction::Select) {
-			DyckVertex * opt0 = wrapValue(((ConstantExpr*) v)->getOperand(0));
-			DyckVertex * opt1 = wrapValue(((ConstantExpr*) v)->getOperand(1));
+			wrapValue(((ConstantExpr*) v)->getOperand(0));
+			DyckVertex * opt0 = wrapValue(((ConstantExpr*) v)->getOperand(1));
+			DyckVertex * opt1 = wrapValue(((ConstantExpr*) v)->getOperand(2));
 			vdv = wrapValue(v);
 			vdv = makeAlias(vdv, opt0);
 			vdv = makeAlias(vdv, opt1);
@@ -567,12 +571,18 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 	if (inst == NULL)
 		return;
+
+	int mask = 0;
+
 	IntrinsicInst * call = (IntrinsicInst*) inst;
 	switch (call->getIntrinsicID()) {
 	// Variable Argument Handling Intrinsics
 	case Intrinsic::vastart: {
 		Value * va_list_ptr = call->getArgOperand(0);
 		wrapValue(va_list_ptr);
+
+		// 0b01
+		mask |= 1;
 	}
 		break;
 	case Intrinsic::vaend: {
@@ -580,7 +590,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		break;
 	case Intrinsic::vacopy: // the same with memmove/memcpy
 
-//Standard C Library Intrinsics
+		//Standard C Library Intrinsics
 	case Intrinsic::memmove:
 	case Intrinsic::memcpy: {
 		Value * src_ptr = call->getArgOperand(0);
@@ -593,12 +603,17 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		DyckVertex* dst_ver = addPtrTo(dst_ptr_ver, NULL);
 
 		makeAlias(src_ver, dst_ver);
+
+		// 0b11
+		mask |= 3;
 	}
 		break;
 	case Intrinsic::memset: {
 		Value * ptr = call->getArgOperand(0);
 		Value * val = call->getArgOperand(1);
 		addPtrTo(wrapValue(ptr), wrapValue(val));
+		// 0b11
+		mask |= 3;
 	}
 		break;
 	case Intrinsic::masked_load: {
@@ -612,6 +627,9 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 
 		this->makeAlias(wrapValue(vec_return), wrapValue(vec_passthru));
 		this->addPtrTo(wrapValue(ptr), wrapValue(vec_return));
+
+		// 0b101
+		mask |= 5;
 	}
 		break;
 	case Intrinsic::masked_store: {
@@ -626,6 +644,9 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		Value* ptr = call->getArgOperand(1);
 
 		this->addPtrTo(wrapValue(ptr), wrapValue(vec));
+
+		// 0b11
+		mask |= 3;
 	}
 		break;
 		/// @todo other C lib intrinsics
@@ -646,6 +667,14 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 	default:
 		break;
 	}
+
+	// wrap unhandled operand
+	for (unsigned i = 0; i < inst->getNumOperands(); i++) {
+		if (!(mask & (1 << i))) {
+			wrapValue(call->getArgOperand(i));
+		}
+	}
+	wrapValue(call->getCalledValue());
 }
 
 set<Function*>* AAAnalyzer::getCompatibleFunctions(FunctionType * fty) {
@@ -654,6 +683,8 @@ set<Function*>* AAAnalyzer::getCompatibleFunctions(FunctionType * fty) {
 }
 
 void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func) {
+	int mask = 0;
+
 	switch (inst->getOpcode()) {
 	// common/bitwise binary operations
 	// Terminator instructions
@@ -679,6 +710,8 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 	case Instruction::ExtractElement: {
 		Value* vect = ((ExtractElementInst*) inst)->getVectorOperand();
 		this->handle_extract_insert_elmt_inst(vect, inst);
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::InsertElement: {
@@ -686,6 +719,8 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value* elmt2insert = ((InsertElementInst*) inst)->getOperand(1);
 		this->handle_extract_insert_elmt_inst(vect, elmt2insert);
 		this->handle_extract_insert_elmt_inst(inst, elmt2insert);
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::ShuffleVector: {
@@ -696,6 +731,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		this->makeAlias(wrapValue(vectRet), wrapValue(vect1));
 		this->makeAlias(wrapValue(vectRet), wrapValue(vect2));
 
+		mask |= (~0);
 	}
 		break;
 
@@ -705,6 +741,8 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		ArrayRef<unsigned> indices = ((ExtractValueInst*) inst)->getIndices();
 
 		this->handle_extract_insert_value_inst(agg, agg->getType(), indices, inst);
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::InsertValue: {
@@ -717,13 +755,14 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		ArrayRef<unsigned> indices = ((InsertValueInst*) inst)->getIndices();
 
 		this->handle_extract_insert_value_inst(inst, inst->getType(), indices, ((InsertValueInst*) inst)->getInsertedValueOperand());
+
+		mask |= (~0);
 	}
 		break;
 
 		// memory accessing and addressing operations
 	case Instruction::Alloca:
-	case Instruction::Fence: {
-	}
+	case Instruction::Fence:
 		break;
 	case Instruction::AtomicCmpXchg: {
 		Value * retXchg = inst;
@@ -731,6 +770,9 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value * newXchg = inst->getOperand(2);
 		addPtrTo(wrapValue(ptrXchg), wrapValue(retXchg));
 		addPtrTo(wrapValue(ptrXchg), wrapValue(newXchg));
+
+		// 0b101
+		mask |= 5;
 	}
 		break;
 	case Instruction::AtomicRMW: {
@@ -738,19 +780,20 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value * ptrRmw = ((AtomicRMWInst*) inst)->getPointerOperand();
 		addPtrTo(wrapValue(ptrRmw), wrapValue(retRmw));
 
+		Value * newRmw = ((AtomicRMWInst*) inst)->getValOperand();
+		auto newRmwVer = wrapValue(newRmw);
+
 		switch (((AtomicRMWInst*) inst)->getOperation()) {
 		case AtomicRMWInst::Max:
 		case AtomicRMWInst::Min:
 		case AtomicRMWInst::UMax:
 		case AtomicRMWInst::UMin:
 		case AtomicRMWInst::Xchg: {
-			Value * newRmw = ((AtomicRMWInst*) inst)->getValOperand();
 			addPtrTo(wrapValue(ptrRmw), wrapValue(newRmw));
 		}
 			break;
 		default:
 			//others are binary ops like add/sub/...
-			///@TODO
 			break;
 		}
 	}
@@ -759,16 +802,22 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value *lval = inst;
 		Value *ladd = inst->getOperand(0);
 		addPtrTo(wrapValue(ladd), wrapValue(lval));
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::Store: {
 		Value * sval = inst->getOperand(0);
 		Value * sadd = inst->getOperand(1);
 		addPtrTo(wrapValue(sadd), wrapValue(sval));
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::GetElementPtr: {
 		makeAlias(wrapValue(inst), handle_gep((GEPOperator*) inst));
+
+		mask |= (~0);
 	}
 		break;
 
@@ -797,6 +846,8 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 				&& castTy->getPointerElementType()->isFunctionTy()) {
 			combineFunctionGroups((FunctionType*) origTy->getPointerElementType(), (FunctionType*) castTy->getPointerElementType());
 		}
+
+		mask |= (~0);
 	}
 		break;
 
@@ -835,6 +886,8 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		}
 
 		this->handle_invoke_call_inst(callinst, cv, &args, parent_func);
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::PHI: {
@@ -844,6 +897,8 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 			Value * p = phi->getIncomingValue(i);
 			makeAlias(wrapValue(inst), wrapValue(p));
 		}
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::Select: {
@@ -851,6 +906,10 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value *second = ((SelectInst*) inst)->getFalseValue();
 		makeAlias(wrapValue(inst), wrapValue(first));
 		makeAlias(wrapValue(inst), wrapValue(second));
+
+		wrapValue(((SelectInst*) inst)->getCondition());
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::VAArg: {
@@ -859,6 +918,8 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		DyckVertex* vaarg = wrapValue(inst);
 		Value * ptrVaarg = inst->getOperand(0);
 		addPtrTo(wrapValue(ptrVaarg), vaarg);
+
+		mask |= (~0);
 	}
 		break;
 	case Instruction::LandingPad: // handled with invoke inst
@@ -866,6 +927,13 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 	case Instruction::FCmp:
 	default:
 		break;
+	}
+
+	// wrap unhandled operand
+	for (unsigned i = 0; i < inst->getNumOperands(); i++) {
+		if (!(mask & (1 << i))) {
+			wrapValue(inst->getOperand(i));
+		}
 	}
 }
 
