@@ -471,7 +471,7 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 			// cmp constant expr
 			// other unary constant expr
 			bool binaryOrUnaryOrCmpConstExpr = (opcode >= Instruction::BinaryOpsBegin && opcode <= Instruction::BinaryOpsEnd)
-					|| (opcode == Instruction::ICmp && opcode == Instruction::FCmp) || (((ConstantExpr*) v)->getNumOperands() == 1);
+					|| (opcode == Instruction::ICmp || opcode == Instruction::FCmp) || (((ConstantExpr*) v)->getNumOperands() == 1);
 			assert(binaryOrUnaryOrCmpConstExpr);
 			for (unsigned i = 0; i < ((ConstantExpr*) v)->getNumOperands(); i++) {
 				// e.g. i1 icmp ne (i8* bitcast (i32 (i32*, void (i8*)*)* @__pthread_key_create to i8*), i8* null)
