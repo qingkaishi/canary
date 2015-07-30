@@ -17,7 +17,9 @@ If you use Canary, please cite Canary as below (latex style).
 
 News
 -----
-Canary has been adopted by ClearWater Inc.
+Canary has been adopted by Symbolic Revolution Inc.
+
+http://www.symbrev.com:40070/
 
 Building Canary
 ------

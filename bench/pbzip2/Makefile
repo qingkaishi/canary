@@ -8,7 +8,7 @@ LEVEL=../..
 all: pbzip.bc
 
 pbzip.bc: pbzip2.cpp
-	@clang -c -emit-llvm -g -O2 -fno-vectorize pbzip2.cpp
+	@clang -c -emit-llvm -g -fno-vectorize pbzip2.cpp
 	
 
 clean:

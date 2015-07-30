@@ -391,7 +391,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 
 			// update current
 			current = fieldPtr;
-		} else if (AggOrPointerTy->isPointerTy() || AggOrPointerTy->isArrayTy()) {
+		} else if (AggOrPointerTy->isPointerTy() || AggOrPointerTy->isArrayTy() || AggOrPointerTy->isVectorTy()) {
 			if (ci == nullptr)
 				wrapValue(idx);
 		} else {
