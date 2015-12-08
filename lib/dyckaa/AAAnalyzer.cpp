@@ -881,7 +881,9 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		int nums = phi->getNumIncomingValues();
 		for (int i = 0; i < nums; i++) {
 			Value * p = phi->getIncomingValue(i);
-			makeAlias(wrapValue(inst), wrapValue(p));
+			wrapValue(inst);
+			auto* pv = wrapValue(p);
+			makeAlias(wrapValue(inst), pv);
 		}
 
 		mask |= (~0);
