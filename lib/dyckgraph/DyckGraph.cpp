@@ -73,6 +73,9 @@ bool DyckGraph::containsInWorkList(multimap<DyckVertex*, void*>& list, DyckVerte
 }
 
 DyckVertex* DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
+	assert(vertices.count(x));
+	assert(vertices.count(y));
+	
 	if (x == y) {
 		return x;
 	}
