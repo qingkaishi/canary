@@ -795,6 +795,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 	case Instruction::Store: {
 		Value * sval = inst->getOperand(0);
 		Value * sadd = inst->getOperand(1);
+		wrapValue(sval);
 		addPtrTo(wrapValue(sadd), wrapValue(sval));
 
 		mask |= (~0);
