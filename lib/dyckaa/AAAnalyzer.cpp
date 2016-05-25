@@ -755,6 +755,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value * ptrXchg = inst->getOperand(0);
 		Value * newXchg = inst->getOperand(2);
 		addPtrTo(wrapValue(ptrXchg), wrapValue(retXchg));
+		wrapValue(newXchg);
 		addPtrTo(wrapValue(ptrXchg), wrapValue(newXchg));
 
 		// 0b101
@@ -894,6 +895,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value *first = ((SelectInst*) inst)->getTrueValue();
 		Value *second = ((SelectInst*) inst)->getFalseValue();
 		makeAlias(wrapValue(inst), wrapValue(first));
+		wrapValue(second);
 		makeAlias(wrapValue(inst), wrapValue(second));
 
 		wrapValue(((SelectInst*) inst)->getCondition());
