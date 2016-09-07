@@ -285,14 +285,23 @@ pair<DyckVertex*, bool> DyckGraph::retrieveDyckVertex(void* value, const char* n
 		return std::make_pair(ver, false);
 	}
 
-	if (val_ver_map.count(value)) {
-		return std::make_pair(val_ver_map[value], true);
+	auto it = val_ver_map.find(value);
+	if (it != val_ver_map.end()) {
+		return std::make_pair(it->second, true);
 	} else {
 		DyckVertex* ver = new DyckVertex(value, name);
 		vertices.insert(ver);
 		val_ver_map.insert(pair<void *, DyckVertex*>(value, ver));
 		return std::make_pair(ver, false);
 	}
+}
+
+DyckVertex* DyckGraph::findDyckVertex(void* value) {
+    auto it = val_ver_map.find(value);
+    if (it != val_ver_map.end()) {
+        return it->second;
+    }
+    return NULL;
 }
 
 unsigned int DyckGraph::numVertices() {

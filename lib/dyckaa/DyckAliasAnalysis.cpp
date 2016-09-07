@@ -146,9 +146,11 @@ DyckAliasAnalysis::AliasResult DyckAliasAnalysis::alias(const Location &LocA, co
 	return ret;
 }
 
-RegisterPass<DyckAliasAnalysis> X("dyckaa",
-		"Alias Analysis based on PLDI 2013 paper: Qirun Zhang, Michael R. Lyu, Hao Yuan, and Zhendong Su. Fast Algorithms for Dyck-CFL-Reachability with Applications to Alias Analysis.");
-RegisterAnalysisGroup<AliasAnalysis> Y(X);
+static RegisterAnalysisGroup<AliasAnalysis> Y("Alias Analysis");
+
+INITIALIZE_AG_PASS(DyckAliasAnalysis, AliasAnalysis, "dyckaa",
+        "Alias Analysis based on PLDI 2013 paper: Qirun Zhang, Michael R. Lyu, Hao Yuan, and Zhendong Su."
+        "Fast Algorithms for Dyck-CFL-Reachability with Applications to Alias Analysis.", false, true, false);
 
 // Register this pass...
 char DyckAliasAnalysis::ID = 0;
@@ -359,6 +361,53 @@ void DyckAliasAnalysis::getPointstoObjects(std::set<Value*>& objects, Value* poi
 	}
 }
 
+bool DyckAliasAnalysis::isDefaultMemAllocaFunction(Value* calledValue) {
+    if (isa<Function>(calledValue)) {
+        if(mem_allocas.count((Function*)calledValue)){
+            return true;
+        }
+    } else {
+        for (auto& func : mem_allocas) {
+            if (this->alias(calledValue, func)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+std::vector<Value*>* DyckAliasAnalysis::getDefaultPointstoMemAlloca(Value* ptr) {
+    assert(ptr->getType()->isPointerTy());
+
+    DyckVertex* v = dyck_graph->retrieveDyckVertex(ptr).first;
+    if (vertexMemAllocaMap.count(v)) {
+        return vertexMemAllocaMap[v];
+    }
+
+    std::vector<Value*>* objects = new std::vector<Value*>;
+    vertexMemAllocaMap[v] = objects;
+
+    // find allocas in v self
+    auto aliases = (const set<Value*>*) v->getEquivalentSet();
+
+    for (auto& al : *aliases) {
+        if (isa<GlobalVariable>(al) || isa<Function>(al)) {
+            objects->push_back(al);
+        } else if (isa<AllocaInst>(al)) {
+            objects->push_back(al);
+        } else if (isa<CallInst>(al) || isa<InvokeInst>(al)) {
+            CallSite cs(al);
+            Value* calledValue = cs.getCalledValue();
+            if (isDefaultMemAllocaFunction(calledValue)) {
+                objects->push_back(al);
+            }
+        }
+    }
+
+    return objects;
+}
+
 bool DyckAliasAnalysis::callGraphPreserved() {
 	return PreserveCallGraph;
 }
@@ -370,6 +419,29 @@ DyckCallGraph* DyckAliasAnalysis::getCallGraph() {
 
 bool DyckAliasAnalysis::runOnModule(Module & M) {
 	InitializeAliasAnalysis(this);
+
+	{
+	   auto addAllocLikeFunc = [this, &M](const char* name) {
+	       if (Function* F = M.getFunction(name)) {
+	           this->mem_allocas.insert(F);
+	       }
+	   };
+	   addAllocLikeFunc("malloc");
+	   addAllocLikeFunc("calloc");
+	   addAllocLikeFunc("realloc");
+	   addAllocLikeFunc("valloc");
+	   addAllocLikeFunc("reallocf");
+	   addAllocLikeFunc("strdup");
+	   addAllocLikeFunc("strndup");
+	   addAllocLikeFunc("_Znaj");
+	   addAllocLikeFunc("_ZnajRKSt9nothrow_t");
+	   addAllocLikeFunc("_Znam");
+	   addAllocLikeFunc("_ZnamRKSt9nothrow_t");
+	   addAllocLikeFunc("_Znwj");
+	   addAllocLikeFunc("_ZnwjRKSt9nothrow_t");
+	   addAllocLikeFunc("_Znwm");
+	   addAllocLikeFunc("_ZnwmRKSt9nothrow_t");
+	}
 
 	AAAnalyzer* aaa = new AAAnalyzer(&M, this, dyck_graph, call_graph);
 

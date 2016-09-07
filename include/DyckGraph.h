@@ -51,6 +51,8 @@ public:
 	/// If a new vertex is initialized, it will be added into the graph.
 	pair<DyckVertex*, bool> retrieveDyckVertex(void * value, const char* name = NULL);
 
+	DyckVertex* findDyckVertex(void* value);
+
 	/// The algorithm proposed by Qirun Zhang.
 	/// Find the paper here: http://dl.acm.org/citation.cfm?id=2491956.2462159&coll=DL&dl=ACM&CFID=379446910&CFTOKEN=65130716 .
 	/// Note that if there are two edges with the same label: a->b and a->c, b and c will be put into the same equivelant class.
