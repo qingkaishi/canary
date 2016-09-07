@@ -1,6 +1,6 @@
 Import('env')
 
-DIRS = ["annotation", "dyckgraph", "dyckcg", "transformer", "dyckaa", "trace-support", "leap-support"] #, "canary-support"
+DIRS = ["Annotation", "DyckGraph", "DyckCG", "Transformer", "DyckAA", "TraceSupport", "LeapSupport"] #, "canary-support"
 
 SCONSCRIPTS = []
 for DIR in DIRS:

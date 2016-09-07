@@ -6,7 +6,7 @@
  * 1. matchFunctionAndCall; e.g. if a function is considered as pthread_create, we may lock it...
  */
 
-#include "transformer/Transformer.h"
+#include "Transformer/Transformer.h"
 #include <llvm/Support/Debug.h>
 #include <list>
 

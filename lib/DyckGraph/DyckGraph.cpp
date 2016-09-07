@@ -3,7 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "dyckgraph/DyckGraph.h"
+#include "DyckGraph/DyckGraph.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <hashtable.h>

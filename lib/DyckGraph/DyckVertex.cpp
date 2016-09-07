@@ -3,7 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "dyckgraph/DyckVertex.h"
+#include "DyckGraph/DyckVertex.h"
 #include <assert.h>
 
 int DyckVertex::global_indx = 0;

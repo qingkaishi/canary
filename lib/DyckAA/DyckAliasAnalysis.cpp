@@ -4,8 +4,8 @@
  */
 
 #define DEBUG_TYPE "dyckaa"
-#include "dyckaa/DyckAliasAnalysis.h"
-#include "dyckcg/DyckCallGraph.h"
+#include "DyckAA/DyckAliasAnalysis.h"
+#include "DyckCG/DyckCallGraph.h"
 
 #include <stdio.h>
 #include <algorithm>

@@ -10,8 +10,8 @@
 #ifndef AAANALYZER_H
 #define	AAANALYZER_H
 
-#include "dyckaa/EdgeLabel.h"
-#include "dyckaa/DyckAliasAnalysis.h"
+#include "DyckAA/EdgeLabel.h"
+#include "DyckAA/DyckAliasAnalysis.h"
 #include <map>
 #include <unordered_map>
 

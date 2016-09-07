@@ -3,7 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "annotation/LibcAnnotation.h"
+#include "Annotation/LibcAnnotation.h"
 
 #include <stdio.h>
 #include <algorithm>

@@ -24,7 +24,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/DebugInfo.h"
 
-#include "dyckaa/DyckAliasAnalysis.h"
+#include "DyckAA/DyckAliasAnalysis.h"
 
 #include <stdarg.h>
 
