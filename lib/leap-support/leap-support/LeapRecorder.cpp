@@ -11,12 +11,12 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/time.h>
-#include "Signature.h"
-#include "SignalRoutine.h"
+#include "leap-support/Signature.h"
+#include "leap-support/SignalRoutine.h"
 
 #define POSIX_MUTEX
 
-#include "Lock.h"
+#include "leap-support/Lock.h"
 
 #define MAX_LOG_LEN 50000
 #define MAX_THREAD_NUM 50

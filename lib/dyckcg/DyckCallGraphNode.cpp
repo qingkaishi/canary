@@ -3,7 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "DyckCallGraphNode.h"
+#include "dyckcg/DyckCallGraphNode.h"
 
 Call::Call(Instruction* inst, Value * calledValue, vector<Value*>* args) {
     assert(calledValue!=NULL && "Error when create a call: called value is null!");

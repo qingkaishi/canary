@@ -7,7 +7,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.
  */
 #include <vector>
-#include "Event.h"
+#include "trace-support/Event.h"
 #include <string.h>
 
 using namespace std;

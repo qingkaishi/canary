@@ -3,7 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "Transformer4Trace.h"
+#include "transformer/Transformer4Trace.h"
 
 #define POINTER_BIT_SIZE ptrsize*8
 

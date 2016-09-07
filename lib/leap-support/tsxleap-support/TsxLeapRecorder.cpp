@@ -11,12 +11,12 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/time.h>
-#include "Signature.h"
-#include "SignalRoutine.h"
+#include "leap-support/Signature.h"
+#include "leap-support/SignalRoutine.h"
 
 #define RTM_ENABLED
 
-#include "Lock.h"
+#include "leap-support/Lock.h"
 
 typedef struct c_thread {
     pthread_t real_tid;

@@ -14,7 +14,7 @@
 #include <set>
 
 #include "Hbgraph.h"
-#include "Event.h"
+#include "trace-support/Event.h"
 #include "Anomaly.h"
 
 using namespace std;

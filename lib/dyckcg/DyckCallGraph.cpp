@@ -3,7 +3,7 @@
  * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
  */
 
-#include "DyckCallGraph.h"
+#include "dyckcg/DyckCallGraph.h"
 
 static cl::opt<bool>
 WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,

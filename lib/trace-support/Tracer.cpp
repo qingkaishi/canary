@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include <list>
-#include "Event.h"
+#include "trace-support/Event.h"
 
 using namespace std;
 

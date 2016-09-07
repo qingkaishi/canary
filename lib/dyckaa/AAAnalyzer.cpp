@@ -4,7 +4,7 @@
  */
 
 #define DEBUG_TYPE "dyckaa"
-#include "AAAnalyzer.h"
+#include "dyckaa/AAAnalyzer.h"
 
 static cl::opt<bool> NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
 		cl::desc("Do not check function type when resolving pointer calls."));

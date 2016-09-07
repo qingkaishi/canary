@@ -13,8 +13,8 @@
 
 #define POSIX_MUTEX
 #define DEBUG
-#include "Lock.h"
-#include "Signature.h"
+#include "leap-support/Lock.h"
+#include "leap-support/Signature.h"
 
 
 #define MAX_THREAD_NUM 200

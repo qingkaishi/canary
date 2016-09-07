@@ -22,9 +22,9 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/IR/InlineAsm.h"
 
-#include "DyckGraph.h"
-#include "DyckCallGraph.h"
-#include "AAAnalyzer.h"
+#include "dyckgraph/DyckGraph.h"
+#include "dyckcg/DyckCallGraph.h"
+#include "dyckaa/AAAnalyzer.h"
 
 #include <set>
 

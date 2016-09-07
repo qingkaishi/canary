@@ -60,11 +60,10 @@
 #include <algorithm>
 #include <memory>
 
-#include "LibcAnnotation.h"
-#include "DyckAliasAnalysis.h"
-#include "Transformer4Trace.h"
-#include "Transformer4Leap.h"
-
+#include "annotation/LibcAnnotation.h"
+#include "dyckaa/DyckAliasAnalysis.h"
+#include "transformer/Transformer4Trace.h"
+#include "transformer/Transformer4Leap.h"
 
 using namespace llvm;
 using namespace opt_tool;
