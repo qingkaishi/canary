@@ -118,9 +118,16 @@ env=Environment(
                 LIBS       = LLVM_LIBS
                )
 
+BuildDirs=[]
+libonly = ARGUMENTS.get("libonly", 0)
+if int(libonly):
+	BuildDirs.append("lib")
+else:
+	for DIR in DIRS:
+		BuildDirs.append(DIR)
 
 SCONSCRIPTS = []
-for DIR in DIRS:
+for DIR in BuildDirs:
     SCRIPT = DIR + "/SConscript"
     SCONSCRIPTS.append(SCRIPT)
 SConscript(SCONSCRIPTS, exports=['env', 'llvm_config'])

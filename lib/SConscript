@@ -2,8 +2,17 @@ Import('env')
 
 DIRS = ["Annotation", "DyckGraph", "DyckCG", "Transformer", "DyckAA", "TraceSupport", "LeapSupport"] #, "canary-support"
 
+BuildDirs = []
+for key, value in ARGLIST:
+	if key == "lib":
+		BuildDirs.append(value)
+
+if len(BuildDirs) == 0:
+	for DIR in DIRS:
+		BuildDirs.append(DIR)
+
 SCONSCRIPTS = []
-for DIR in DIRS:
+for DIR in BuildDirs:
     SCRIPT = DIR + "/SConscript"
     SCONSCRIPTS.append(SCRIPT)
 
