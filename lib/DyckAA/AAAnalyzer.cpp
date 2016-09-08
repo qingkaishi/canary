@@ -12,6 +12,9 @@ static cl::opt<bool> NoFunctionTypeCheck("no-function-type-check", cl::init(fals
 static cl::opt<bool> WithFunctionCastComb("with-function-cast-comb", cl::init(false), cl::Hidden,
 		cl::desc("Combine compatible functions if there is a cast between the two types."));
 
+static cl::opt<unsigned> NumInterIteration("dyckaa-inter-iteration", cl::init(UINT_MAX), cl::Hidden,
+        cl::desc("The max number of iterators for fix-pointer computation during interprocedure analysis."));
+
 AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
 	module = m;
 	aa = a;
@@ -66,9 +69,13 @@ void AAAnalyzer::intra_procedure_analysis() {
 void AAAnalyzer::inter_procedure_analysis() {
 	map<DyckCallGraphNode*, set<CommonCall*>> handledCommonCalls;
 
-	int INTERT = 0;
+	unsigned NumIteration = 0;
 	while (1) {
-		outs() << "\nIteration #" << ++INTERT << "... \n";
+        if (NumIteration++ >= NumInterIteration.getValue()) {
+            break;
+        }
+
+		outs() << "\nIteration #" << NumIteration << "... \n";
 
 		bool finished = true;
 		dgraph->qirunAlgorithm();
@@ -139,7 +146,7 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
 			PointerCall* pc = *pcit;
 			if (pc->mayAliasedCallees.empty()) {
 				size++;
-				if (pc->instruction != NULL) {
+				if (pc->instruction) {
 					outs() << *(pc->instruction) << "\n";
 				} else {
 					outs() << "Implicit calls in " << df->getLLVMFunction()->getName() << "\n";
@@ -307,12 +314,12 @@ void AAAnalyzer::combineFunctionGroups(FunctionType * ft1, FunctionType* ft2) {
 /// return the structure's field vertex
 
 DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* field) {
-	if (field == NULL) {
+	if (!field) {
 		set<DyckVertex*>* valrepset = val->getOutVertices((void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
-		if (valrepset != NULL && !valrepset->empty()) {
+		if (valrepset && !valrepset->empty()) {
 			field = *(valrepset->begin());
 		} else {
-			field = dgraph->retrieveDyckVertex(NULL).first;
+			field = dgraph->retrieveDyckVertex(nullptr).first;
 			val->addTarget(field, (void*) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
 		}
 	} else {
@@ -326,18 +333,18 @@ DyckVertex* AAAnalyzer::addField(DyckVertex* val, long fieldIndex, DyckVertex* f
 /// otherwise return the ptr;
 
 DyckVertex* AAAnalyzer::addPtrTo(DyckVertex* address, DyckVertex* val) {
-	assert((address != NULL || val != NULL) && "ERROR in addPtrTo\n");
+	assert((address || val) && "ERROR in addPtrTo\n");
 
-	if (address == NULL) {
-		address = dgraph->retrieveDyckVertex(NULL).first;
+	if (!address) {
+		address = dgraph->retrieveDyckVertex(nullptr).first;
 		address->addTarget(val, (void*) aa->DEREF_LABEL);
 		return address;
-	} else if (val == NULL) {
+	} else if (!val) {
 		set<DyckVertex*>* derefset = address->getOutVertices((void*) aa->DEREF_LABEL);
-		if (derefset != NULL && !derefset->empty()) {
+		if (derefset && !derefset->empty()) {
 			val = *(derefset->begin());
 		} else {
-			val = dgraph->retrieveDyckVertex(NULL).first;
+			val = dgraph->retrieveDyckVertex(nullptr).first;
 			address->addTarget(val, (void*) aa->DEREF_LABEL);
 		}
 
@@ -355,7 +362,7 @@ DyckVertex* AAAnalyzer::makeAlias(DyckVertex* x, DyckVertex* y) {
 }
 
 void AAAnalyzer::makeContentAlias(DyckVertex* x, DyckVertex* y) {
-	addPtrTo(y, addPtrTo(x, NULL));
+	addPtrTo(y, addPtrTo(x, nullptr));
 }
 
 DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
@@ -376,14 +383,14 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 		if (AggOrPointerTy->isStructTy()) {
 			// example: gep y 0 constIdx
 			// s1: y--deref-->?1--(fieldIdx idxLabel)-->?2
-			DyckVertex* theStruct = this->addPtrTo(current, NULL);
+			DyckVertex* theStruct = this->addPtrTo(current, nullptr);
 
-			assert(ci != NULL && "ERROR: when dealing with gep");
+			assert(ci && "ERROR: when dealing with gep");
 
 			// s2: ?3--deref-->?2
 			unsigned fieldIdx = (unsigned) (*(ci->getValue().getRawData()));
-			DyckVertex* field = this->addField(theStruct, fieldIdx, NULL);
-			DyckVertex* fieldPtr = this->addPtrTo(NULL, field);
+			DyckVertex* field = this->addField(theStruct, fieldIdx, nullptr);
+			DyckVertex* fieldPtr = this->addPtrTo(nullptr, field);
 
 			// the label representation and feature impl is temporal.
 			// s3: y--(fieldIdx offLabel)-->?3
@@ -392,7 +399,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 			// update current
 			current = fieldPtr;
 		} else if (AggOrPointerTy->isPointerTy() || AggOrPointerTy->isArrayTy() || AggOrPointerTy->isVectorTy()) {
-			if (ci == nullptr)
+			if (!ci)
 				wrapValue(idx);
 		} else {
 			errs() << "ERROR in handle_gep: unknown type:\n";
@@ -407,7 +414,7 @@ DyckVertex* AAAnalyzer::handle_gep(GEPOperator* gep) {
 DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 	// if the vertex of v exists, return it, otherwise create one
 	pair<DyckVertex*, bool> retpair = dgraph->retrieveDyckVertex(v);
-	if (retpair.second || v == NULL) {
+	if (retpair.second || !v) {
 		return retpair.first;
 	}
 	DyckVertex* vdv = retpair.first;
@@ -555,7 +562,7 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 }
 
 void AAAnalyzer::handle_instrinsic(Instruction *inst) {
-	if (inst == NULL)
+	if (!inst)
 		return;
 
 	int mask = 0;
@@ -585,8 +592,8 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
 		DyckVertex* src_ptr_ver = wrapValue(src_ptr);
 		DyckVertex* dst_ptr_ver = wrapValue(dst_ptr);
 
-		DyckVertex* src_ver = addPtrTo(src_ptr_ver, NULL);
-		DyckVertex* dst_ver = addPtrTo(dst_ptr_ver, NULL);
+		DyckVertex* src_ver = addPtrTo(src_ptr_ver, nullptr);
+		DyckVertex* dst_ver = addPtrTo(dst_ptr_ver, nullptr);
 
 		makeAlias(src_ver, dst_ver);
 
@@ -941,7 +948,7 @@ void AAAnalyzer::handle_extract_insert_value_inst(Value* aggV, Type* aggTy, Arra
 			}
 		} else /*if (aggTy->isStructTy())*/{
 			if (i != indices.size() - 1) {
-				currentStruct = this->addField(currentStruct, indices[i], NULL);
+				currentStruct = this->addField(currentStruct, indices[i], nullptr);
 			} else {
 				currentStruct = this->addField(currentStruct, indices[i], toInOrExVal);
 			}
@@ -1012,9 +1019,9 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 	// since invoke has been lowered to call, no landingpads
 	// and resumes. The following codes are for later use.
 	// landingpad<->resume
-	//    if (c->instruction != NULL) {
+	//    if (c->instruction) {
 	//        Value* lpd = caller->getLandingPad(c->instruction);
-	//        if (lpd != NULL) {
+	//        if (lpd) {
 	//            DyckVertex* lpdVertex = wrapValue(lpd);
 	//            set<Value*>& res = callee->getResumes();
 	//            set<Value*>::iterator resIt = res.begin();
@@ -1025,7 +1032,7 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 	//        }
 	//    }
 
-	if (c->instruction != nullptr) {
+	if (c->instruction) {
 		//return<->call
 		Type * calledValueTy = ((CallInst*) c->instruction)->getCalledValue()->getType();
 		assert(calledValueTy->isPointerTy() && "A called value is not a pointer type!");
@@ -1182,7 +1189,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 		if (functionName == "strdup" || functionName == "__strdup" || functionName == "strdupa") {
 			// content alias r/1st
 			this->makeContentAlias(wrapValue(args->at(0)), wrapValue(ret));
-		} else if (functionName == "pthread_getspecific" && ret != NULL) {
+		} else if (functionName == "pthread_getspecific" && ret) {
 			DyckVertex* keyRep = wrapValue(args->at(0));
 			DyckVertex* valRep = wrapValue(ret);
 			// we use label -1 to indicate that it is a key:value pair
@@ -1192,7 +1199,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 		break;
 	case 2: {
 		if (functionName == "strcat" || functionName == "strcpy") {
-			if (ret != NULL) {
+			if (ret) {
 				DyckVertex * dst_ptr = wrapValue(args->at(0));
 				DyckVertex * src_ptr = wrapValue(args->at(1));
 
@@ -1226,7 +1233,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 		break;
 	case 3: {
 		if (functionName == "strncat" || functionName == "strncpy" || functionName == "memcpy" || functionName == "memmove") {
-			if (ret != NULL) {
+			if (ret) {
 				DyckVertex * dst_ptr = wrapValue(args->at(0));
 				DyckVertex * src_ptr = wrapValue(args->at(1));
 
@@ -1250,7 +1257,7 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 			vector<Value*> xargs;
 			xargs.push_back(args->at(3));
 			DyckCallGraphNode* parent = callgraph->getOrInsertFunction(f);
-			this->handle_invoke_call_inst(NULL, args->at(2), &xargs, parent);
+			this->handle_invoke_call_inst(nullptr, args->at(2), &xargs, parent);
 		}
 	}
 		break;
