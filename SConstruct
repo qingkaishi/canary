@@ -106,6 +106,7 @@ for syslib in syslibs_split:
         LLVM_LIBS.append(syslib[2:].strip())
 
 env=Environment(
+                ENV        = os.environ,
                 CXX        = "clang++",
                 CC         = "clang",
                 CXXFLAGS   = llvm_config("--cxxflags"),
