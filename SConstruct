@@ -107,8 +107,8 @@ for syslib in syslibs_split:
 
 env=Environment(
                 ENV        = os.environ,
-                CXX        = "clang++",
-                CC         = "clang",
+                CXX        = "g++",
+                CC         = "gcc",
                 CXXFLAGS   = llvm_config("--cxxflags"),
                 CFLAGS     = llvm_config("--cflags"),
                 CPPFLAGS   = llvm_config("--cppflags"),
