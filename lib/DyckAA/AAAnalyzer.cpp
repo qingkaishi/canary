@@ -5,6 +5,7 @@
 
 #define DEBUG_TYPE "dyckaa"
 #include "DyckAA/AAAnalyzer.h"
+#include <signal.h>
 
 static cl::opt<bool> NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
 		cl::desc("Do not check function type when resolving pointer calls."));
@@ -15,11 +16,25 @@ static cl::opt<bool> WithFunctionCastComb("with-function-cast-comb", cl::init(fa
 static cl::opt<unsigned> NumInterIteration("dyckaa-inter-iteration", cl::init(UINT_MAX), cl::Hidden,
         cl::desc("The max number of iterators for fix-pointer computation during interprocedure analysis."));
 
+static Instruction* RunningInst = nullptr;
+
+static void OnSegmentFalut(int) {
+    if (RunningInst) {
+        errs() << "[Canary] Error happens when analyzing the instruction:\n "
+                << *RunningInst << "\n";
+        errs() << "[Canary] Error happens when analyzing the function:\n "
+                << RunningInst->getParent()->getParent()->getName() << "\n";
+    }
+    abort();
+}
+
 AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
 	module = m;
 	aa = a;
 	dgraph = d;
 	callgraph = cg;
+
+	signal(SIGSEGV, OnSegmentFalut);
 }
 
 AAAnalyzer::~AAAnalyzer() {
@@ -53,11 +68,11 @@ void AAAnalyzer::intra_procedure_analysis() {
 		DyckCallGraphNode* df = callgraph->getOrInsertFunction(f);
 		for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
 			for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
-				Instruction *inst = iterI;
+				RunningInst = iterI;
 				instNum++;
 
-				DEBUG_WITH_TYPE("inst", errs() << *inst << "\n");
-				handle_inst(inst, df);
+				DEBUG_WITH_TYPE("inst", errs() << *RunningInst << "\n");
+				handle_inst(RunningInst, df);
 			}
 		}
 	}
@@ -803,6 +818,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 	case Instruction::Store: {
 		Value * sval = inst->getOperand(0);
 		Value * sadd = inst->getOperand(1);
+		wrapValue(sadd);
 		wrapValue(sval);
 		addPtrTo(wrapValue(sadd), wrapValue(sval));
 
