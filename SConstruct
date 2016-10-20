@@ -105,10 +105,15 @@ for syslib in syslibs_split:
     if syslib.startswith("-l") is True:
         LLVM_LIBS.append(syslib[2:].strip())
 
+debugflag = ""
+debug = ARGUMENTS.get("debug", 0)
+if int(debug):
+	debugflag = "-g"
+
 env=Environment(
                 ENV        = os.environ,
-                CXX        = "g++",
-                CC         = "gcc",
+                CXX        = "g++" + " " + debugflag,
+                CC         = "gcc" + " " + debugflag,
                 CXXFLAGS   = llvm_config("--cxxflags"),
                 CFLAGS     = llvm_config("--cflags"),
                 CPPFLAGS   = llvm_config("--cppflags"),
