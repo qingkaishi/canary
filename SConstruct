@@ -105,15 +105,18 @@ for syslib in syslibs_split:
     if syslib.startswith("-l") is True:
         LLVM_LIBS.append(syslib[2:].strip())
 
-debugflag = ""
-debug = ARGUMENTS.get("debug", 0)
-if int(debug):
-	debugflag = "-g"
+cxx=ARGUMENTS.get("cxx", 0)
+if int(cxx) == 0:
+    cxx="g++"
+
+cc=ARGUMENTS.get("cc", 0)
+if int(cc) == 0:
+	cc="gcc"
 
 env=Environment(
                 ENV        = os.environ,
-                CXX        = "g++" + " " + debugflag,
-                CC         = "gcc" + " " + debugflag,
+                CXX        = cxx,
+                CC         = cc,
                 CXXFLAGS   = llvm_config("--cxxflags"),
                 CFLAGS     = llvm_config("--cflags"),
                 CPPFLAGS   = llvm_config("--cppflags"),
@@ -123,6 +126,11 @@ env=Environment(
                 LIBPATH    = ['#bin', llvm_config("--libdir")] + LLVM_LIB_PATHS,
                 LIBS       = LLVM_LIBS
                )
+
+debug = ARGUMENTS.get("debug", 0)
+if int(debug):
+	env.Append(CFLAGS = " -g")
+	env.Append(CXXFLAGS = " -g")
 
 BuildDirs=[]
 libonly = ARGUMENTS.get("libonly", 0)
