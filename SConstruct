@@ -106,11 +106,11 @@ for syslib in syslibs_split:
         LLVM_LIBS.append(syslib[2:].strip())
 
 cxx=ARGUMENTS.get("cxx", 0)
-if int(cxx) == 0:
+if cxx.isdigit() and int(cxx) == 0:
     cxx="g++"
 
 cc=ARGUMENTS.get("cc", 0)
-if int(cc) == 0:
+if cc.isdigit() and int(cc) == 0:
 	cc="gcc"
 
 env=Environment(
