@@ -33,8 +33,6 @@ AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGr
 	aa = a;
 	dgraph = d;
 	callgraph = cg;
-
-	signal(SIGSEGV, OnSegmentFalut);
 }
 
 AAAnalyzer::~AAAnalyzer() {
@@ -56,6 +54,8 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 }
 
 void AAAnalyzer::intra_procedure_analysis() {
+    signal(SIGSEGV, OnSegmentFalut);
+
 	long instNum = 0;
 	long intrinsicsNum = 0;
 	for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
@@ -78,6 +78,8 @@ void AAAnalyzer::intra_procedure_analysis() {
 	}
 	outs() << "# Instructions: " << instNum << "\n";
 	outs() << "# Functions: " << module->getFunctionList().size() - intrinsicsNum << "\n";
+
+	signal(SIGSEGV, SIG_DFL);
 	return;
 }
 
