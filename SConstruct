@@ -61,18 +61,12 @@ def check_precise_version(cmd, tool, err_msg, version_major, version_minor):
 
 check_tool("llvm-config", "Error: llvm-config does not exist! Termination.")
 check_tool("zip",         "Error: zip does not exist! Termination.")
-check_tool("g++",         "Error: g++ does not exist! Termination.")
-check_tool("gcc",         "Error: gcc does not exist! Termination.")
 check_tool("clang++",     "Error: clang++ does not exist! Termination.")
 check_tool("clang",       "Error: clang does not exist! Termination.")
 
 check_precise_version("llvm-config --version", "llvm",
                       "Error: llvm's version should be " + str(LLVM_VERSION_MAJOR) + "." + str(LLVM_VERSION_MINOR) + "! Termination.",
                       LLVM_VERSION_MAJOR, LLVM_VERSION_MINOR)
-
-check_rough_version("gcc -dumpversion", "gcc",
-                    "Error: gcc's version should be >= 4.8! Termination.",
-                    4, 8)
 
 #check_file_with_optional_dirs("boost/foreach.hpp", 
 #                              ["/usr/include", "/usr/local/include"], 
@@ -107,6 +101,13 @@ for syslib in syslibs_split:
 
 cxx=ARGUMENTS.get("cxx", "g++")
 cc=ARGUMENTS.get("cc", "gcc")
+
+if cxx == "g++" and cc == "gcc":
+	check_tool("g++",         "Error: g++ does not exist! Termination.")
+	check_tool("gcc",         "Error: gcc does not exist! Termination.")
+	check_rough_version("gcc -dumpversion", "gcc",
+                    "Error: gcc's version should be >= 4.8! Termination.",
+                    4, 8)
 
 env=Environment(
                 ENV        = os.environ,
