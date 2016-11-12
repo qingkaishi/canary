@@ -1065,7 +1065,8 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 			while (retIt != rets.end()) {
 				Value* val = (Value*) *retIt;
 				if (aa->getTypeStoreSize(retTy) >= aa->getTypeStoreSize(val->getType())) {
-					makeAlias(wrapValue(val), wrapValue(c->instruction));
+				    wrapValue(c->instruction);
+				    makeAlias(wrapValue(val), wrapValue(c->instruction));
 				}
 				retIt++;
 			}
@@ -1087,6 +1088,7 @@ void AAAnalyzer::handle_common_function_call(Call* c, DyckCallGraphNode* caller,
 			Value* par = (Value*) (&(*pIt));
 			Value* arg = c->args[i];
 
+			wrapValue(arg);
 			makeAlias(wrapValue(par), wrapValue(arg));
 
 			if (aa->getTypeStoreSize(par->getType()) < aa->getTypeStoreSize(arg->getType())) {
@@ -1123,7 +1125,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 	set<PointerCall*>& pointercalls = caller->getPointerCalls();
 	set<PointerCall*>::iterator mit = pointercalls.begin();
 
-// print in console
+	// print in console
 	int PTCALL_TOTAL = pointercalls.size();
 	int PTCALL_COUNT = 0;
 	if (PTCALL_TOTAL == 0)
@@ -1197,9 +1199,9 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 }
 
 void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Value*>* args, DyckCallGraphNode* parent) {
-// args must be the real arguments, not the parameters.
-	if (!f->empty() || f->isIntrinsic())
-		return;
+    // args must be the real arguments, not the parameters.
+    if (!f->empty() || f->isIntrinsic())
+        return;
 
 	const string& functionName = f->getName().str();
 	switch (args->size()) {
