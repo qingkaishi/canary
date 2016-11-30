@@ -580,12 +580,12 @@ void DyckAliasAnalysis::printAliasSetInformation(Module& M) {
 		repIt = reps.begin();
 		while (repIt != reps.end()) {
 			DyckVertex* dv = *repIt;
-			map<void*, set<DyckVertex*>*>& outVs = dv->getOutVertices();
+			map<void*, set<DyckVertex*>>& outVs = dv->getOutVertices();
 
 			auto ovIt = outVs.begin();
 			while (ovIt != outVs.end()) {
 				EdgeLabel* label = (EdgeLabel*) ovIt->first;
-				set<DyckVertex*>* oVs = ovIt->second;
+				set<DyckVertex*>* oVs = &ovIt->second;
 
 				set<DyckVertex*>::iterator olIt = oVs->begin();
 				while (olIt != oVs->end()) {

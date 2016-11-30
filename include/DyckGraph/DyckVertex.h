@@ -25,8 +25,8 @@ private:
 	set<void*> in_lables;
 	set<void*> out_lables;
 
-	map<void*, set<DyckVertex*>*> in_vers;
-	map<void*, set<DyckVertex*>*> out_vers;
+	map<void*, set<DyckVertex*>> in_vers;
+	map<void*, set<DyckVertex*>> out_vers;
 
 	/// only store non-null value
 	set<void*> equivclass;
@@ -78,11 +78,11 @@ public:
 
 	/// Get all the vertex's targets.
 	/// The return value is a map which maps labels to a set of vertices.
-	map<void*, set<DyckVertex*>*>& getOutVertices();
+	map<void*, set<DyckVertex*>>& getOutVertices();
 
 	/// Get all the vertex's sources.
 	/// The return value is a map which maps labels to a set of vertices.
-	map<void*, set<DyckVertex*>*>& getInVertices();
+	map<void*, set<DyckVertex*>>& getInVertices();
 
 	/// Add a target with a label. Meanwhile, this vertex will be a source of ver.
 	void addTarget(DyckVertex* ver, void* label);

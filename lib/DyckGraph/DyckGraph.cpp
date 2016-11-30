@@ -22,11 +22,11 @@ void DyckGraph::printAsDot(const char* filename) const {
 		else
 			fprintf(f, "\ta%d;\n", (*vit)->getIndex());
 
-		map<void*, set<DyckVertex*>*>& outs = (*vit)->getOutVertices();
-		map<void*, set<DyckVertex*>*>::iterator it = outs.begin();
+		map<void*, set<DyckVertex*>>& outs = (*vit)->getOutVertices();
+		map<void*, set<DyckVertex*>>::iterator it = outs.begin();
 		while (it != outs.end()) {
 			long label = (long) (it->first);
-			set<DyckVertex*>* tars = it->second;
+			set<DyckVertex*>* tars = &it->second;
 
 			set<DyckVertex*>::iterator tarit = tars->begin();
 			while (tarit != tars->end()) {
@@ -101,7 +101,7 @@ DyckVertex* DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 
 	yolit = youtlabels.begin();
 	while (yolit != youtlabels.end()) {
-		set<DyckVertex*>* ws = y->getOutVertices()[*yolit];
+		set<DyckVertex*>* ws = &y->getOutVertices()[*yolit];
 		set<DyckVertex*>::iterator w = ws->begin();
 		while (w != ws->end()) {
 			if (!x->containsTarget(*w, *yolit)) {
@@ -114,7 +114,7 @@ DyckVertex* DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 			DyckVertex* wtemp = *w;
 			ws->erase(w++);
 			// *w remove src y
-			((wtemp)->getInVertices())[*yolit]->erase(y);
+			((wtemp)->getInVertices())[*yolit].erase(y);
 		}
 		yolit++;
 	}
@@ -122,7 +122,7 @@ DyckVertex* DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 	set<void*>& yinlabels = y->getInLabels();
 	set<void*>::iterator yilit = yinlabels.begin();
 	while (yilit != yinlabels.end()) {
-		set<DyckVertex*>* ws = y->getInVertices()[*yilit];
+		set<DyckVertex*>* ws = &y->getInVertices()[*yilit];
 		set<DyckVertex*>::iterator w = ws->begin();
 		while (w != ws->end()) {
 			if (!(*w)->containsTarget(x, *yilit)) {
@@ -133,7 +133,7 @@ DyckVertex* DyckGraph::combine(DyckVertex* x, DyckVertex* y) {
 			// cannot use removeTarget function, which will affect iterator
 			DyckVertex* wtemp = *w;
 			ws->erase(w++);
-			((wtemp)->getOutVertices())[*yilit]->erase(y);
+			((wtemp)->getOutVertices())[*yilit].erase(y);
 		}
 
 		yilit++;
@@ -179,7 +179,7 @@ bool DyckGraph::qirunAlgorithm() {
 		//outs()<<"HERE0\n"; outs().flush();
 		multimap<DyckVertex*, void*>::iterator z_i_it = worklist.begin();
 		//outs()<<"HERE0.1\n"; outs().flush();
-		set<DyckVertex*>* vers = z_i_it->first->getOutVertices()[z_i_it->second];
+		set<DyckVertex*>* vers = &z_i_it->first->getOutVertices()[z_i_it->second];
 		set<DyckVertex*>::iterator versIt = vers->begin();
 		DyckVertex* x = *(versIt);
 		versIt++;
@@ -222,7 +222,7 @@ bool DyckGraph::qirunAlgorithm() {
 		//outs()<<"HERE2\n"; outs().flush();
 		yolit = youtlabels.begin();
 		while (yolit != youtlabels.end()) {
-			set<DyckVertex*>* ws = y->getOutVertices()[*yolit];
+			set<DyckVertex*>* ws = &y->getOutVertices()[*yolit];
 			set<DyckVertex*>::iterator w = ws->begin();
 			while (w != ws->end()) {
 				if (!x->containsTarget(*w, *yolit)) {
@@ -237,7 +237,7 @@ bool DyckGraph::qirunAlgorithm() {
 				DyckVertex* wtemp = *w;
 				ws->erase(w++);
 				// *w remove src y
-				((wtemp)->getInVertices())[*yolit]->erase(y);
+				((wtemp)->getInVertices())[*yolit].erase(y);
 				if (y->outNumVertices(*yolit) < 2) {
 					removeFromWorkList(worklist, y, *yolit);
 				}
@@ -250,7 +250,7 @@ bool DyckGraph::qirunAlgorithm() {
 		set<void*>& yinlabels = y->getInLabels();
 		set<void*>::iterator yilit = yinlabels.begin();
 		while (yilit != yinlabels.end()) {
-			set<DyckVertex*>* ws = y->getInVertices()[*yilit];
+			set<DyckVertex*>* ws = &y->getInVertices()[*yilit];
 			set<DyckVertex*>::iterator w = ws->begin();
 			while (w != ws->end()) {
 				if (!(*w)->containsTarget(x, *yilit)) {
@@ -261,7 +261,7 @@ bool DyckGraph::qirunAlgorithm() {
 				// cannot use removeTarget function, which will affect iterator
 				DyckVertex* wtemp = *w;
 				ws->erase(w++);
-				((wtemp)->getOutVertices())[*yilit]->erase(y);
+				((wtemp)->getOutVertices())[*yilit].erase(y);
 				if ((wtemp)->outNumVertices(*yilit) < 2) {
 					removeFromWorkList(worklist, wtemp, *yilit);
 				}
