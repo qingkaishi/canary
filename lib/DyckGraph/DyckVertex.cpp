@@ -67,8 +67,8 @@ void DyckVertex::mvEquivalentSetTo(DyckVertex* rootRep) {
 		return;
 	}
 
-	set<void*> * rootecls = rootRep->getEquivalentSet();
-	set<void*> * thisecls = this->getEquivalentSet();
+	set<void*>* rootecls = rootRep->getEquivalentSet();
+	set<void*>* thisecls = this->getEquivalentSet();
 
 	rootecls->insert(thisecls->begin(), thisecls->end());
 }
@@ -112,7 +112,7 @@ void DyckVertex::removeTarget(DyckVertex* ver, void* label) {
 bool DyckVertex::containsTarget(DyckVertex* tar, void* label) {
     auto it = out_vers.find(label);
     if (it != out_vers.end()) {
-        return out_vers[label].count(tar);
+        return it->second.count(tar);
     }
 
     return false;
