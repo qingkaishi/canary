@@ -69,6 +69,10 @@ DyckAliasAnalysis::~DyckAliasAnalysis() {
 		delete ilIt->second;
 		ilIt++;
 	}
+
+	for (auto& it : vertexMemAllocaMap) {
+	    delete it.second;
+	}
 }
 
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
