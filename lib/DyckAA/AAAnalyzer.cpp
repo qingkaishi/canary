@@ -895,10 +895,15 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode * parent_func)
 		Value * cv = callinst->getCalledValue();
 		vector<Value*> args;
 		for (unsigned i = 0; i < callinst->getNumArgOperands(); i++) {
-			args.push_back(callinst->getArgOperand(i));
+		    wrapValue(callinst->getArgOperand(i));
+		    args.push_back(callinst->getArgOperand(i));
 		}
 
 		this->handle_invoke_call_inst(callinst, cv, &args, parent_func);
+
+		if (!callinst->getType()->isVoidTy()) {
+		    wrapValue(callinst);
+		}
 
 		mask |= (~0);
 	}
