@@ -37,7 +37,7 @@ using namespace std;
 
 class DyckCallGraph {
 private:
-     typedef std::map<Function *, DyckCallGraphNode *> FunctionMapTy;
+    typedef std::map<Function *, DyckCallGraphNode *> FunctionMapTy;
     FunctionMapTy FunctionMap;
 
 public:
@@ -59,6 +59,10 @@ public:
     
     FunctionMapTy::iterator end(){
         return FunctionMap.end();
+    }
+
+    size_t size() const {
+        return FunctionMap.size();
     }
 
     DyckCallGraphNode * getOrInsertFunction(Function * f) {

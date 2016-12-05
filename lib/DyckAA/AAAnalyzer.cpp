@@ -5,6 +5,7 @@
 
 #define DEBUG_TYPE "dyckaa"
 #include "DyckAA/AAAnalyzer.h"
+#include "DyckAA/ProgressBar.h"
 #include <signal.h>
 
 static cl::opt<bool> NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
@@ -84,6 +85,8 @@ void AAAnalyzer::intra_procedure_analysis() {
 }
 
 void AAAnalyzer::inter_procedure_analysis() {
+    DyckAA::ProgressBar PB("Handling indirect calls", DyckAA::ProgressBar::PBS_CharacterStyle);
+
 	map<DyckCallGraphNode*, set<CommonCall*>> handledCommonCalls;
 
 	unsigned NumIteration = 0;
@@ -137,8 +140,11 @@ void AAAnalyzer::inter_procedure_analysis() {
 				if (handle_pointer_function_calls(df, ++FUNCTION_COUNT)) {
 					finished = false;
 				}
+
+				PB.showProgress(FUNCTION_COUNT / (float) callgraph->size());
 				++dfit;
 			}
+			PB.reset();
 		}
 
 		if (finished) {
@@ -1133,13 +1139,13 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 	// print in console
 	int PTCALL_TOTAL = pointercalls.size();
 	int PTCALL_COUNT = 0;
-	if (PTCALL_TOTAL == 0)
-		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... 100%, 100%. Done!\r";
+//	if (PTCALL_TOTAL == 0)
+//		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... 100%, 100%. Done!\r";
 
 	while (mit != pointercalls.end()) {
 		// print in console
 		int percentage = ((++PTCALL_COUNT) * 100 / PTCALL_TOTAL);
-		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, \r";
+//		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, \r";
 
 		PointerCall * pcall = *mit;
 		Type* fty = pcall->calledValue->getType()->getPointerElementType();
@@ -1161,7 +1167,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 		int CAND_TOTAL = unhandled_function.size();
 		int CAND_COUNT = 0;
 		if (CAND_TOTAL == 0 || pcall->mustAliasedPointerCall) {
-			outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+//			outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
 			mit++;
 			continue;
 		}
@@ -1172,9 +1178,9 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 			// print in console
 			int RATE = ((100 * (++CAND_COUNT)) / CAND_TOTAL);
 			if (percentage == 100 && RATE == 100) {
-				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+//				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
 			} else {
-				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << RATE << "%         \r";
+//				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << RATE << "%         \r";
 			}
 
 			AliasAnalysis::AliasResult ar = aa->alias(mayAliasedFunctioin, pcall->calledValue);
@@ -1190,7 +1196,7 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode* caller, int FU
 					pcall->mustAliasedPointerCall = true;
 					pcall->mayAliasedCallees.clear();
 					pcall->mayAliasedCallees.insert(mayAliasedFunctioin);
-					outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
+//					outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
 					break;
 				}
 			}
