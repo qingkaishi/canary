@@ -34,8 +34,12 @@ ProgressBar::ProgressBar(std::string Title, ProgressBarStyle Style, float Update
     CONSOLE_SCREEN_BUFFER_INFO ConsoleInfo;
 
     GetConsoleScreenBufferInfo(StdOutHandler, ConsoleInfo);
-    WindowWidth = ConsoleInfo.dwSize.x;
+    WindowWidth = (ConsoleInfo.dwSize.x- 15 - Title.length()) * 0.95;
 #endif
+
+    if (WindowWidth < 0) {
+        WindowWidth = 10;
+    }
 
     ProgerssBuffer = new char[WindowWidth + 1];
     if (Style == PBS_BGCStyle) {
