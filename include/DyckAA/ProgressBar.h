@@ -32,14 +32,14 @@ private:
 
     /// The buffer of characters, which
     /// will be shown in console as a progress bar.
-    char* ProgerssBuffer;
+    char* ProgressBuffer;
 
     /// How frequently to update the progress bar.
     /// For example, it Delta is 0.01, then the bar
     /// will be updated every 1 percent.
     /// @{
     float UpdateFrequency;
-    float LastPercent = 0;
+    float LastUpdatePercent = 0;
     /// @}
 
 public:
@@ -53,7 +53,7 @@ public:
     void showProgress(float Percent);
 
     void reset() {
-        LastPercent = 0;
+        LastUpdatePercent = 0;
     }
 
 private:
