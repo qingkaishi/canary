@@ -41,7 +41,7 @@ ProgressBar::ProgressBar(std::string Title, ProgressBarStyle Style, float Update
         WindowWidth = 10;
     }
 
-    ProgerssBuffer = new char[WindowWidth + 1];
+    ProgerssBuffer = (char*) malloc(sizeof(char) * (WindowWidth + 1));;
     if (Style == PBS_BGCStyle) {
         memset(ProgerssBuffer, 0x00, WindowWidth + 1);
     } else {
@@ -56,6 +56,9 @@ void ProgressBar::showProgress(float Percent) {
             return;
         }
     }
+
+    // In case the window width is changed at runtime.
+    resize();
 
     LastPercent = Percent;
 
@@ -83,9 +86,42 @@ void ProgressBar::showProgress(float Percent) {
     }
 }
 
+void ProgressBar::resize() {
+    int CurrentWindowWidth = 0;
+
+#ifdef __linux__
+    struct winsize WinSize;
+    ioctl(STDIN_FILENO, TIOCGWINSZ, &WinSize);
+    CurrentWindowWidth = (WinSize.ws_col - 15 - Title.length()) * 0.95;
+#elif _WIN32
+    HANDLE StdOutHandler = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO ConsoleInfo;
+
+    GetConsoleScreenBufferInfo(StdOutHandler, ConsoleInfo);
+    CurrentWindowWidth = (ConsoleInfo.dwSize.x- 15 - Title.length()) * 0.95;
+#endif
+
+    if (CurrentWindowWidth < 0) {
+        CurrentWindowWidth = 10;
+    }
+
+    if (WindowWidth == CurrentWindowWidth) {
+        return;
+    }
+
+    WindowWidth = CurrentWindowWidth;
+    ProgerssBuffer = (char*) realloc(ProgerssBuffer, sizeof(char) * (WindowWidth + 1));
+    if (Style == PBS_BGCStyle) {
+        memset(ProgerssBuffer, 0x00, WindowWidth + 1);
+    } else {
+        memset(ProgerssBuffer, 32, WindowWidth);
+        memset(ProgerssBuffer + WindowWidth, 0x00, 1);
+    }
+}
+
 ProgressBar::~ProgressBar() {
     if (ProgerssBuffer) {
-        delete[] ProgerssBuffer;
+        free(ProgerssBuffer);
         ProgerssBuffer = nullptr;
     }
 }

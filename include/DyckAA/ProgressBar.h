@@ -55,6 +55,11 @@ public:
     void reset() {
         LastPercent = 0;
     }
+
+private:
+    /// In case the console width is changed
+    /// at runtime.
+    void resize();
 };
 
 }
