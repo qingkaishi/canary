@@ -52,8 +52,10 @@ public:
     /// 1 means it completes.
     void showProgress(float Percent);
 
-    void reset() {
-        LastUpdatePercent = 0;
+    void reset();
+
+    void setTitle(std::string T) {
+        Title = T;
     }
 
 private:

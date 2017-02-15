@@ -451,16 +451,16 @@ bool DyckAliasAnalysis::runOnModule(Module & M) {
 
 	/// step 1: intra-procedure analysis
 	aaa->start_intra_procedure_analysis();
-	outs() << "Start intra-procedure analysis...\n";
+	//outs() << "Start intra-procedure analysis...\n";
 	aaa->intra_procedure_analysis();
-	outs() << "Done!\n\n";
+	//outs() << "Done!\n\n";
 	aaa->end_intra_procedure_analysis();
 
 	/// step 2: inter-procedure analysis
 	aaa->start_inter_procedure_analysis();
-	outs() << "Start inter-procedure analysis...";
+	//outs() << "Start inter-procedure analysis...";
 	aaa->inter_procedure_analysis();
-	outs() << "\nDone!\n\n";
+	//outs() << "\nDone!\n\n";
 	aaa->end_inter_procedure_analysis();
 
 	/* call graph */

@@ -28,13 +28,13 @@ ProgressBar::ProgressBar(std::string Title, ProgressBarStyle Style, float Update
 #ifdef __linux__
     struct winsize WinSize;
     ioctl(STDIN_FILENO, TIOCGWINSZ, &WinSize);
-    WindowWidth = WinSize.ws_col - Title.length() - 15;
+    WindowWidth = WinSize.ws_col > 80 ? 80 : WinSize.ws_col - Title.length() - 15;
 #elif _WIN32
     HANDLE StdOutHandler = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_SCREEN_BUFFER_INFO ConsoleInfo;
 
     GetConsoleScreenBufferInfo(StdOutHandler, ConsoleInfo);
-    WindowWidth = ConsoleInfo.dwSize.x - Title.length() - 15;
+    WindowWidth = ConsoleInfo.dwSize.x > 80 ? 80 : ConsoleInfo.dwSize.x - Title.length() - 15;
 #endif
 
     if (WindowWidth < 15) {
@@ -109,13 +109,13 @@ void ProgressBar::resize() {
 #ifdef __linux__
     struct winsize WinSize;
     ioctl(STDIN_FILENO, TIOCGWINSZ, &WinSize);
-    CurrentWindowWidth = WinSize.ws_col - Title.length() - 15;
+    CurrentWindowWidth = WinSize.ws_col > 80 ? 80 : WinSize.ws_col  - Title.length() - 15;
 #elif _WIN32
     HANDLE StdOutHandler = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_SCREEN_BUFFER_INFO ConsoleInfo;
 
     GetConsoleScreenBufferInfo(StdOutHandler, ConsoleInfo);
-    CurrentWindowWidth = ConsoleInfo.dwSize.x - Title.length() - 15;
+    CurrentWindowWidth = ConsoleInfo.dwSize.x > 80 ? 80 : ConsoleInfo.dwSize.x - Title.length() - 15;
 #endif
 
     if (CurrentWindowWidth < 15) {
@@ -135,6 +135,18 @@ void ProgressBar::resize() {
     } else {
         memset(ProgressBuffer, 32, WindowWidth);
         memset(ProgressBuffer + WindowWidth, 0x00, 1);
+    }
+}
+
+void ProgressBar::reset() {
+    LastUpdatePercent = 0;
+    if (ProgressBuffer) {
+        if (Style == PBS_BGCStyle) {
+            memset(ProgressBuffer, 0x00, WindowWidth + 1);
+        } else {
+            memset(ProgressBuffer, 32, WindowWidth);
+            memset(ProgressBuffer + WindowWidth, 0x00, 1);
+        }
     }
 }
 

@@ -57,8 +57,11 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 void AAAnalyzer::intra_procedure_analysis() {
     signal(SIGSEGV, OnSegmentFalut);
 
+    DyckAA::ProgressBar PB("[Canary (0)]", DyckAA::ProgressBar::PBS_CharacterStyle);
+
 	long instNum = 0;
 	long intrinsicsNum = 0;
+	int FCounter = 0;
 	for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
 		Function* f = iterF;
 		if (f->isIntrinsic()) {
@@ -76,16 +79,17 @@ void AAAnalyzer::intra_procedure_analysis() {
 				handle_inst(RunningInst, df);
 			}
 		}
+		PB.showProgress(++FCounter /  (float) module->size());
 	}
-	outs() << "# Instructions: " << instNum << "\n";
-	outs() << "# Functions: " << module->getFunctionList().size() - intrinsicsNum << "\n";
+	DEBUG_WITH_TYPE("dyckaa-stats", errs() << "\n# Instructions: " << instNum << "\n");
+	DEBUG_WITH_TYPE("dyckaa-stats", errs() << "# Functions: " << module->size() - intrinsicsNum << "\n");
 
 	signal(SIGSEGV, SIG_DFL);
 	return;
 }
 
 void AAAnalyzer::inter_procedure_analysis() {
-    DyckAA::ProgressBar PB("Handling indirect calls", DyckAA::ProgressBar::PBS_CharacterStyle);
+    DyckAA::ProgressBar PB("[Canary (*)]", DyckAA::ProgressBar::PBS_CharacterStyle);
 
 	map<DyckCallGraphNode*, set<CommonCall*>> handledCommonCalls;
 
@@ -95,13 +99,16 @@ void AAAnalyzer::inter_procedure_analysis() {
             break;
         }
 
-		outs() << "\nIteration #" << NumIteration << "... \n";
+        printf("\r\033[K"); // clear the line
+        PB.setTitle(std::string("[Canary (") + std::to_string(NumIteration) + ")]");
+
+		//outs() << "\nIteration #" << NumIteration << "... \n";
 
 		bool finished = true;
 		dgraph->qirunAlgorithm();
 
 		{ // direct calls
-			outs() << "Handling direct calls...";
+			//outs() << "Handling direct calls...";
 			outs().flush();
 			auto dfit = callgraph->begin();
 			while (dfit != callgraph->end()) {
@@ -128,7 +135,7 @@ void AAAnalyzer::inter_procedure_analysis() {
 				// ---------------------------------------------------
 				++dfit;
 			}
-			outs() << "Done!\n";
+			//outs() << "Done!\n";
 		}
 
 		{ // indirect call
@@ -152,6 +159,7 @@ void AAAnalyzer::inter_procedure_analysis() {
 		}
 	}
 
+	printf("\n");
 	return;
 }
 
