@@ -472,7 +472,7 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 			Value * agg = ((ConstantExpr*) v)->getOperand(0);
 			vector<unsigned> indicesVec;
 			for (unsigned i = 1; i < ((ConstantExpr*) v)->getNumOperands(); i++) {
-				ConstantInt * index = (ConstantInt*) ((ConstantExpr*) v)->getOperand(1);
+				ConstantInt * index = (ConstantInt*) ((ConstantExpr*) v)->getOperand(i);
 				indicesVec.push_back((unsigned) (*(index->getValue().getRawData())));
 			}
 			ArrayRef<unsigned> indices(indicesVec);
@@ -485,7 +485,7 @@ DyckVertex* AAAnalyzer::wrapValue(Value * v) {
 			}
 			vector<unsigned> indicesVec;
 			for (unsigned i = 2; i < ((ConstantExpr*) v)->getNumOperands(); i++) {
-				ConstantInt * index = (ConstantInt*) ((ConstantExpr*) v)->getOperand(1);
+				ConstantInt * index = (ConstantInt*) ((ConstantExpr*) v)->getOperand(i);
 				indicesVec.push_back((unsigned) (*(index->getValue().getRawData())));
 			}
 			ArrayRef<unsigned> indices(indicesVec);
