@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 2.8)
+project(canary C CXX)
+
+find_program(LLVMCONFIG llvm-config)
+if(NOT LLVMCONFIG)
+    message(FATAL_ERROR "llvm-config not found!") 
+endif()
+execute_process(COMMAND ${LLVMCONFIG} --cxxflags OUTPUT_VARIABLE CMAKE_CXX_FLAGS)
+execute_process(COMMAND ${LLVMCONFIG} --cflags OUTPUT_VARIABLE CMAKE_C_FLAGS)
+execute_process(COMMAND ${LLVMCONFIG} --cppflags OUTPUT_VARIABLE CMAKE_CPP_FLAGS)
+execute_process(COMMAND ${LLVMCONFIG} --ldflags OUTPUT_VARIABLE CMAKE_EXE_LINKER_FLAGS)
+execute_process(COMMAND ${LLVMCONFIG} --libdir OUTPUT_VARIABLE LIB_PATHS)
+execute_process(COMMAND ${LLVMCONFIG} --system-libs OUTPUT_VARIABLE LIBS)
+execute_process(COMMAND ${LLVMCONFIG} --includedir OUTPUT_VARIABLE LLVM_INCLUDE_DIR)
+
+set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LIB_PATHS} ${LIBS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set (INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include ${LLVM_INCLUDE_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+
+add_subdirectory(lib)
+
+
+
