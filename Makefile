@@ -21,7 +21,5 @@ notconfigured:
 	@echo "ERROR: You must configure this project before you can use it!"
 	@exit 1
 
-clean::
-	${RM} -f Makefile.common Makefile.config
-dist-clean::
+dist-clean:: clean
 	${RM} -f Makefile.common Makefile.config
