@@ -5,7 +5,6 @@
 
 #define DEBUG_TYPE "dyckaa"
 #include "DyckAA/AAAnalyzer.h"
-#include "DyckAA/ProgressBar.h"
 #include <signal.h>
 
 static cl::opt<bool> NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
@@ -29,7 +28,8 @@ static void OnSegmentFalut(int) {
     abort();
 }
 
-AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) {
+AAAnalyzer::AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg) :
+        PB("[Canary]", DyckAA::ProgressBar::PBS_CharacterStyle) {
 	module = m;
 	aa = a;
 	dgraph = d;
@@ -42,9 +42,11 @@ AAAnalyzer::~AAAnalyzer() {
 
 void AAAnalyzer::start_intra_procedure_analysis() {
 	this->initFunctionGroups();
+	outs() << "[Canary] Intra-procedural analysis...";
 }
 
 void AAAnalyzer::end_intra_procedure_analysis() {
+	outs() << "\r\033[K"; // clear the line
 }
 
 void AAAnalyzer::start_inter_procedure_analysis() {
@@ -57,29 +59,24 @@ void AAAnalyzer::end_inter_procedure_analysis() {
 void AAAnalyzer::intra_procedure_analysis() {
     signal(SIGSEGV, OnSegmentFalut);
 
-    DyckAA::ProgressBar PB("[Canary (0)]", DyckAA::ProgressBar::PBS_CharacterStyle);
-
 	long instNum = 0;
 	long intrinsicsNum = 0;
-	int FCounter = 0;
-	for (ilist_iterator<Function> iterF = module->getFunctionList().begin(); iterF != module->getFunctionList().end(); iterF++) {
-		Function* f = iterF;
-		if (f->isIntrinsic()) {
+	for (auto& F : *module) {
+		if (F.isIntrinsic()) {
 			// intrinsics are handled as instructions
 			intrinsicsNum++;
 			continue;
 		}
-		DyckCallGraphNode* df = callgraph->getOrInsertFunction(f);
-		for (ilist_iterator<BasicBlock> iterB = f->getBasicBlockList().begin(); iterB != f->getBasicBlockList().end(); iterB++) {
-			for (ilist_iterator<Instruction> iterI = iterB->getInstList().begin(); iterI != iterB->getInstList().end(); iterI++) {
-				RunningInst = iterI;
+		DyckCallGraphNode* df = callgraph->getOrInsertFunction(&F);
+		for (auto& B : F) {
+			for (auto& I : B) {
+				RunningInst = &I;
 				instNum++;
 
 				DEBUG_WITH_TYPE("inst", errs() << *RunningInst << "\n");
 				handle_inst(RunningInst, df);
 			}
 		}
-		PB.showProgress(++FCounter /  (float) module->size());
 	}
 	DEBUG_WITH_TYPE("dyckaa-stats", errs() << "\n# Instructions: " << instNum << "\n");
 	DEBUG_WITH_TYPE("dyckaa-stats", errs() << "# Functions: " << module->size() - intrinsicsNum << "\n");
@@ -89,20 +86,28 @@ void AAAnalyzer::intra_procedure_analysis() {
 }
 
 void AAAnalyzer::inter_procedure_analysis() {
-    DyckAA::ProgressBar PB("[Canary (*)]", DyckAA::ProgressBar::PBS_CharacterStyle);
+	// The following three variables control the progress bar.
+	// IterationCounter records the number of iterations so far.
+	// Because we do not know how many iterations it will do,
+	// at the beginning, we assume it will do ``InterationStep"
+	// iterations. If the number of iteration exceeds ``InterationStep",
+	// we say it goes into a new iteration phase, which is
+	// recorded by IterationPhase.
+	//
+	// InterationStep is 5 in default because it will not
+	// exceed 5 iterations in most cases.
+	unsigned IterationCounter = 0;
+	unsigned IterationPhase = 0;
+	const unsigned InterationStep = 5;
 
 	map<DyckCallGraphNode*, set<CommonCall*>> handledCommonCalls;
-
-	unsigned NumIteration = 0;
 	while (1) {
-        if (NumIteration++ >= NumInterIteration.getValue()) {
+        if (IterationCounter++ >= NumInterIteration.getValue()) {
             break;
         }
 
-        printf("\r\033[K"); // clear the line
-        PB.setTitle(std::string("[Canary (") + std::to_string(NumIteration) + ")]");
-
-		//outs() << "\nIteration #" << NumIteration << "... \n";
+        // outs() << "\n\nIteration #" << IterationCounter << "... \n\n";
+        // outs() << "Phase: " << IterationPhase << "\n\n";
 
 		bool finished = true;
 		dgraph->qirunAlgorithm();
@@ -139,26 +144,34 @@ void AAAnalyzer::inter_procedure_analysis() {
 		}
 
 		{ // indirect call
-			int FUNCTION_COUNT = 0;
+			int NumProcessedFunctions = 0;
 			auto dfit = callgraph->begin();
 			while (dfit != callgraph->end()) {
 				DyckCallGraphNode * df = dfit->second;
 
-				if (handle_pointer_function_calls(df, ++FUNCTION_COUNT)) {
+				if (handle_pointer_function_calls(df, ++NumProcessedFunctions)) {
 					finished = false;
 				}
 
-				PB.showProgress(FUNCTION_COUNT / (float) callgraph->size());
+				PB.showProgress((NumProcessedFunctions + callgraph->size() * (IterationCounter - 1))
+						/ ((float) callgraph->size() * (InterationStep * (IterationPhase + 1))));
+
 				++dfit;
 			}
-			PB.reset();
 		}
 
 		if (finished) {
 			break;
 		}
+
+        if (IterationCounter / InterationStep == IterationPhase + 1) {
+			++IterationPhase;
+			printf("\r\033[K"); // clear the line
+			PB.reset();
+        }
 	}
 
+	PB.showProgress(1);
 	printf("\n");
 	return;
 }
