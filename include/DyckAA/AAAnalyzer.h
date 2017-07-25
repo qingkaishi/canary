@@ -12,6 +12,7 @@
 
 #include "DyckAA/EdgeLabel.h"
 #include "DyckAA/DyckAliasAnalysis.h"
+#include "DyckAA/ProgressBar.h"
 #include <map>
 #include <unordered_map>
 
@@ -35,6 +36,8 @@ private:
 private:
 	map<Type*, FunctionTypeNode*> functionTyNodeMap;
 	set<FunctionTypeNode *> tyroots;
+
+	DyckAA::ProgressBar PB;
 
 public:
 	AAAnalyzer(Module* m, DyckAliasAnalysis* a, DyckGraph* d, DyckCallGraph* cg);
