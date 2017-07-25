@@ -164,11 +164,11 @@ void AAAnalyzer::inter_procedure_analysis() {
 			break;
 		}
 
-        if (IterationCounter / InterationStep == IterationPhase + 1) {
+		if (IterationCounter / InterationStep == IterationPhase + 1) {
 			++IterationPhase;
 			printf("\r\033[K"); // clear the line
 			PB.reset();
-        }
+		}
 	}
 
 	PB.showProgress(1);
