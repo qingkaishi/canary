@@ -1235,8 +1235,8 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
     if (!f->empty() || f->isIntrinsic())
         return;
 
-	const string& functionName = f->getName().str();
-	switch (args->size()) {
+    const string& functionName = f->getName().str();
+    switch (args->size()) {
 	case 1: {
 		if (functionName == "strdup" || functionName == "__strdup" || functionName == "strdupa") {
 			// content alias r/1st
@@ -1315,5 +1315,5 @@ void AAAnalyzer::handle_lib_invoke_call_inst(Value* ret, Function* f, vector<Val
 		break;
 	default:
 		break;
-	}
+    }
 }

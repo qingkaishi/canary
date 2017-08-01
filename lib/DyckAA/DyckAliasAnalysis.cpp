@@ -154,7 +154,7 @@ static RegisterAnalysisGroup<AliasAnalysis> Y("Alias Analysis");
 
 INITIALIZE_AG_PASS(DyckAliasAnalysis, AliasAnalysis, "dyckaa",
         "Alias Analysis based on PLDI 2013 paper: Qirun Zhang, Michael R. Lyu, Hao Yuan, and Zhendong Su."
-        "Fast Algorithms for Dyck-CFL-Reachability with Applications to Alias Analysis.", false, true, false);
+        "Fast Algorithms for Dyck-CFL-Reachability with Applications to Alias Analysis.", false, true, false)
 
 // Register this pass...
 char DyckAliasAnalysis::ID = 0;
