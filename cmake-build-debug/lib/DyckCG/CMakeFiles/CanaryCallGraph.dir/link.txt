@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../../bin/libCanaryCallGraph.a CMakeFiles/CanaryCallGraph.dir/DyckCallGraph.cpp.o CMakeFiles/CanaryCallGraph.dir/DyckCallGraphNode.cpp.o
-/usr/bin/ranlib ../../bin/libCanaryCallGraph.a
