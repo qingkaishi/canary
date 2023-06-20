@@ -29,7 +29,7 @@
 
 #include <cassert>
 #include <cstring>
-#include "DyckAA/ProgressBar.h"
+#include "Support/ProgressBar.h"
 
 namespace DyckAA {
     ProgressBar::ProgressBar(const std::string &Title, ProgressBarStyle Style, float UpdateFrequency) :

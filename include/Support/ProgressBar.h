@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKAA_PROGRESSBAR_H
-#define DYCKAA_PROGRESSBAR_H
+#ifndef SUPPORT_PROGRESSBAR_H
+#define SUPPORT_PROGRESSBAR_H
 
 #include <string>
 
@@ -73,4 +73,4 @@ private:
 
 }
 
-#endif // DYCKAA_PROGRESSBAR_H
+#endif // SUPPORT_PROGRESSBAR_H

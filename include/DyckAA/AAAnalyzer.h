@@ -24,7 +24,7 @@
 
 #include "DyckGraph/DyckEdgeLabel.h"
 #include "DyckAA/DyckAliasAnalysis.h"
-#include "DyckAA/ProgressBar.h"
+#include "Support/ProgressBar.h"
 
 class DyckAliasAnalysis;
 
