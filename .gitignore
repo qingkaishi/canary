@@ -3,7 +3,6 @@ cmake-build-*
 build
 *.a
 *.o
-*.bc
 bench/*.ll
 bench/*/*.ll
 bench/*/*/*.ll
