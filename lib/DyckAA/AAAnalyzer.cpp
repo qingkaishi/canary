@@ -50,26 +50,11 @@ AAAnalyzer::AAAnalyzer(Module *m, DyckAliasAnalysis *a, DyckGraph *d, DyckCallGr
     dgraph = d;
     callgraph = cg;
     dl = &m->getDataLayout();
+    this->initFunctionGroups();
 }
 
 AAAnalyzer::~AAAnalyzer() {
     this->destroyFunctionGroups();
-}
-
-void AAAnalyzer::start_intra_procedure_analysis() {
-    this->initFunctionGroups();
-    outs() << "[Canary] Intra-procedural analysis...";
-}
-
-void AAAnalyzer::end_intra_procedure_analysis() {
-    outs() << "\r\033[K"; // clear the line
-}
-
-void AAAnalyzer::start_inter_procedure_analysis() {
-}
-
-void AAAnalyzer::end_inter_procedure_analysis() {
-    DEBUG_WITH_TYPE("pointercalls", this->printNoAliasedPointerCalls());
 }
 
 void AAAnalyzer::intra_procedure_analysis() {
@@ -429,13 +414,12 @@ DyckVertex *AAAnalyzer::handle_gep(GEPOperator *gep) {
     DyckVertex *current = wrapValue(ptr);
 
     auto GTI = gep_type_begin(gep); // preGTI is the PointerTy of ptr
+    Type *AggOrPointerTy = ptr->getType();
+
     auto num_indices = gep->getNumIndices();
     int idxidx = 0;
     while (idxidx < num_indices) {
         Value *idx = gep->getOperand(++idxidx);
-        Type *AggOrPointerTy = GTI.getIndexedType();
-        GTI++;
-
         auto *ci = dyn_cast<ConstantInt>(idx);
 
         if (AggOrPointerTy->isStructTy()) {
@@ -460,10 +444,15 @@ DyckVertex *AAAnalyzer::handle_gep(GEPOperator *gep) {
             if (!ci)
                 wrapValue(idx);
         } else {
+            errs() << "\n";
+            errs() << *gep << "\n";
             errs() << "ERROR in handle_gep: unknown type:\n";
             errs() << "Type Id: " << AggOrPointerTy->getTypeID() << "\n";
+            errs() << "Type: " << *AggOrPointerTy << "\n";
             exit(1);
         }
+        AggOrPointerTy = GTI.getIndexedType();
+        GTI++;
     }
 
     return current;
@@ -722,7 +711,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
     }
 
     // wrap unhandled operand
-    for (unsigned i = 0; i < inst->getNumOperands(); i++) {
+    for (unsigned i = 0; i < call->getNumArgOperands(); i++) {
         if (!(mask & (1 << i))) {
             wrapValue(call->getArgOperand(i));
         }

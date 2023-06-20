@@ -54,14 +54,6 @@ public:
 
     ~AAAnalyzer();
 
-    void start_intra_procedure_analysis();
-
-    void end_intra_procedure_analysis();
-
-    void start_inter_procedure_analysis();
-
-    void end_inter_procedure_analysis();
-
     void intra_procedure_analysis();
 
     void inter_procedure_analysis();

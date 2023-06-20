@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     initializeAggressiveInstCombine(Registry);
     initializeTarget(Registry);
 
-    cl::ParseCommandLineOptions(argc, argv, "Popeye lifts protocol source code to protocol specifications\n");
+    cl::ParseCommandLineOptions(argc, argv, "Bona soundly checks if a pointer may be nullptr.\n");
 
     SMDiagnostic Err;
     LLVMContext Context;
@@ -125,8 +125,10 @@ int main(int argc, char **argv) {
     Passes.add(createPromoteMemoryToRegisterPass());
     Passes.add(createSCCPPass());
     Passes.add(createLoopSimplifyPass());
-    Passes.add(createDyckAliasAnalysisPass());
     Passes.add(new NotificationPass("Start preprocessing the input bitcode ... ""Done!"));
+    Passes.add(new NotificationPass("Start alias analysis ... "));
+    Passes.add(createDyckAliasAnalysisPass());
+    Passes.add(new NotificationPass("Start alias analysis ... ""Done!"));
 
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {

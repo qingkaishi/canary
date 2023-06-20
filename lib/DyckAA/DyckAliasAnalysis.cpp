@@ -385,18 +385,10 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
     auto *aaa = new AAAnalyzer(&M, this, dyck_graph, call_graph);
 
     /// step 1: intra-procedure analysis
-    aaa->start_intra_procedure_analysis();
-    //outs() << "Start intra-procedure analysis...\n";
     aaa->intra_procedure_analysis();
-    //outs() << "Done!\n\n";
-    aaa->end_intra_procedure_analysis();
 
     /// step 2: inter-procedure analysis
-    aaa->start_inter_procedure_analysis();
-    //outs() << "Start inter-procedure analysis...";
     aaa->inter_procedure_analysis();
-    //outs() << "\nDone!\n\n";
-    aaa->end_inter_procedure_analysis();
 
     /* call graph */
     if (DotCallGraph) {
