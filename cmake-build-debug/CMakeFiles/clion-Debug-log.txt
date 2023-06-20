@@ -1,0 +1,7 @@
+/home/qingkaishi/.cache/JetBrains/RemoteDev/dist/6c3ff81b1df74_CLion-232.7295.14/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" -S /home/qingkaishi/canary -B /home/qingkaishi/canary/cmake-build-debug
+-- llvm-config not found!
+-- llvm-config-12 found!
+-- -L/usr/lib/llvm-12/lib 
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/qingkaishi/canary/cmake-build-debug

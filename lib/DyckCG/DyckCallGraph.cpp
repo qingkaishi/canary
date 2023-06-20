@@ -1,59 +1,73 @@
 /*
- * Developed by Qingkai Shi
- * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ *  Canary features a fast unification-based alias analysis for C programs
+ *  Copyright (C) 2021 Qingkai Shi <qingkaishi@gmail.com>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published
+ *  by the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "DyckCG/DyckCallGraph.h"
 
 static cl::opt<bool>
-WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
-        cl::desc("Determine whether there are edge lables in the cg."));
+        WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
+                       cl::desc("Determine whether there are edge lables in the cg."));
 
-void DyckCallGraph::dotCallGraph(const string& mIdentifier) {
-    string dotfilename("");
+void DyckCallGraph::dotCallGraph(const string &mIdentifier) {
+    string dotfilename;
     dotfilename.append(mIdentifier);
     dotfilename.append(".maycg.dot");
 
-    FILE * fout = fopen(dotfilename.data(), "w+");
+    FILE *fout = fopen(dotfilename.data(), "w+");
     fprintf(fout, "digraph maycg {\n");
-    
+
     auto fwIt = FunctionMap.begin();
     while (fwIt != FunctionMap.end()) {
-        DyckCallGraphNode* fw = fwIt->second;
+        DyckCallGraphNode *fw = fwIt->second;
         fprintf(fout, "\tf%d[label=\"%s\"]\n", fw->getIndex(), fw->getLLVMFunction()->getName().data());
         fwIt++;
     }
 
     fwIt = FunctionMap.begin();
     while (fwIt != FunctionMap.end()) {
-        DyckCallGraphNode* fw = fwIt->second;
-        set<CommonCall*>* commonCalls = &(fw->getCommonCalls());
-        set<CommonCall*>::iterator comIt = commonCalls->begin();
+        DyckCallGraphNode *fw = fwIt->second;
+        set<CommonCall *> *commonCalls = &(fw->getCommonCalls());
+        auto comIt = commonCalls->begin();
         while (comIt != commonCalls->end()) {
-            CommonCall* cc = *comIt;
-            Function * callee = (Function*) cc->calledValue;
+            CommonCall *cc = *comIt;
+            auto *callee = (Function *) cc->calledValue;
 
             if (FunctionMap.count(callee)) {
                 if (WithEdgeLabels) {
-                    Value * ci = cc->instruction;
+                    Value *ci = cc->instruction;
                     std::string s;
                     raw_string_ostream rso(s);
-                    if (ci != NULL) {
+                    if (ci != nullptr) {
                         rso << *(ci);
                     } else {
                         rso << "Hidden";
                     }
-                    string& edgelabel = rso.str();
-                    for (unsigned int i = 0; i < edgelabel.length(); i++) {
-                        if (edgelabel[i] == '\"') {
-                            edgelabel[i] = '`';
+                    string &edgelabel = rso.str();
+                    for (char &i: edgelabel) {
+                        if (i == '\"') {
+                            i = '`';
                         }
 
-                        if (edgelabel[i] == '\n') {
-                            edgelabel[i] = ' ';
+                        if (i == '\n') {
+                            i = ' ';
                         }
                     }
-                    fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[callee]->getIndex(), edgelabel.data());
+                    fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[callee]->getIndex(),
+                            edgelabel.data());
                 } else {
                     fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), FunctionMap[callee]->getIndex());
                 }
@@ -64,39 +78,40 @@ void DyckCallGraph::dotCallGraph(const string& mIdentifier) {
             comIt++;
         }
 
-        set<PointerCall*>* fpCallsMap = &(fw->getPointerCalls());
-        set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
+        set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
+        auto fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
-            PointerCall* pcall = *fpIt;
-            set<Function*>* mayCalled = &((*fpIt)->mayAliasedCallees);
+            PointerCall *pcall = *fpIt;
+            set<Function *> *mayCalled = &((*fpIt)->mayAliasedCallees);
 
-            char * edgeLabelData = NULL;
+            char *edgeLabelData = nullptr;
             if (WithEdgeLabels) {
                 std::string s;
                 raw_string_ostream rso(s);
-                if (pcall->instruction != NULL) {
+                if (pcall->instruction != nullptr) {
                     rso << *(pcall->instruction);
                 } else {
                     rso << "Hidden";
                 }
-                string& edgelabel = rso.str(); // edge label is the call inst
-                for (unsigned int i = 0; i < edgelabel.length(); i++) {
-                    if (edgelabel[i] == '\"') {
-                        edgelabel[i] = '`';
+                string &edgelabel = rso.str(); // edge label is the call inst
+                for (char &i: edgelabel) {
+                    if (i == '\"') {
+                        i = '`';
                     }
 
-                    if (edgelabel[i] == '\n') {
-                        edgelabel[i] = ' ';
+                    if (i == '\n') {
+                        i = ' ';
                     }
                 }
-                edgeLabelData = const_cast<char*> (edgelabel.data());
+                edgeLabelData = const_cast<char *> (edgelabel.data());
             }
-            set<Function*>::iterator mcIt = mayCalled->begin();
+            auto mcIt = mayCalled->begin();
             while (mcIt != mayCalled->end()) {
-                Function * mcf = *mcIt;
+                Function *mcf = *mcIt;
                 if (FunctionMap.count(mcf)) {
                     if (WithEdgeLabels) {
-                        fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[mcf]->getIndex(), edgeLabelData);
+                        fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[mcf]->getIndex(),
+                                edgeLabelData);
                     } else {
                         fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), FunctionMap[mcf]->getIndex());
                     }
@@ -119,19 +134,19 @@ void DyckCallGraph::dotCallGraph(const string& mIdentifier) {
     fclose(fout);
 }
 
-void DyckCallGraph::printFunctionPointersInformation(const string& mIdentifier) {
-    string dotfilename("");
+void DyckCallGraph::printFunctionPointersInformation(const string &mIdentifier) {
+    string dotfilename;
     dotfilename.append(mIdentifier);
     dotfilename.append(".fp.txt");
 
-    FILE * fout = fopen(dotfilename.data(), "w+");
+    FILE *fout = fopen(dotfilename.data(), "w+");
 
     auto fwIt = this->begin();
     while (fwIt != this->end()) {
-        DyckCallGraphNode* fw = fwIt->second;
+        DyckCallGraphNode *fw = fwIt->second;
 
-        set<PointerCall*>* fpCallsMap = &(fw->getPointerCalls());
-        set<PointerCall*>::iterator fpIt = fpCallsMap->begin();
+        set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
+        auto fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
             /*Value * callInst = fpIt->first;
             std::string s;
@@ -149,11 +164,11 @@ void DyckCallGraph::printFunctionPointersInformation(const string& mIdentifier) 
             }
             fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
              */
-            set<Function*>* mayCalled = &((*(fpIt))->mayAliasedCallees);
+            set<Function *> *mayCalled = &((*(fpIt))->mayAliasedCallees);
             fprintf(fout, "%zd\n", mayCalled->size()); //number of functions
 
             // what functions?
-            set<Function*>::iterator mcIt = mayCalled->begin();
+            auto mcIt = mayCalled->begin();
             while (mcIt != mayCalled->end()) {
                 // Function * mcf = *mcIt;
                 //fprintf(fout, "%s\n", mcf->getName().data());

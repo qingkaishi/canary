@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../bin/libCanaryDyckGraph.a CMakeFiles/CanaryDyckGraph.dir/DyckGraph.cpp.o CMakeFiles/CanaryDyckGraph.dir/DyckVertex.cpp.o
+/usr/bin/ranlib ../../bin/libCanaryDyckGraph.a

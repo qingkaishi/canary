@@ -1,7 +1,0 @@
-Import('env')
-
-LIBRARYNAME="CanaryRecorder"
-LIBRARYNAME=env['BIN']+"/"+LIBRARYNAME
-
-
-env.Library(LIBRARYNAME, Glob('*.cpp'))

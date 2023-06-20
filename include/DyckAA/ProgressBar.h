@@ -1,8 +1,19 @@
 /*
- * It is used to show progress in console.
+ *  Canary features a fast unification-based alias analysis for C programs
+ *  Copyright (C) 2021 Qingkai Shi <qingkaishi@gmail.com>
  *
- *  Created on: Dec 05, 2016
- *      Author: Qingkai
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published
+ *  by the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef DYCKAA_PROGRESSBAR_H
@@ -43,7 +54,7 @@ private:
     /// @}
 
 public:
-    ProgressBar(std::string Title, ProgressBarStyle Style, float UpdateFrequency = 0.01);
+    ProgressBar(const std::string &Title, ProgressBarStyle Style, float UpdateFrequency = 0.01);
 
     virtual ~ProgressBar();
 
@@ -53,10 +64,6 @@ public:
     void showProgress(float Percent);
 
     void reset();
-
-    void setTitle(std::string T) {
-        Title = T;
-    }
 
 private:
     /// In case the console width is changed

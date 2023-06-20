@@ -1,7 +1,0 @@
-Import('env')
-
-LIBRARYNAME="CanaryDyckGraph"
-LIBRARYNAME=env['BIN']+"/"+LIBRARYNAME
-
-
-env.Library(LIBRARYNAME, Glob('*.cpp'))

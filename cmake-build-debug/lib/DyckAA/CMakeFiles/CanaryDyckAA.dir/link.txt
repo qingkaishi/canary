@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../bin/libCanaryDyckAA.a CMakeFiles/CanaryDyckAA.dir/DyckAliasAnalysis.cpp.o CMakeFiles/CanaryDyckAA.dir/AAAnalyzer.cpp.o CMakeFiles/CanaryDyckAA.dir/EdgeLabel.cpp.o CMakeFiles/CanaryDyckAA.dir/ProgressBar.cpp.o
+/usr/bin/ranlib ../../bin/libCanaryDyckAA.a

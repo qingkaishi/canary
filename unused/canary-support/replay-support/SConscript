@@ -1,7 +1,0 @@
-Import('env')
-
-LIBRARYNAME="CanaryReplayer"
-LIBRARYNAME=env['BIN']+"/"+LIBRARYNAME
-
-
-env.Library(LIBRARYNAME, Glob('*.cpp'))

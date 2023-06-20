@@ -1,26 +1,37 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10.0)
 project(canary C CXX)
-    
+
+unset(LLVMCONFIG CACHE)
 find_program(LLVMCONFIG llvm-config)
-if(NOT LLVMCONFIG)
-    message(FATAL_ERROR "llvm-config not found!") 
-endif()
-   
+if (NOT LLVMCONFIG)
+    message(STATUS "llvm-config not found!")
+    find_program(LLVMCONFIG llvm-config-12)
+    if (NOT LLVMCONFIG)
+        message(FATAL_ERROR "llvm-config-12 not found!")
+    else ()
+        message(STATUS "llvm-config-12 found!")
+    endif ()
+endif ()
+
 execute_process(COMMAND ${LLVMCONFIG} --cxxflags OUTPUT_VARIABLE CMAKE_CXX_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${LLVMCONFIG} --cflags OUTPUT_VARIABLE CMAKE_C_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${LLVMCONFIG} --cppflags OUTPUT_VARIABLE CMAKE_CPP_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${LLVMCONFIG} --ldflags OUTPUT_VARIABLE CMAKE_EXE_LINKER_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${LLVMCONFIG} --libdir OUTPUT_VARIABLE LIB_PATHS OUTPUT_STRIP_TRAILING_WHITESPACE)
+#execute_process(COMMAND ${LLVMCONFIG} --libdir OUTPUT_VARIABLE LIB_PATHS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${LLVMCONFIG} --system-libs OUTPUT_VARIABLE LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${LLVMCONFIG} --includedir OUTPUT_VARIABLE LLVM_INCLUDE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LIB_PATHS} ${LIBS}")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-set (INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include ${LLVM_INCLUDE_DIR})
-set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LIBS}")
+message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+
+include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(AFTER ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_subdirectory(lib)
+add_subdirectory(tools)
 
 
 

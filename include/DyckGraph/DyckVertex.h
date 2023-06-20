@@ -1,111 +1,122 @@
 /*
- * Developed by Qingkai Shi
- * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ *  Canary features a fast unification-based alias analysis for C programs
+ *  Copyright (C) 2021 Qingkai Shi <qingkaishi@gmail.com>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published
+ *  by the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef DYCKVERTEX_H
-#define	DYCKVERTEX_H
+#define DYCKVERTEX_H
 
 #include <map>
 #include <set>
-#include <stdio.h>
-#include <stdlib.h>
 
 using namespace std;
 
 class DyckGraph;
-/// This class models the vertex in DyckGraph.
 
 class DyckVertex {
 private:
-	static int global_indx;
-	int index;
-	const char * name;
+    static int global_indx;
+    int index{};
+    const char *name{};
 
-	set<void*> in_lables;
-	set<void*> out_lables;
+    set<void *> in_lables;
+    set<void *> out_lables;
 
-	map<void*, set<DyckVertex*>> in_vers;
-	map<void*, set<DyckVertex*>> out_vers;
+    map<void *, set<DyckVertex *>> in_vers;
+    map<void *, set<DyckVertex *>> out_vers;
 
-	/// only store non-null value
-	set<void*> equivclass;
+    /// only store non-null value
+    set<void *> equivclass;
 
-	/// Default constructor is not visible.
-	/// please use DyckGraph::retrieveDyckVertex for initialization
-	DyckVertex();
+    /// Default constructor is not visible.
+    /// please use DyckGraph::retrieveDyckVertex for initialization
+    DyckVertex() = default;
 
-	/// The constructor is not visible. The first argument is the pointer of the value that you want to encapsulate.
-	/// The second argument is the name of the vertex, which will be used in void DyckGraph::printAsDot() function.
-	/// You are not recommended to assign names to vertices when you need not to print the graph,
-	/// because it may be time-consuming for you to construct names for vertices.
-	/// please use DyckGraph::retrieveDyckVertex for initialization.
-	DyckVertex(void * v, const char* itsname = NULL);
-
-public:
-	friend class DyckGraph;
+    /// The constructor is not visible. The first argument is the pointer of the value that you want to encapsulate.
+    /// The second argument is the name of the vertex, which will be used in void DyckGraph::printAsDot() function.
+    /// You are not recommended to assign names to vertices when you need not to print the graph,
+    /// because it may be time-consuming for you to construct names for vertices.
+    /// please use DyckGraph::retrieveDyckVertex for initialization.
+    explicit DyckVertex(void *v, const char *itsname = nullptr);
 
 public:
-	~DyckVertex();
+    friend class DyckGraph;
 
-	/// Get its index
-	/// The index of the first vertex you create is 0, the second one is 1, ...
-	int getIndex();
+public:
+    ~DyckVertex();
 
-	/// Get its name
-	const char * getName();
+    /// Get its index
+    /// The index of the first vertex you create is 0, the second one is 1, ...
+    int getIndex() const;
 
-	/// Get the source vertices corresponding the label
-	set<DyckVertex*>* getInVertices(void * label);
+    /// Get its name
+    const char *getName();
 
-	/// Get the target vertices corresponding the label
-	set<DyckVertex*>* getOutVertices(void * label);
+    /// Get the source vertices corresponding the label
+    set<DyckVertex *> *getInVertices(void *label);
 
-	/// Get the number of vertices that are the targets of this vertex, and have the edge label: label.
-	unsigned int outNumVertices(void* label);
+    /// Get the target vertices corresponding the label
+    set<DyckVertex *> *getOutVertices(void *label);
 
-	/// Get the number of vertices that are the sources of this vertex, and have the edge label: label.
-	unsigned int inNumVertices(void* label);
+    /// Get the number of vertices that are the targets of this vertex, and have the edge label: label.
+    unsigned int outNumVertices(void *label);
 
-	/// Total degree of the vertex
-	unsigned int degree();
+    /// Get the number of vertices that are the sources of this vertex, and have the edge label: label.
+    unsigned int inNumVertices(void *label);
 
-	/// Get all the labels in the edges that point to the vertex's targets.
-	set<void*>& getOutLabels();
+    /// Total degree of the vertex
+    unsigned int degree();
 
-	/// Get all the labels in the edges that point to the vertex.
-	set<void*>& getInLabels();
+    /// Get all the labels in the edges that point to the vertex's targets.
+    set<void *> &getOutLabels();
 
-	/// Get all the vertex's targets.
-	/// The return value is a map which maps labels to a set of vertices.
-	map<void*, set<DyckVertex*>>& getOutVertices();
+    /// Get all the labels in the edges that point to the vertex.
+    set<void *> &getInLabels();
 
-	/// Get all the vertex's sources.
-	/// The return value is a map which maps labels to a set of vertices.
-	map<void*, set<DyckVertex*>>& getInVertices();
+    /// Get all the vertex's targets.
+    /// The return value is a map which maps labels to a set of vertices.
+    map<void *, set<DyckVertex *>> &getOutVertices();
 
-	/// Add a target with a label. Meanwhile, this vertex will be a source of ver.
-	void addTarget(DyckVertex* ver, void* label);
+    /// Get all the vertex's sources.
+    /// The return value is a map which maps labels to a set of vertices.
+    map<void *, set<DyckVertex *>> &getInVertices();
 
-	/// Remove a target. Meanwhile, this vertex will be removed from ver's sources
-	void removeTarget(DyckVertex* ver, void* label);
+    /// Add a target with a label. Meanwhile, this vertex will be a source of ver.
+    void addTarget(DyckVertex *ver, void *label);
 
-	/// Return true if the vertex contains a target ver, and the edge label is "label"
-	bool containsTarget(DyckVertex* ver, void* label);
+    /// Remove a target. Meanwhile, this vertex will be removed from ver's sources
+    void removeTarget(DyckVertex *ver, void *label);
 
-	/// For qirun's algorithm DyckGraph::qirunAlgorithm().
-	/// The representatives of all the vertices in the equivalent set of this vertex
-	/// will be set to be rep.
-	void mvEquivalentSetTo(DyckVertex* rep);
+    /// Return true if the vertex contains a target ver, and the edge label is "label"
+    bool containsTarget(DyckVertex *ver, void *label);
 
-	/// Get the equivalent set of non-null value.
-	/// Use it after you call DyckGraph::qirunAlgorithm().
-	set<void*>* getEquivalentSet();
+    /// For qirun's algorithm DyckGraph::qirunAlgorithm().
+    /// The representatives of all the vertices in the equivalent set of this vertex
+    /// will be set to be rep.
+    void mvEquivalentSetTo(DyckVertex *rep);
+
+    /// Get the equivalent set of non-null value.
+    /// Use it after you call DyckGraph::qirunAlgorithm().
+    set<void *> *getEquivalentSet();
 
 private:
-	void addSource(DyckVertex* ver, void* label);
-	void removeSource(DyckVertex* ver, void* label);
+    void addSource(DyckVertex *ver, void *label);
+
+    void removeSource(DyckVertex *ver, void *label);
 };
 
-#endif	/* DYCKVERTEX_H */
+#endif /* DYCKVERTEX_H */
 

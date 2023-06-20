@@ -1,10 +1,22 @@
 /*
- * Developed by Qingkai Shi
- * Copy Right by Prism Research Group, HKUST and State Key Lab for Novel Software Tech., Nanjing University.  
+ *  Canary features a fast unification-based alias analysis for C programs
+ *  Copyright (C) 2021 Qingkai Shi <qingkaishi@gmail.com>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published
+ *  by the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "DyckGraph/DyckVertex.h"
-#include <assert.h>
 
 int DyckVertex::global_indx = 0;
 
@@ -12,13 +24,12 @@ DyckVertex::DyckVertex(void * v, const char * itsname) {
 	name = itsname;
 	index = global_indx++;
 
-	if (v != NULL) {
+	if (v != nullptr) {
 		equivclass.insert(v);
 	}
 }
 
-DyckVertex::~DyckVertex() {
-}
+DyckVertex::~DyckVertex() = default;
 
 const char * DyckVertex::getName() {
 	return name;
@@ -43,13 +54,13 @@ unsigned int DyckVertex::inNumVertices(void* label) {
 unsigned int DyckVertex::degree() {
 	unsigned int ret = 0;
 
-	map<void*, set<DyckVertex*>>::iterator iit = in_vers.begin();
+	auto iit = in_vers.begin();
 	while (iit != in_vers.end()) {
 		ret = ret + iit->second.size();
 		iit++;
 	}
 
-	map<void*, set<DyckVertex*>>::iterator oit = out_vers.begin();
+	auto oit = out_vers.begin();
 	while (oit != out_vers.end()) {
 		ret = ret + oit->second.size();
 		oit++;
@@ -89,7 +100,7 @@ map<void*, set<DyckVertex*>>& DyckVertex::getInVertices() {
 	return in_vers;
 }
 
-int DyckVertex::getIndex() {
+int DyckVertex::getIndex() const {
 	return index;
 }
 
