@@ -37,7 +37,7 @@ private:
     ProgressBarStyle Style;
 
     /// Windows width
-    int WindowWidth;
+    unsigned WindowWidth;
 
     /// The buffer of characters, which
     /// will be shown in console as a progress bar.

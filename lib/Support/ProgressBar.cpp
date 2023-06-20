@@ -16,34 +16,24 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifdef __linux__
-
 #include <sys/ioctl.h>
 #include <unistd.h>
-
-#endif
-
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 #include <cassert>
 #include <cstring>
 #include "Support/ProgressBar.h"
 
 ProgressBar::ProgressBar(const std::string &Title, ProgressBarStyle Style, float UpdateFrequency) :
         Title(Title), Style(Style), UpdateFrequency(UpdateFrequency) {
-#ifdef __linux__
-    struct winsize WinSize;
-    ioctl(STDIN_FILENO, TIOCGWINSZ, &WinSize);
-    WindowWidth = WinSize.ws_col > 80 ? 80 : WinSize.ws_col - Title.length() - 15;
-#elif _WIN32
-    HANDLE StdOutHandler = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO ConsoleInfo;
 
-    GetConsoleScreenBufferInfo(StdOutHandler, ConsoleInfo);
-    WindowWidth = ConsoleInfo.dwSize.x > 80 ? 80 : ConsoleInfo.dwSize.x - Title.length() - 15;
-#endif
+    struct winsize WinSize{};
+    ioctl(STDIN_FILENO, TIOCGWINSZ, &WinSize);
+    if (WinSize.ws_col > 80) {
+        WindowWidth = 80;
+    } else if (WinSize.ws_col >= Title.length() + 15) {
+        WindowWidth = WinSize.ws_col - Title.length() - 15;
+    } else {
+        WindowWidth = 0;
+    }
 
     if (WindowWidth < 15) {
         ProgressBuffer = nullptr;
@@ -76,7 +66,7 @@ void ProgressBar::showProgress(float Percent) {
     // In case the window width is changed at runtime.
     resize();
 
-    float Val = Percent * WindowWidth;
+    auto Val = (unsigned) (Percent * (float) WindowWidth);
     switch (this->Style) {
         case PBS_NumberStyle:
             printf("\033[?25l\033[37m\033[1m%s %d%%\033[?25h\033[0m\r",
@@ -112,19 +102,16 @@ void ProgressBar::resize() {
     // clear the line.
     printf("\r\033[K");
 
-    int CurrentWindowWidth = 0;
-
-#ifdef __linux__
-    struct winsize WinSize;
+    unsigned CurrentWindowWidth;
+    struct winsize WinSize{};
     ioctl(STDIN_FILENO, TIOCGWINSZ, &WinSize);
-    CurrentWindowWidth = WinSize.ws_col > 80 ? 80 : WinSize.ws_col - Title.length() - 15;
-#elif _WIN32
-    HANDLE StdOutHandler = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO ConsoleInfo;
-
-    GetConsoleScreenBufferInfo(StdOutHandler, ConsoleInfo);
-    CurrentWindowWidth = ConsoleInfo.dwSize.x > 80 ? 80 : ConsoleInfo.dwSize.x - Title.length() - 15;
-#endif
+    if (WinSize.ws_col > 80) {
+        CurrentWindowWidth = 80;
+    } else if (WinSize.ws_col >= Title.length() + 15) {
+        CurrentWindowWidth = WinSize.ws_col - Title.length() - 15;
+    } else {
+        CurrentWindowWidth = 0;
+    }
 
     if (CurrentWindowWidth < 15) {
         free(ProgressBuffer);
