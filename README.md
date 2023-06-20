@@ -39,16 +39,15 @@ If the option is set, we do not check the function type when resolving pointer
 calls, otherwise, only type compatible function can be aliased with a function
 pointer. We say f1 and f2 are two type-compatible functions iff.
 
-- Both or netheir of them are var arg function;
+    - Both or netheir of them are var arg function;
 
-- Both or netheir of them have a non-void return value;
+    - Both or netheir of them have a non-void return value;
 
-- Same number of parameters;
+    - Same number of parameters;
 
-- Same type store sizes of each pair of parameters;
+    - Same type store sizes of each pair of parameters;
 
-- There is an explicit cast operation between type(f1) and type(f2) 
-(it works with option -with-function-cast-comb).
+    - There is an explicit cast operation between type(f1) and type(f2) (it works with option -with-function-cast-comb).
 
 * -dot-dyck-callgraph
 
