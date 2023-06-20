@@ -46,7 +46,7 @@ private:
     std::map<Type *, FunctionTypeNode *> functionTyNodeMap;
     std::set<FunctionTypeNode *> tyroots;
 
-    DyckAA::ProgressBar PB;
+    ProgressBar PB;
 
 public:
     AAAnalyzer(Module *m, DyckAliasAnalysis *a, DyckGraph *d, DyckCallGraph *cg);

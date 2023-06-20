@@ -21,8 +21,6 @@
 
 #include <string>
 
-namespace DyckAA {
-
 class ProgressBar {
 public:
     enum ProgressBarStyle {
@@ -70,7 +68,5 @@ private:
     /// at runtime.
     void resize();
 };
-
-}
 
 #endif // SUPPORT_PROGRESSBAR_H

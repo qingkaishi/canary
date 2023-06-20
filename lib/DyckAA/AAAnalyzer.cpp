@@ -44,7 +44,7 @@ static void OnSegmentFalut(int) {
 }
 
 AAAnalyzer::AAAnalyzer(Module *m, DyckAliasAnalysis *a, DyckGraph *d, DyckCallGraph *cg) :
-        PB("[Canary]", DyckAA::ProgressBar::PBS_CharacterStyle) {
+        PB("[Canary]", ProgressBar::PBS_CharacterStyle) {
     module = m;
     aa = a;
     dgraph = d;
