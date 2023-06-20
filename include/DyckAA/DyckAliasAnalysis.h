@@ -16,32 +16,30 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKALIASANALYSIS_H
-#define DYCKALIASANALYSIS_H
+#ifndef DYCKAA_DYCKALIASANALYSIS_H
+#define DYCKAA_DYCKALIASANALYSIS_H
 
-#include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Pass.h"
-#include "llvm/Analysis/CaptureTracking.h"
-#include "llvm/Analysis/MemoryBuiltins.h"
-#include "llvm/Analysis/InstructionSimplify.h"
-#include "llvm/Analysis/ValueTracking.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/IR/GetElementPtrTypeIterator.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/IR/InlineAsm.h"
+#include <llvm/Analysis/AliasAnalysis.h>
+#include <llvm/Pass.h>
+#include <llvm/Analysis/CaptureTracking.h>
+#include <llvm/Analysis/MemoryBuiltins.h>
+#include <llvm/Analysis/InstructionSimplify.h>
+#include <llvm/Analysis/ValueTracking.h>
+#include <llvm/ADT/SmallPtrSet.h>
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/Support/ErrorHandling.h>
+#include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/Debug.h>
+#include <llvm/IR/InlineAsm.h>
+#include <set>
 
 #include "DyckGraph/DyckGraph.h"
 #include "DyckCG/DyckCallGraph.h"
 #include "DyckAA/AAAnalyzer.h"
 
-#include <set>
-
 using namespace llvm;
-using namespace std;
 
 class DyckAliasAnalysis : public ModulePass {
 public:
@@ -56,23 +54,23 @@ public:
     void getAnalysisUsage(AnalysisUsage &AU) const override;
 
     /// Get the may/must alias set.
-    const set<Value *> *getAliasSet(Value *ptr) const;
+    const std::set<Value *> *getAliasSet(Value *V) const;
 
-    bool mayAlias(Value* V1, Value *V2) const;
+    bool mayAlias(Value *V1, Value *V2) const;
 
 private:
     DyckGraph *dyck_graph;
     DyckCallGraph *call_graph;
 
     std::set<Function *> mem_allocas;
-    map<DyckVertex *, std::vector<Value *> *> vertexMemAllocaMap;
+    std::map<DyckVertex *, std::vector<Value *> *> vertexMemAllocaMap;
 
 private:
     friend class AAAnalyzer;
 
     EdgeLabel *DEREF_LABEL;
-    map<long, EdgeLabel *> OFFSET_LABEL_MAP;
-    map<long, EdgeLabel *> INDEX_LABEL_MAP;
+    std::map<long, EdgeLabel *> OFFSET_LABEL_MAP;
+    std::map<long, EdgeLabel *> INDEX_LABEL_MAP;
 
 private:
     EdgeLabel *getOrInsertOffsetEdgeLabel(long offset) {
@@ -80,7 +78,7 @@ private:
             return OFFSET_LABEL_MAP[offset];
         } else {
             EdgeLabel *ret = new PointerOffsetEdgeLabel(offset);
-            OFFSET_LABEL_MAP.insert(pair<long, EdgeLabel *>(offset, ret));
+            OFFSET_LABEL_MAP.insert(std::pair<long, EdgeLabel *>(offset, ret));
             return ret;
         }
     }
@@ -90,17 +88,12 @@ private:
             return INDEX_LABEL_MAP[offset];
         } else {
             EdgeLabel *ret = new FieldIndexEdgeLabel(offset);
-            INDEX_LABEL_MAP.insert(pair<long, EdgeLabel *>(offset, ret));
+            INDEX_LABEL_MAP.insert(std::pair<long, EdgeLabel *>(offset, ret));
             return ret;
         }
     }
 
 private:
-
-    /// Determine whether the object that VB points to can be got by
-    /// extractvalue instruction from the object VA points to.
-    bool isPartialAlias(DyckVertex *VA, DyckVertex *VB);
-
     /// Three kinds of information will be printed.
     /// 1. Alias Sets will be printed to the console
     /// 2. The relation of Alias Sets will be output into "alias_rel.dot"
@@ -108,29 +101,29 @@ private:
     ///     The summary of the evaluation will be printed to the console
     void printAliasSetInformation(Module &M);
 
-    void getEscapedPointersTo(set<DyckVertex *> *ret, Function *func); // escaped to 'func'
+    /// escaped to the function Func
+    void getEscapedPointersTo(std::set<DyckVertex *> *Ret, Function *Func);
 
-    void getEscapedPointersFrom(set<DyckVertex *> *ret, Value *from); // escaped from 'from'
+    /// escaped from the pointer Pointer
+    void getEscapedPointersFrom(std::set<DyckVertex *> *Ret, Value *Pointer);
 
 public:
     /// Get the vector of the may/must alias set that escape to 'func'
-    void getEscapedPointersTo(std::vector<const set<Value *> *> *ret, Function *func);
+    void getEscapedPointersTo(std::vector<const std::set<Value *> *> *Ret, Function *Func);
 
     /// Get the vector of the may/must alias set that escape from 'from'
-    void getEscapedPointersFrom(std::vector<const set<Value *> *> *ret, Value *from);
+    void getEscapedPointersFrom(std::vector<const std::set<Value *> *> *Ret, Value *Pointer);
 
-    bool callGraphPreserved();
+    bool callGraphPreserved() const;
 
-    DyckCallGraph *getCallGraph();
+    DyckCallGraph *getCallGraph() const;
 
-    DyckGraph *getDyckGraph() {
-        return dyck_graph;
-    }
+    DyckGraph *getDyckGraph() const;
 
     /// Get the set of objects that a pointer may point to,
     /// e.g. for %a = load i32* %b, {%a} will be returned for the
     /// pointer %b
-    void getPointstoObjects(std::set<Value *> &objects, Value *pointer);
+    void getPointstoObjects(std::set<Value *> &Objects, Value *Pointer);
 
     /// Given a pointer %p, suppose the memory location that %p points to
     /// is allocated by instruction "%p = malloc(...)", then the instruction
@@ -153,7 +146,7 @@ public:
     /// the same allocation instruction as the struct or class. For example
     /// %addr = alloca {int, int} not only initializes the memory %addr points to,
     /// but also initializes the memory gep %addr 0 and gep %addr 1 point to.
-    std::vector<Value *> *getDefaultPointstoMemAlloca(Value *pointer);
+    std::vector<Value *> *getDefaultPointstoMemAlloca(Value *Pointer);
 
     /// Default mem alloca function includes
     /// {
@@ -163,10 +156,9 @@ public:
     ///    "_Znwj", "_ZnwjRKSt9nothrow_t",
     ///    "_Znwm", "_ZnwmRKSt9nothrow_t"
     /// }
-    bool isDefaultMemAllocaFunction(Value *calledValue);
-
+    bool isDefaultMemAllocaFunction(Value *CalledValue);
 };
 
 llvm::ModulePass *createDyckAliasAnalysisPass();
 
-#endif
+#endif // DYCKAA_DYCKALIASANALYSIS_H

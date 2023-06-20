@@ -22,8 +22,8 @@ static cl::opt<bool>
         WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
                        cl::desc("Determine whether there are edge lables in the cg."));
 
-void DyckCallGraph::dotCallGraph(const string &mIdentifier) {
-    string dotfilename;
+void DyckCallGraph::dotCallGraph(const std::string &mIdentifier) {
+    std::string dotfilename;
     dotfilename.append(mIdentifier);
     dotfilename.append(".maycg.dot");
 
@@ -40,7 +40,7 @@ void DyckCallGraph::dotCallGraph(const string &mIdentifier) {
     fwIt = FunctionMap.begin();
     while (fwIt != FunctionMap.end()) {
         DyckCallGraphNode *fw = fwIt->second;
-        set<CommonCall *> *commonCalls = &(fw->getCommonCalls());
+        std::set<CommonCall *> *commonCalls = &(fw->getCommonCalls());
         auto comIt = commonCalls->begin();
         while (comIt != commonCalls->end()) {
             CommonCall *cc = *comIt;
@@ -56,7 +56,7 @@ void DyckCallGraph::dotCallGraph(const string &mIdentifier) {
                     } else {
                         rso << "Hidden";
                     }
-                    string &edgelabel = rso.str();
+                    std::string &edgelabel = rso.str();
                     for (char &i: edgelabel) {
                         if (i == '\"') {
                             i = '`';
@@ -78,11 +78,11 @@ void DyckCallGraph::dotCallGraph(const string &mIdentifier) {
             comIt++;
         }
 
-        set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
+        std::set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
         auto fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
             PointerCall *pcall = *fpIt;
-            set<Function *> *mayCalled = &((*fpIt)->mayAliasedCallees);
+            std::set<Function *> *mayCalled = &((*fpIt)->mayAliasedCallees);
 
             char *edgeLabelData = nullptr;
             if (WithEdgeLabels) {
@@ -93,7 +93,7 @@ void DyckCallGraph::dotCallGraph(const string &mIdentifier) {
                 } else {
                     rso << "Hidden";
                 }
-                string &edgelabel = rso.str(); // edge label is the call inst
+                std::string &edgelabel = rso.str(); // edge label is the call inst
                 for (char &i: edgelabel) {
                     if (i == '\"') {
                         i = '`';
@@ -134,8 +134,8 @@ void DyckCallGraph::dotCallGraph(const string &mIdentifier) {
     fclose(fout);
 }
 
-void DyckCallGraph::printFunctionPointersInformation(const string &mIdentifier) {
-    string dotfilename;
+void DyckCallGraph::printFunctionPointersInformation(const std::string &mIdentifier) {
+    std::string dotfilename;
     dotfilename.append(mIdentifier);
     dotfilename.append(".fp.txt");
 
@@ -145,7 +145,7 @@ void DyckCallGraph::printFunctionPointersInformation(const string &mIdentifier) 
     while (fwIt != this->end()) {
         DyckCallGraphNode *fw = fwIt->second;
 
-        set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
+        std::set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
         auto fpIt = fpCallsMap->begin();
         while (fpIt != fpCallsMap->end()) {
             /*Value * callInst = fpIt->first;
@@ -164,7 +164,7 @@ void DyckCallGraph::printFunctionPointersInformation(const string &mIdentifier) 
             }
             fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
              */
-            set<Function *> *mayCalled = &((*(fpIt))->mayAliasedCallees);
+            std::set<Function *> *mayCalled = &((*(fpIt))->mayAliasedCallees);
             fprintf(fout, "%zd\n", mayCalled->size()); //number of functions
 
             // what functions?

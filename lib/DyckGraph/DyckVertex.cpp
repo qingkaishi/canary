@@ -69,7 +69,7 @@ unsigned int DyckVertex::degree() {
 	return ret;
 }
 
-set<void*>* DyckVertex::getEquivalentSet() {
+std::set<void*>* DyckVertex::getEquivalentSet() {
 	return &this->equivclass;
 }
 
@@ -78,25 +78,25 @@ void DyckVertex::mvEquivalentSetTo(DyckVertex* rootRep) {
 		return;
 	}
 
-	set<void*>* rootecls = rootRep->getEquivalentSet();
-	set<void*>* thisecls = this->getEquivalentSet();
+	std::set<void*>* rootecls = rootRep->getEquivalentSet();
+	std::set<void*>* thisecls = this->getEquivalentSet();
 
 	rootecls->insert(thisecls->begin(), thisecls->end());
 }
 
-set<void*>& DyckVertex::getOutLabels() {
+std::set<void*>& DyckVertex::getOutLabels() {
 	return out_lables;
 }
 
-map<void*, set<DyckVertex*>>& DyckVertex::getOutVertices() {
+std::map<void*, std::set<DyckVertex*>>& DyckVertex::getOutVertices() {
 	return out_vers;
 }
 
-set<void*>& DyckVertex::getInLabels() {
+std::set<void*>& DyckVertex::getInLabels() {
 	return in_lables;
 }
 
-map<void*, set<DyckVertex*>>& DyckVertex::getInVertices() {
+std::map<void*, std::set<DyckVertex*>>& DyckVertex::getInVertices() {
 	return in_vers;
 }
 
@@ -129,7 +129,7 @@ bool DyckVertex::containsTarget(DyckVertex* tar, void* label) {
     return false;
 }
 
-set<DyckVertex*>* DyckVertex::getInVertices(void * label) {
+std::set<DyckVertex*>* DyckVertex::getInVertices(void * label) {
     auto it = in_vers.find(label);
     if (it != in_vers.end()) {
         return &it->second;
@@ -137,7 +137,7 @@ set<DyckVertex*>* DyckVertex::getInVertices(void * label) {
     return nullptr;
 }
 
-set<DyckVertex*>* DyckVertex::getOutVertices(void * label) {
+std::set<DyckVertex*>* DyckVertex::getOutVertices(void * label) {
     auto it = out_vers.find(label);
     if (it != out_vers.end()) {
         return &it->second;

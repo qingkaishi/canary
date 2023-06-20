@@ -16,13 +16,11 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKVERTEX_H
-#define DYCKVERTEX_H
+#ifndef DYCKGRAPH_DYCKVERTEX_H
+#define DYCKGRAPH_DYCKVERTEX_H
 
 #include <map>
 #include <set>
-
-using namespace std;
 
 class DyckGraph;
 
@@ -32,14 +30,14 @@ private:
     int index{};
     const char *name{};
 
-    set<void *> in_lables;
-    set<void *> out_lables;
+    std::set<void *> in_lables;
+    std::set<void *> out_lables;
 
-    map<void *, set<DyckVertex *>> in_vers;
-    map<void *, set<DyckVertex *>> out_vers;
+    std::map<void *, std::set<DyckVertex *>> in_vers;
+    std::map<void *, std::set<DyckVertex *>> out_vers;
 
     /// only store non-null value
-    set<void *> equivclass;
+    std::set<void *> equivclass;
 
     /// Default constructor is not visible.
     /// please use DyckGraph::retrieveDyckVertex for initialization
@@ -66,10 +64,10 @@ public:
     const char *getName();
 
     /// Get the source vertices corresponding the label
-    set<DyckVertex *> *getInVertices(void *label);
+    std::set<DyckVertex *> *getInVertices(void *label);
 
     /// Get the target vertices corresponding the label
-    set<DyckVertex *> *getOutVertices(void *label);
+    std::set<DyckVertex *> *getOutVertices(void *label);
 
     /// Get the number of vertices that are the targets of this vertex, and have the edge label: label.
     unsigned int outNumVertices(void *label);
@@ -81,18 +79,18 @@ public:
     unsigned int degree();
 
     /// Get all the labels in the edges that point to the vertex's targets.
-    set<void *> &getOutLabels();
+    std::set<void *> &getOutLabels();
 
     /// Get all the labels in the edges that point to the vertex.
-    set<void *> &getInLabels();
+    std::set<void *> &getInLabels();
 
     /// Get all the vertex's targets.
     /// The return value is a map which maps labels to a set of vertices.
-    map<void *, set<DyckVertex *>> &getOutVertices();
+    std::map<void *, std::set<DyckVertex *>> &getOutVertices();
 
     /// Get all the vertex's sources.
     /// The return value is a map which maps labels to a set of vertices.
-    map<void *, set<DyckVertex *>> &getInVertices();
+    std::map<void *, std::set<DyckVertex *>> &getInVertices();
 
     /// Add a target with a label. Meanwhile, this vertex will be a source of ver.
     void addTarget(DyckVertex *ver, void *label);
@@ -110,7 +108,7 @@ public:
 
     /// Get the equivalent set of non-null value.
     /// Use it after you call DyckGraph::qirunAlgorithm().
-    set<void *> *getEquivalentSet();
+    std::set<void *> *getEquivalentSet();
 
 private:
     void addSource(DyckVertex *ver, void *label);
@@ -118,5 +116,5 @@ private:
     void removeSource(DyckVertex *ver, void *label);
 };
 
-#endif /* DYCKVERTEX_H */
+#endif // DYCKGRAPH_DYCKVERTEX_H
 

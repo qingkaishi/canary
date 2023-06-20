@@ -32,11 +32,11 @@ void DyckGraph::printAsDot(const char *filename) const {
         else
             fprintf(f, "\ta%d;\n", (*vit)->getIndex());
 
-        map<void *, set<DyckVertex *>> &outs = (*vit)->getOutVertices();
+        std::map<void *, std::set<DyckVertex *>> &outs = (*vit)->getOutVertices();
         auto it = outs.begin();
         while (it != outs.end()) {
             long label = (long) (it->first);
-            set<DyckVertex *> *tars = &it->second;
+            std::set<DyckVertex *> *tars = &it->second;
 
             auto tarit = tars->begin();
             while (tarit != tars->end()) {
@@ -54,9 +54,9 @@ void DyckGraph::printAsDot(const char *filename) const {
     fclose(f);
 }
 
-void DyckGraph::removeFromWorkList(multimap<DyckVertex *, void *> &list, DyckVertex *v, void *l) {
-    typedef multimap<DyckVertex *, void *>::iterator CIT;
-    typedef pair<CIT, CIT> Range;
+void DyckGraph::removeFromWorkList(std::multimap<DyckVertex *, void *> &list, DyckVertex *v, void *l) {
+    typedef std::multimap<DyckVertex *, void *>::iterator CIT;
+    typedef std::pair<CIT, CIT> Range;
     Range range = list.equal_range(v);
     auto next = range.first;
     while (next != range.second) {
@@ -68,9 +68,9 @@ void DyckGraph::removeFromWorkList(multimap<DyckVertex *, void *> &list, DyckVer
     }
 }
 
-bool DyckGraph::containsInWorkList(multimap<DyckVertex *, void *> &list, DyckVertex *v, void *l) {
-    typedef multimap<DyckVertex *, void *>::iterator CIT;
-    typedef pair<CIT, CIT> Range;
+bool DyckGraph::containsInWorkList(std::multimap<DyckVertex *, void *> &list, DyckVertex *v, void *l) {
+    typedef std::multimap<DyckVertex *, void *>::iterator CIT;
+    typedef std::pair<CIT, CIT> Range;
     Range range = list.equal_range(v);
     auto next = range.first;
     while (next != range.second) {
@@ -96,7 +96,7 @@ DyckVertex *DyckGraph::combine(DyckVertex *x, DyckVertex *y) {
         y = temp;
     }
 
-    set<void *> &youtlabels = y->getOutLabels();
+    std::set<void *> &youtlabels = y->getOutLabels();
     auto yolit = youtlabels.begin();
     while (yolit != youtlabels.end()) {
         if (y->containsTarget(y, *yolit)) {
@@ -111,7 +111,7 @@ DyckVertex *DyckGraph::combine(DyckVertex *x, DyckVertex *y) {
 
     yolit = youtlabels.begin();
     while (yolit != youtlabels.end()) {
-        set<DyckVertex *> *ws = &y->getOutVertices()[*yolit];
+        std::set<DyckVertex *> *ws = &y->getOutVertices()[*yolit];
         auto w = ws->begin();
         while (w != ws->end()) {
             if (!x->containsTarget(*w, *yolit)) {
@@ -129,10 +129,10 @@ DyckVertex *DyckGraph::combine(DyckVertex *x, DyckVertex *y) {
         yolit++;
     }
 
-    set<void *> &yinlabels = y->getInLabels();
+    std::set<void *> &yinlabels = y->getInLabels();
     auto yilit = yinlabels.begin();
     while (yilit != yinlabels.end()) {
-        set<DyckVertex *> *ws = &y->getInVertices()[*yilit];
+        std::set<DyckVertex *> *ws = &y->getInVertices()[*yilit];
         auto w = ws->begin();
         while (w != ws->end()) {
             if (!(*w)->containsTarget(x, *yilit)) {
@@ -165,15 +165,15 @@ DyckVertex *DyckGraph::combine(DyckVertex *x, DyckVertex *y) {
 bool DyckGraph::qirunAlgorithm() {
     bool ret = true;
 
-    multimap<DyckVertex *, void *> worklist;
+    std::multimap<DyckVertex *, void *> worklist;
 
     auto vit = vertices.begin();
     while (vit != vertices.end()) {
-        set<void *> &outlabels = (*vit)->getOutLabels();
+        std::set<void *> &outlabels = (*vit)->getOutLabels();
         auto lit = outlabels.begin();
         while (lit != outlabels.end()) {
             if ((*vit)->outNumVertices(*lit) > 1) {
-                worklist.insert(pair<DyckVertex *, void *>(*vit, *lit));
+                worklist.insert(std::pair<DyckVertex *, void *>(*vit, *lit));
             }
             lit++;
         }
@@ -189,7 +189,7 @@ bool DyckGraph::qirunAlgorithm() {
         //outs()<<"HERE0\n"; outs().flush();
         auto z_i_it = worklist.begin();
         //outs()<<"HERE0.1\n"; outs().flush();
-        set<DyckVertex *> *vers = &z_i_it->first->getOutVertices()[z_i_it->second];
+        std::set<DyckVertex *> *vers = &z_i_it->first->getOutVertices()[z_i_it->second];
         auto versIt = vers->begin();
         DyckVertex *x = *(versIt);
         versIt++;
@@ -210,7 +210,7 @@ bool DyckGraph::qirunAlgorithm() {
         //outs()<<"HERE0.4\n"; outs().flush();
         y->mvEquivalentSetTo(x/*->getRepresentative()*/);
         //outs()<<"HERE1\n"; outs().flush();
-        set<void *> &youtlabels = y->getOutLabels();
+        std::set<void *> &youtlabels = y->getOutLabels();
         auto yolit = youtlabels.begin();
         while (yolit != youtlabels.end()) {
             if (y->containsTarget(y, *yolit)) {
@@ -219,7 +219,7 @@ bool DyckGraph::qirunAlgorithm() {
                     x->addTarget(x, *yolit);
                     //this->addEdge(x, x, *yolit);
                     if (x->outNumVertices(*yolit) > 1 && !containsInWorkList(worklist, x, *yolit)) {
-                        worklist.insert(pair<DyckVertex *, void *>(x, *yolit));
+                        worklist.insert(std::pair<DyckVertex *, void *>(x, *yolit));
                     }
                 }
                 y->removeTarget(y, *yolit);
@@ -232,14 +232,14 @@ bool DyckGraph::qirunAlgorithm() {
         //outs()<<"HERE2\n"; outs().flush();
         yolit = youtlabels.begin();
         while (yolit != youtlabels.end()) {
-            set<DyckVertex *> *ws = &y->getOutVertices()[*yolit];
+            std::set<DyckVertex *> *ws = &y->getOutVertices()[*yolit];
             auto w = ws->begin();
             while (w != ws->end()) {
                 if (!x->containsTarget(*w, *yolit)) {
                     x->addTarget(*w, *yolit);
                     //this->addEdge(x, *w, *yolit);
                     if (x->outNumVertices(*yolit) > 1 && !containsInWorkList(worklist, x, *yolit)) {
-                        worklist.insert(pair<DyckVertex *, void *>(x, *yolit));
+                        worklist.insert(std::pair<DyckVertex *, void *>(x, *yolit));
                     }
                 }
                 // cannot use removeTarget function, which will affect iterator
@@ -257,10 +257,10 @@ bool DyckGraph::qirunAlgorithm() {
             yolit++;
         }
         //outs()<<"HERE3\n"; outs().flush();
-        set<void *> &yinlabels = y->getInLabels();
+        std::set<void *> &yinlabels = y->getInLabels();
         auto yilit = yinlabels.begin();
         while (yilit != yinlabels.end()) {
-            set<DyckVertex *> *ws = &y->getInVertices()[*yilit];
+            std::set<DyckVertex *> *ws = &y->getInVertices()[*yilit];
             auto w = ws->begin();
             while (w != ws->end()) {
                 if (!(*w)->containsTarget(x, *yilit)) {
@@ -288,7 +288,7 @@ bool DyckGraph::qirunAlgorithm() {
     return ret;
 }
 
-pair<DyckVertex *, bool> DyckGraph::retrieveDyckVertex(void *value, const char *name) {
+std::pair<DyckVertex *, bool> DyckGraph::retrieveDyckVertex(void *value, const char *name) {
     if (value == nullptr) {
         auto *ver = new DyckVertex(nullptr);
         vertices.insert(ver);
@@ -301,7 +301,7 @@ pair<DyckVertex *, bool> DyckGraph::retrieveDyckVertex(void *value, const char *
     } else {
         auto *ver = new DyckVertex(value, name);
         vertices.insert(ver);
-        val_ver_map.insert(pair<void *, DyckVertex *>(value, ver));
+        val_ver_map.insert(std::pair<void *, DyckVertex *>(value, ver));
         return std::make_pair(ver, false);
     }
 }
@@ -322,13 +322,13 @@ unsigned int DyckGraph::numEquivalentClasses() {
     return vertices.size();
 }
 
-set<DyckVertex *> &DyckGraph::getVertices() {
+std::set<DyckVertex *> &DyckGraph::getVertices() {
     return vertices;
 }
 
 void DyckGraph::validation(const char *file, int line) {
     printf("Start validation... ");
-    set<DyckVertex *> &reps = this->getVertices();
+    std::set<DyckVertex *> &reps = this->getVertices();
     auto repsIt = reps.begin();
     while (repsIt != reps.end()) {
         DyckVertex *rep = *repsIt;

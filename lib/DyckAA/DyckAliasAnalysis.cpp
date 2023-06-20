@@ -16,14 +16,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "DyckAA/DyckAliasAnalysis.h"
-#include "DyckCG/DyckCallGraph.h"
-
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/FileSystem.h>
 #include <cstdio>
 #include <stack>
 
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/FileSystem.h"
+#include "DyckAA/DyckAliasAnalysis.h"
+#include "DyckCG/DyckCallGraph.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc(
@@ -94,90 +93,38 @@ void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.setPreservesAll();
 }
 
-const set<Value *> *DyckAliasAnalysis::getAliasSet(Value *ptr) const {
+const std::set<Value *> *DyckAliasAnalysis::getAliasSet(Value *ptr) const {
     DyckVertex *v = dyck_graph->retrieveDyckVertex(ptr).first;
-    return (const set<Value *> *) v->getEquivalentSet();
+    return (const std::set<Value *> *) v->getEquivalentSet();
 }
 
 bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
     return getAliasSet(V1)->count(V2);
 }
 
-bool DyckAliasAnalysis::isPartialAlias(DyckVertex *v1, DyckVertex *v2) {
-    if (v1 == nullptr || v2 == nullptr)
-        return false;
-
-    if (v1 == v2)
-        return false;
-
-    set<DyckVertex *> visited;
-    stack<DyckVertex *> workStack;
-    workStack.push(v1);
-
-    while (!workStack.empty()) {
-        DyckVertex *top = workStack.top();
-        workStack.pop();
-
-        // have visited
-        if (visited.find(top) != visited.end()) {
-            continue;
-        }
-
-        if (top == v2) {
-            return true;
-        }
-
-        visited.insert(top);
-
-        { // push out tars
-            set<void *> &outlabels = top->getOutLabels();
-            auto olIt = outlabels.begin();
-            while (olIt != outlabels.end()) {
-                auto *labelValue = (EdgeLabel *) (*olIt);
-                if (labelValue->isLabelTy(EdgeLabel::OFFSET_TYPE)) {
-                    set<DyckVertex *> *tars = top->getOutVertices(*olIt);
-
-                    auto tit = tars->begin();
-                    while (tit != tars->end()) {
-                        // if it has not been visited
-                        if (visited.find(*tit) == visited.end()) {
-                            workStack.push(*tit);
-                        }
-                        tit++;
-                    }
-
-                }
-                olIt++;
-            }
-        }
-    }
-
-    return false;
-}
-
-void DyckAliasAnalysis::getEscapedPointersFrom(std::vector<const set<Value *> *> *ret, Value *from) {
+void DyckAliasAnalysis::getEscapedPointersFrom(std::vector<const std::set<Value *> *> *ret, Value *from) {
     assert(ret != nullptr);
 
-    set<DyckVertex *> temp;
+    std::set<DyckVertex *> temp;
     getEscapedPointersFrom(&temp, from);
 
     auto tempIt = temp.begin();
     while (tempIt != temp.end()) {
         DyckVertex *t = *tempIt;
-        ret->push_back((const set<Value *> *) t->getEquivalentSet());
+        ret->push_back((const std::set<Value *> *) t->getEquivalentSet());
         tempIt++;
     }
 }
 
-void DyckAliasAnalysis::getEscapedPointersFrom(set<DyckVertex *> *ret, Value *from) {
+void DyckAliasAnalysis::getEscapedPointersFrom(std::set<DyckVertex *> *ret, Value *from) {
     assert(ret != nullptr);
     assert(from != nullptr);
     if (isa<Argument>(from)) {
         assert(!((Argument *) from)->getParent()->empty());
     }
 
-    set<DyckVertex *> &visited = *ret;
-    stack<DyckVertex *> workStack;
+    std::set<DyckVertex *> &visited = *ret;
+    std::stack<DyckVertex *> workStack;
 
     workStack.push(dyck_graph->retrieveDyckVertex(from).first);
 
@@ -192,7 +139,7 @@ void DyckAliasAnalysis::getEscapedPointersFrom(set<DyckVertex *> *ret, Value *fr
 
         visited.insert(top);
 
-        set<DyckVertex *> tars;
+        std::set<DyckVertex *> tars;
         top->getOutVertices(&tars);
         auto tit = tars.begin();
         while (tit != tars.end()) {
@@ -205,28 +152,28 @@ void DyckAliasAnalysis::getEscapedPointersFrom(set<DyckVertex *> *ret, Value *fr
     }
 }
 
-void DyckAliasAnalysis::getEscapedPointersTo(std::vector<const set<Value *> *> *ret, Function *func) {
+void DyckAliasAnalysis::getEscapedPointersTo(std::vector<const std::set<Value *> *> *ret, Function *func) {
     assert(ret != nullptr);
 
-    set<DyckVertex *> temp;
+    std::set<DyckVertex *> temp;
     getEscapedPointersTo(&temp, func);
 
     auto tempIt = temp.begin();
     while (tempIt != temp.end()) {
         DyckVertex *t = *tempIt;
-        ret->push_back((const set<Value *> *) t->getEquivalentSet());
+        ret->push_back((const std::set<Value *> *) t->getEquivalentSet());
         tempIt++;
     }
 }
 
-void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex *> *ret, Function *func) {
+void DyckAliasAnalysis::getEscapedPointersTo(std::set<DyckVertex *> *ret, Function *func) {
     assert(ret != nullptr);
     assert(func != nullptr);
 
     Module *module = func->getParent();
 
-    set<DyckVertex *> &visited = *ret;
-    stack<DyckVertex *> workStack;
+    std::set<DyckVertex *> &visited = *ret;
+    std::stack<DyckVertex *> workStack;
 
     for (auto &GV: module->getGlobalList()) {
         if (!GV.hasPrivateLinkage() && !GV.getName().startswith("llvm.") && GV.getName().str() != "stderr"
@@ -271,7 +218,7 @@ void DyckAliasAnalysis::getEscapedPointersTo(set<DyckVertex *> *ret, Function *f
 
         visited.insert(top);
 
-        set<DyckVertex *> tars;
+        std::set<DyckVertex *> tars;
         top->getOutVertices(&tars);
         auto tit = tars.begin();
         while (tit != tars.end()) {
@@ -329,7 +276,7 @@ std::vector<Value *> *DyckAliasAnalysis::getDefaultPointstoMemAlloca(Value *ptr)
     vertexMemAllocaMap[v] = objects;
 
     // find allocas in v self
-    auto aliases = (const set<Value *> *) v->getEquivalentSet();
+    auto aliases = (const std::set<Value *> *) v->getEquivalentSet();
 
     for (auto &al: *aliases) {
         if (isa<GlobalVariable>(al) || isa<Function>(al)) {
@@ -349,13 +296,17 @@ std::vector<Value *> *DyckAliasAnalysis::getDefaultPointstoMemAlloca(Value *ptr)
     return objects;
 }
 
-bool DyckAliasAnalysis::callGraphPreserved() {
+bool DyckAliasAnalysis::callGraphPreserved() const {
     return PreserveCallGraph;
 }
 
-DyckCallGraph *DyckAliasAnalysis::getCallGraph() {
+DyckCallGraph *DyckAliasAnalysis::getCallGraph() const {
     assert(this->callGraphPreserved() && "Please add -preserve-dyck-callgraph option when using opt or canary.\n");
     return call_graph;
+}
+
+DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
+    return dyck_graph;
 }
 
 bool DyckAliasAnalysis::runOnModule(Module &M) {
@@ -425,17 +376,17 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
 void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
     /*if (InterAAEval)*/
     {
-        set<DyckVertex *> &allreps = dyck_graph->getVertices();
+        std::set<DyckVertex *> &allreps = dyck_graph->getVertices();
 
         outs() << "Printing distribution.log... ";
         outs().flush();
         FILE *log = fopen("distribution.log", "w+");
 
-        vector<unsigned long> aliasSetSizes;
+        std::vector<unsigned long> aliasSetSizes;
         unsigned totalSize = 0;
         auto it = allreps.begin();
         while (it != allreps.end()) {
-            set<void *> *aliasset = (*it)->getEquivalentSet();
+            std::set<void *> *aliasset = (*it)->getEquivalentSet();
 
             unsigned long size = 0;
 
@@ -487,15 +438,15 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         FILE *aliasRel = fopen("alias_rel.dot", "w");
         fprintf(aliasRel, "digraph rel{\n");
 
-        set<DyckVertex *> svs;
+        std::set<DyckVertex *> svs;
         Function *PThreadCreate = M.getFunction("pthread_create");
         if (PThreadCreate != nullptr) {
             this->getEscapedPointersTo(&svs, PThreadCreate);
         }
 
-        map<DyckVertex *, int> theMap;
+        std::map<DyckVertex *, int> theMap;
         int idx = 0;
-        set<DyckVertex *> &reps = dyck_graph->getVertices();
+        std::set<DyckVertex *> &reps = dyck_graph->getVertices();
         auto repIt = reps.begin();
         while (repIt != reps.end()) {
             idx++;
@@ -504,19 +455,19 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
             } else {
                 fprintf(aliasRel, "a%d[label=%d];\n", idx, idx);
             }
-            theMap.insert(pair<DyckVertex *, int>(*repIt, idx));
+            theMap.insert(std::pair<DyckVertex *, int>(*repIt, idx));
             repIt++;
         }
 
         repIt = reps.begin();
         while (repIt != reps.end()) {
             DyckVertex *dv = *repIt;
-            map<void *, set<DyckVertex *>> &outVs = dv->getOutVertices();
+            std::map<void *, std::set<DyckVertex *>> &outVs = dv->getOutVertices();
 
             auto ovIt = outVs.begin();
             while (ovIt != outVs.end()) {
                 auto *label = (EdgeLabel *) ovIt->first;
-                set<DyckVertex *> *oVs = &ovIt->second;
+                std::set<DyckVertex *> *oVs = &ovIt->second;
 
                 auto olIt = oVs->begin();
                 while (olIt != oVs->end()) {
@@ -543,7 +494,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
                 ovIt++;
             }
 
-            theMap.insert(pair<DyckVertex *, int>(*repIt, idx));
+            theMap.insert(std::pair<DyckVertex *, int>(*repIt, idx));
             repIt++;
         }
 
@@ -560,7 +511,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         std::error_code EC;
         raw_fd_ostream log("alias_sets.log", EC);
 
-        set<DyckVertex *> svs;
+        std::set<DyckVertex *> svs;
         Function *PThreadCreate = M.getFunction("pthread_create");
         if (PThreadCreate != nullptr) {
             this->getEscapedPointersTo(&svs, PThreadCreate);
@@ -570,7 +521,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         log << "===== {.} means pthread escaped alias set =====\n";
 
         int idx = 0;
-        set<DyckVertex *> &reps = dyck_graph->getVertices();
+        std::set<DyckVertex *> &reps = dyck_graph->getVertices();
         auto repsIt = reps.begin();
         while (repsIt != reps.end()) {
             idx++;
@@ -581,7 +532,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
                 pthread_escaped = true;
             }
 
-            set<void *> *eset = rep->getEquivalentSet();
+            std::set<void *> *eset = rep->getEquivalentSet();
             auto eit = eset->begin();
             while (eit != eset->end()) {
                 auto *val = (Value *) ((*eit));

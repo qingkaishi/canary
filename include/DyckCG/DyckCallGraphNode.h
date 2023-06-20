@@ -16,29 +16,26 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKCALLGRAPHNODE_H
-#define DYCKCALLGRAPHNODE_H
+#ifndef DYCKCG_DYCKCALLGRAPHNODE_H
+#define DYCKCG_DYCKCALLGRAPHNODE_H
 
-#include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Analysis/Passes.h"
-#include "llvm/Pass.h"
-#include "llvm/Analysis/CaptureTracking.h"
-#include "llvm/Analysis/MemoryBuiltins.h"
-#include "llvm/Analysis/InstructionSimplify.h"
-#include "llvm/Analysis/ValueTracking.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/IR/GetElementPtrTypeIterator.h"
-#include "llvm/Support/raw_ostream.h"
+#include <llvm/Analysis/AliasAnalysis.h>
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Pass.h>
+#include <llvm/Analysis/CaptureTracking.h>
+#include <llvm/Analysis/MemoryBuiltins.h>
+#include <llvm/Analysis/InstructionSimplify.h>
+#include <llvm/Analysis/ValueTracking.h>
+#include <llvm/ADT/SmallPtrSet.h>
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/Support/ErrorHandling.h>
+#include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <set>
 #include <map>
-#include <vector>
-
 
 using namespace llvm;
-using namespace std;
 
 /// The class does not model inline asm and intrinsics
 class Call {
@@ -49,22 +46,22 @@ public:
     Instruction *instruction;
 
     Value *calledValue;
-    vector<Value *> args;
+    std::vector<Value *> args;
 
-    Call(Instruction *inst, Value *calledValue, vector<Value *> *args);
+    Call(Instruction *inst, Value *calledValue, std::vector<Value *> *args);
 };
 
 class CommonCall : public Call {
 public:
-    CommonCall(Instruction *inst, Function *function, vector<Value *> *args);
+    CommonCall(Instruction *inst, Function *function, std::vector<Value *> *args);
 };
 
 class PointerCall : public Call {
 public:
-    set<Function *> mayAliasedCallees;
+    std::set<Function *> mayAliasedCallees;
     bool mustAliasedPointerCall;
 
-    PointerCall(Instruction *inst, Value *calledValue, vector<Value *> *args);
+    PointerCall(Instruction *inst, Value *calledValue, std::vector<Value *> *args);
 };
 
 class DyckCallGraphNode {
@@ -72,21 +69,21 @@ private:
     int idx;
 
     Function *llvm_function;
-    set<Value *> rets;
+    std::set<Value *> rets;
 
-    vector<Value *> args;
-    vector<Value *> va_args;
+    std::vector<Value *> args;
+    std::vector<Value *> va_args;
 
-    set<Value *> resumes;
-    map<Value *, Value *> lpads; // invoke <-> lpad
+    std::set<Value *> resumes;
+    std::map<Value *, Value *> lpads; // invoke <-> lpad
 
     // call instructions in the function
-    set<CommonCall *> commonCalls; // common calls
-    set<PointerCall *> pointerCalls; // pointer calls
+    std::set<CommonCall *> commonCalls; // common calls
+    std::set<PointerCall *> pointerCalls; // pointer calls
 
-    map<Instruction *, Call *> instructionCallMap;
+    std::map<Instruction *, Call *> instructionCallMap;
 
-    set<CallInst *> inlineAsms; // inline asm must be a call inst
+    std::set<CallInst *> inlineAsms; // inline asm must be a call inst
 
 private:
     static int global_idx;
@@ -101,11 +98,11 @@ public:
 
     Function *getLLVMFunction();
 
-    set<CommonCall *> &getCommonCalls();
+    std::set<CommonCall *> &getCommonCalls();
 
     void addCommonCall(CommonCall *call);
 
-    set<PointerCall *> &getPointerCalls();
+    std::set<PointerCall *> &getPointerCalls();
 
     void addPointerCall(PointerCall *call);
 
@@ -121,15 +118,15 @@ public:
 
     void addInlineAsm(CallInst *inlineAsm);
 
-    set<CallInst *> &getInlineAsms();
+    std::set<CallInst *> &getInlineAsms();
 
-    vector<Value *> &getArgs();
+    std::vector<Value *> &getArgs();
 
-    vector<Value *> &getVAArgs();
+    std::vector<Value *> &getVAArgs();
 
-    set<Value *> &getReturns();
+    std::set<Value *> &getReturns();
 
-    set<Value *> &getResumes();
+    std::set<Value *> &getResumes();
 
     Value *getLandingPad(Value *invoke);
 
@@ -137,5 +134,5 @@ public:
 };
 
 
-#endif    /* DYCKCALLGRAPHNODE_H */
+#endif // DYCKCG_DYCKCALLGRAPHNODE_H
 

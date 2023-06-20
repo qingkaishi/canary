@@ -16,23 +16,22 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef AAANALYZER_H
-#define AAANALYZER_H
+#ifndef DYCKAA_AAANALYZER_H
+#define DYCKAA_AAANALYZER_H
+
+#include <map>
+#include <unordered_map>
 
 #include "DyckAA/EdgeLabel.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/ProgressBar.h"
-#include <map>
-#include <unordered_map>
-
-using namespace std;
 
 class DyckAliasAnalysis;
 
 typedef struct FunctionTypeNode {
     FunctionType *type;
     FunctionTypeNode *root;
-    set<Function *> compatibleFuncs;
+    std::set<Function *> compatibleFuncs;
 } FunctionTypeNode;
 
 class AAAnalyzer {
@@ -44,8 +43,8 @@ private:
     DyckCallGraph *callgraph;
 
 private:
-    map<Type *, FunctionTypeNode *> functionTyNodeMap;
-    set<FunctionTypeNode *> tyroots;
+    std::map<Type *, FunctionTypeNode *> functionTyNodeMap;
+    std::set<FunctionTypeNode *> tyroots;
 
     DyckAA::ProgressBar PB;
 
@@ -71,9 +70,9 @@ private:
 
     void handle_extract_insert_elmt_inst(Value *vec, Value *elmt);
 
-    void handle_invoke_call_inst(Instruction *ret, Value *cv, vector<Value *> *args, DyckCallGraphNode *parent);
+    void handle_invoke_call_inst(Instruction *ret, Value *cv, std::vector<Value *> *args, DyckCallGraphNode *parent);
 
-    void handle_lib_invoke_call_inst(Value *ret, Function *f, vector<Value *> *args, DyckCallGraphNode *parent);
+    void handle_lib_invoke_call_inst(Value *ret, Function *f, std::vector<Value *> *args, DyckCallGraphNode *parent);
 
 private:
     bool handle_pointer_function_calls(DyckCallGraphNode *caller, int counter);
@@ -83,7 +82,7 @@ private:
 private:
     int isCompatible(FunctionType *t1, FunctionType *t2);
 
-    set<Function *> *getCompatibleFunctions(FunctionType *fty);
+    std::set<Function *> *getCompatibleFunctions(FunctionType *fty);
 
     FunctionTypeNode *initFunctionGroup(FunctionType *fty);
 
@@ -107,5 +106,5 @@ private:
     DyckVertex *wrapValue(Value *v);
 };
 
-#endif    /* AAANALYZER_H */
+#endif // DYCKAA_AAANALYZER_H
 

@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef EDGELABEL_H
-#define EDGELABEL_H
+#ifndef DYCKAA_EDGELABEL_H
+#define DYCKAA_EDGELABEL_H
 
 #include <string>
 #include <map>
@@ -86,5 +86,5 @@ public:
     bool isLabelTy(LABEL_TY type) override { return type == EdgeLabel::INDEX_TYPE; }
 };
 
-#endif    /* EDGELABEL_H */
+#endif // DYCKAA_EDGELABEL_H
 

@@ -73,4 +73,4 @@ private:
 
 }
 
-#endif /* DYCKAA_PROGRESSBAR_H */
+#endif // DYCKAA_PROGRESSBAR_H

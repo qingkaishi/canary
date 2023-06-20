@@ -100,7 +100,7 @@ void AAAnalyzer::inter_procedure_analysis() {
     unsigned IterationPhase = 0;
     const unsigned InterationStep = 5;
 
-    map<DyckCallGraphNode *, set<CommonCall *>> handledCommonCalls;
+    std::map<DyckCallGraphNode *, std::set<CommonCall *>> handledCommonCalls;
     while (true) {
         if (IterationCounter++ >= NumInterIteration.getValue()) {
             break;
@@ -118,11 +118,11 @@ void AAAnalyzer::inter_procedure_analysis() {
             auto dfit = callgraph->begin();
             while (dfit != callgraph->end()) {
                 DyckCallGraphNode *df = dfit->second;
-                set<CommonCall *> &df_handledCommonCalls = handledCommonCalls[df];
-                set<CommonCall *> &df_commonCalls = df->getCommonCalls();
+                std::set<CommonCall *> &df_handledCommonCalls = handledCommonCalls[df];
+                std::set<CommonCall *> &df_commonCalls = df->getCommonCalls();
 
                 // df_unHandledCommonCalls = df_commonCalls - df_handledCommonCalls
-                set<CommonCall *> df_unHandledCommonCalls;
+                std::set<CommonCall *> df_unHandledCommonCalls;
                 set_difference(df_commonCalls.begin(), df_commonCalls.end(), df_handledCommonCalls.begin(),
                                df_handledCommonCalls.end(),
                                inserter(df_unHandledCommonCalls, df_unHandledCommonCalls.begin()));
@@ -183,7 +183,7 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
     auto dfit = callgraph->begin();
     while (dfit != callgraph->end()) {
         DyckCallGraphNode *df = dfit->second;
-        set<PointerCall *> &unhandled = df->getPointerCalls();
+        std::set<PointerCall *> &unhandled = df->getPointerCalls();
 
         auto pcit = unhandled.begin();
         while (pcit != unhandled.end()) {
@@ -282,7 +282,7 @@ FunctionTypeNode *AAAnalyzer::initFunctionGroup(FunctionType *fty) {
             tn->type = fty;
             tn->root = (*rit);
 
-            functionTyNodeMap.insert(pair<Type *, FunctionTypeNode *>(fty, tn));
+            functionTyNodeMap.insert(std::pair<Type *, FunctionTypeNode *>(fty, tn));
             return *rit;
         }
         rit++;
@@ -294,7 +294,7 @@ FunctionTypeNode *AAAnalyzer::initFunctionGroup(FunctionType *fty) {
     tn->root = tn;
 
     tyroots.insert(tn);
-    functionTyNodeMap.insert(pair<Type *, FunctionTypeNode *>(fty, tn));
+    functionTyNodeMap.insert(std::pair<Type *, FunctionTypeNode *>(fty, tn));
     return tn;
 }
 
@@ -359,7 +359,7 @@ void AAAnalyzer::combineFunctionGroups(FunctionType *ft1, FunctionType *ft2) {
 
 DyckVertex *AAAnalyzer::addField(DyckVertex *val, long fieldIndex, DyckVertex *field) {
     if (!field) {
-        set<DyckVertex *> *valrepset = val->getOutVertices((void *) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
+        std::set<DyckVertex *> *valrepset = val->getOutVertices((void *) (aa->getOrInsertIndexEdgeLabel(fieldIndex)));
         if (valrepset && !valrepset->empty()) {
             field = *(valrepset->begin());
         } else {
@@ -384,7 +384,7 @@ DyckVertex *AAAnalyzer::addPtrTo(DyckVertex *address, DyckVertex *val) {
         address->addTarget(val, (void *) aa->DEREF_LABEL);
         return address;
     } else if (!val) {
-        set<DyckVertex *> *derefset = address->getOutVertices((void *) aa->DEREF_LABEL);
+        std::set<DyckVertex *> *derefset = address->getOutVertices((void *) aa->DEREF_LABEL);
         if (derefset && !derefset->empty()) {
             val = *(derefset->begin());
         } else {
@@ -460,7 +460,7 @@ DyckVertex *AAAnalyzer::handle_gep(GEPOperator *gep) {
 
 DyckVertex *AAAnalyzer::wrapValue(Value *v) {
     // if the vertex of v exists, return it, otherwise create one
-    pair<DyckVertex *, bool> retpair = dgraph->retrieveDyckVertex(v);
+    std::pair<DyckVertex *, bool> retpair = dgraph->retrieveDyckVertex(v);
     if (retpair.second || !v) {
         return retpair.first;
     }
@@ -486,7 +486,7 @@ DyckVertex *AAAnalyzer::wrapValue(Value *v) {
             vdv = makeAlias(vdv, opt1);
         } else if (opcode == Instruction::ExtractValue) {
             Value *agg = ((ConstantExpr *) v)->getOperand(0);
-            vector<unsigned> indicesVec;
+            std::vector<unsigned> indicesVec;
             for (unsigned i = 1; i < ((ConstantExpr *) v)->getNumOperands(); i++) {
                 auto *index = (ConstantInt *) ((ConstantExpr *) v)->getOperand(i);
                 indicesVec.push_back((unsigned) (*(index->getValue().getRawData())));
@@ -499,7 +499,7 @@ DyckVertex *AAAnalyzer::wrapValue(Value *v) {
             if (!isa<UndefValue>(agg)) {
                 makeAlias(resultV, wrapValue(agg));
             }
-            vector<unsigned> indicesVec;
+            std::vector<unsigned> indicesVec;
             for (unsigned i = 2; i < ((ConstantExpr *) v)->getNumOperands(); i++) {
                 auto *index = (ConstantInt *) ((ConstantExpr *) v)->getOperand(i);
                 indicesVec.push_back((unsigned) (*(index->getValue().getRawData())));
@@ -719,7 +719,7 @@ void AAAnalyzer::handle_instrinsic(Instruction *inst) {
     wrapValue(call->getCalledOperand());
 }
 
-set<Function *> *AAAnalyzer::getCompatibleFunctions(FunctionType *fty) {
+std::set<Function *> *AAAnalyzer::getCompatibleFunctions(FunctionType *fty) {
     FunctionTypeNode *ftn = this->initFunctionGroup(fty);
     return &(ftn->root->compatibleFuncs);
 }
@@ -927,7 +927,7 @@ void AAAnalyzer::handle_inst(Instruction *inst, DyckCallGraphNode *parent_func) 
             }
 
             Value *cv = callinst->getCalledOperand();
-            vector<Value *> args;
+            std::vector<Value *> args;
             for (unsigned i = 0; i < callinst->getNumArgOperands(); i++) {
                 wrapValue(callinst->getArgOperand(i));
                 args.push_back(callinst->getArgOperand(i));
@@ -1027,7 +1027,7 @@ void AAAnalyzer::handle_extract_insert_elmt_inst(Value *v, Value *elmt) {
 }
 
 void
-AAAnalyzer::handle_invoke_call_inst(Instruction *ret, Value *cv, vector<Value *> *args, DyckCallGraphNode *parent) {
+AAAnalyzer::handle_invoke_call_inst(Instruction *ret, Value *cv, std::vector<Value *> *args, DyckCallGraphNode *parent) {
     if (isa<Function>(cv)) {
         if (((Function *) cv)->isIntrinsic()) {
             handle_instrinsic((Instruction *) ret);
@@ -1101,7 +1101,7 @@ void AAAnalyzer::handle_common_function_call(Call *c, DyckCallGraphNode *caller,
         Type *calledFuncTy = calledValueTy->getPointerElementType();
         assert(calledFuncTy->isFunctionTy() && "A called value is not a function pointer type!");
 
-        set<Value *> &rets = callee->getReturns();
+        std::set<Value *> &rets = callee->getReturns();
         if (!((FunctionType *) calledFuncTy)->getReturnType()->isVoidTy()) {
             Type *retTy = c->instruction->getType();
 
@@ -1140,7 +1140,7 @@ void AAAnalyzer::handle_common_function_call(Call *c, DyckCallGraphNode *caller,
         }
 
         if (NumArgs > NumPars && func->isVarArg()) {
-            vector<Value *> &var_parameters = callee->getVAArgs();
+            std::vector<Value *> &var_parameters = callee->getVAArgs();
             unsigned NumVarPars = var_parameters.size();
 
             for (unsigned int i = NumPars; i < NumArgs; i++) {
@@ -1163,7 +1163,7 @@ void AAAnalyzer::handle_common_function_call(Call *c, DyckCallGraphNode *caller,
 bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode *caller, int FUNCTION_COUNT) {
     bool ret = false;
 
-    set<PointerCall *> &pointercalls = caller->getPointerCalls();
+    std::set<PointerCall *> &pointercalls = caller->getPointerCalls();
     auto mit = pointercalls.begin();
 
     // print in console
@@ -1182,14 +1182,14 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode *caller, int FU
         assert(fty->isFunctionTy() && "Error in AAAnalyzer::handle_pointer_function_calls!");
 
         // handle each unhandled, possible function
-        set<Value *> equivAndTypeCompSet;
-        const set<Value *> *equivSet = aa->getAliasSet(pcall->calledValue);
-        set<Function *> *cands = this->getCompatibleFunctions((FunctionType *) fty);
+        std::set<Value *> equivAndTypeCompSet;
+        const std::set<Value *> *equivSet = aa->getAliasSet(pcall->calledValue);
+        std::set<Function *> *cands = this->getCompatibleFunctions((FunctionType *) fty);
         set_intersection(cands->begin(), cands->end(), equivSet->begin(), equivSet->end(),
                          inserter(equivAndTypeCompSet, equivAndTypeCompSet.begin()));
 
-        set<Value *> unhandled_function;
-        set<Function *> *maycallfuncs = &(pcall->mayAliasedCallees);
+        std::set<Value *> unhandled_function;
+        std::set<Function *> *maycallfuncs = &(pcall->mayAliasedCallees);
         set_difference(equivAndTypeCompSet.begin(), equivAndTypeCompSet.end(), maycallfuncs->begin(),
                        maycallfuncs->end(),
                        inserter(unhandled_function, unhandled_function.begin()));
@@ -1231,12 +1231,12 @@ bool AAAnalyzer::handle_pointer_function_calls(DyckCallGraphNode *caller, int FU
 }
 
 void
-AAAnalyzer::handle_lib_invoke_call_inst(Value *ret, Function *f, vector<Value *> *args, DyckCallGraphNode *parent) {
+AAAnalyzer::handle_lib_invoke_call_inst(Value *ret, Function *f, std::vector<Value *> *args, DyckCallGraphNode *parent) {
     // args must be the real arguments, not the parameters.
     if (!f->empty() || f->isIntrinsic())
         return;
 
-    const string &functionName = f->getName().str();
+    const std::string &functionName = f->getName().str();
     switch (args->size()) {
         case 1: {
             if (functionName == "strdup" || functionName == "__strdup" || functionName == "strdupa") {
@@ -1309,7 +1309,7 @@ AAAnalyzer::handle_lib_invoke_call_inst(Value *ret, Function *f, vector<Value *>
             break;
         case 4: {
             if (functionName == "pthread_create") {
-                vector<Value *> xargs;
+                std::vector<Value *> xargs;
                 xargs.push_back(args->at(3));
                 handle_invoke_call_inst(nullptr, args->at(2), &xargs, callgraph->getOrInsertFunction(f));
             }
