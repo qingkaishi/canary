@@ -1,15 +1,8 @@
 Canary
 ======
 
-Canary is a set of tools built on a unification-based alias analysis.
-Relative papers include "Points-to analysis in almost linear time", 
-"Fast algorithms for Dyck-CFL-reachability with applications to alias 
-analysis", "LEAP: lightweight deterministic multi-processor replay of 
-concurrent java programs", "Persuasive prediction of concurrency 
-access anomalies", etc. You can read them for details.
-
-We have built and tested it on *32-bit* x86 linux architectures using
-llvm-12.
+Canary features a unification-based alias analysis and related tools.
+We have built and tested it on x86 linux architectures using llvm-12.
 
 
 Building Canary
