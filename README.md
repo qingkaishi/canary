@@ -11,10 +11,6 @@ access anomalies", etc. You can read them for details.
 We have built and tested it on *32-bit* x86 linux architectures using
 llvm-12.
 
-If you use Canary, please cite Canary as below (latex style). 
-
-> \footnote{Canary. \url{https://github.com/qingkaishi/canary}}
-
 
 Building Canary
 ------
