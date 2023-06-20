@@ -5,7 +5,7 @@ Canary features a unification-based alias analysis (/lib) and related tools (/to
 We have built and tested them on x86 linux architectures using llvm-12.
 
 
-Building Canary
+Building 
 ------
 
 ```bash
@@ -18,7 +18,7 @@ make
 ```
 
 
-Using Canary
+Using the alias analysis
 ------
 
 Build and link the lib files to your project and use `DyckAliasAnalysis` as a common module pass. 
