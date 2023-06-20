@@ -466,7 +466,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
 
             auto ovIt = outVs.begin();
             while (ovIt != outVs.end()) {
-                auto *label = (EdgeLabel *) ovIt->first;
+                auto *label = (DyckEdgeLabel *) ovIt->first;
                 std::set<DyckVertex *> *oVs = &ovIt->second;
 
                 auto olIt = oVs->begin();

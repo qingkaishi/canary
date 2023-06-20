@@ -68,27 +68,27 @@ private:
 private:
     friend class AAAnalyzer;
 
-    EdgeLabel *DEREF_LABEL;
-    std::map<long, EdgeLabel *> OFFSET_LABEL_MAP;
-    std::map<long, EdgeLabel *> INDEX_LABEL_MAP;
+    DyckEdgeLabel *DEREF_LABEL;
+    std::map<long, DyckEdgeLabel *> OFFSET_LABEL_MAP;
+    std::map<long, DyckEdgeLabel *> INDEX_LABEL_MAP;
 
 private:
-    EdgeLabel *getOrInsertOffsetEdgeLabel(long offset) {
+    DyckEdgeLabel *getOrInsertOffsetEdgeLabel(long offset) {
         if (OFFSET_LABEL_MAP.count(offset)) {
             return OFFSET_LABEL_MAP[offset];
         } else {
-            EdgeLabel *ret = new PointerOffsetEdgeLabel(offset);
-            OFFSET_LABEL_MAP.insert(std::pair<long, EdgeLabel *>(offset, ret));
+            DyckEdgeLabel *ret = new PointerOffsetEdgeLabel(offset);
+            OFFSET_LABEL_MAP.insert(std::pair<long, DyckEdgeLabel *>(offset, ret));
             return ret;
         }
     }
 
-    EdgeLabel *getOrInsertIndexEdgeLabel(long offset) {
+    DyckEdgeLabel *getOrInsertIndexEdgeLabel(long offset) {
         if (INDEX_LABEL_MAP.count(offset)) {
             return INDEX_LABEL_MAP[offset];
         } else {
-            EdgeLabel *ret = new FieldIndexEdgeLabel(offset);
-            INDEX_LABEL_MAP.insert(std::pair<long, EdgeLabel *>(offset, ret));
+            DyckEdgeLabel *ret = new FieldIndexEdgeLabel(offset);
+            INDEX_LABEL_MAP.insert(std::pair<long, DyckEdgeLabel *>(offset, ret));
             return ret;
         }
     }

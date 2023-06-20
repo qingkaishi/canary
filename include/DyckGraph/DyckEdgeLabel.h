@@ -16,13 +16,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKAA_EDGELABEL_H
-#define DYCKAA_EDGELABEL_H
+#ifndef DYCKGRAPH_DYCKEDGELABEL_H
+#define DYCKGRAPH_DYCKEDGELABEL_H
 
 #include <string>
 #include <map>
 
-class EdgeLabel {
+class DyckEdgeLabel {
 public:
     enum LABEL_TY {
         DEREF_TYPE, OFFSET_TYPE, INDEX_TYPE
@@ -34,26 +34,26 @@ public:
 
     virtual bool isLabelTy(LABEL_TY type) { return false; }
 
-    virtual ~EdgeLabel() = default;
+    virtual ~DyckEdgeLabel() = default;
 };
 
-class DerefEdgeLabel : public EdgeLabel {
+class DerefEdgeLabel : public DyckEdgeLabel {
 public:
     DerefEdgeLabel() {
-        std::string &desc = EdgeLabel::getEdgeLabelDescription();
+        std::string &desc = DyckEdgeLabel::getEdgeLabelDescription();
         desc.clear();
         desc.append("D");
     }
 
-    bool isLabelTy(LABEL_TY type) override { return type == EdgeLabel::DEREF_TYPE; }
+    bool isLabelTy(LABEL_TY type) override { return type == DyckEdgeLabel::DEREF_TYPE; }
 };
 
-class PointerOffsetEdgeLabel : public EdgeLabel {
+class PointerOffsetEdgeLabel : public DyckEdgeLabel {
 private:
     long offset_bytes;
 public:
     explicit PointerOffsetEdgeLabel(long bytes) : offset_bytes(bytes) {
-        std::string &desc = EdgeLabel::getEdgeLabelDescription();
+        std::string &desc = DyckEdgeLabel::getEdgeLabelDescription();
         desc.clear();
         desc.append("@");
 
@@ -64,15 +64,15 @@ public:
 
     long getOffsetBytes() const { return offset_bytes; }
 
-    bool isLabelTy(LABEL_TY type) override { return type == EdgeLabel::OFFSET_TYPE; }
+    bool isLabelTy(LABEL_TY type) override { return type == DyckEdgeLabel::OFFSET_TYPE; }
 };
 
-class FieldIndexEdgeLabel : public EdgeLabel {
+class FieldIndexEdgeLabel : public DyckEdgeLabel {
 private:
     long field_index;
 public:
     explicit FieldIndexEdgeLabel(long idx) : field_index(idx) {
-        std::string &desc = EdgeLabel::getEdgeLabelDescription();
+        std::string &desc = DyckEdgeLabel::getEdgeLabelDescription();
         desc.clear();
         desc.append("#");
 
@@ -83,8 +83,8 @@ public:
 
     long getFieldIndex() const { return field_index; }
 
-    bool isLabelTy(LABEL_TY type) override { return type == EdgeLabel::INDEX_TYPE; }
+    bool isLabelTy(LABEL_TY type) override { return type == DyckEdgeLabel::INDEX_TYPE; }
 };
 
-#endif // DYCKAA_EDGELABEL_H
+#endif // DYCKGRAPH_DYCKEDGELABEL_H
 

@@ -22,7 +22,7 @@
 #include <map>
 #include <unordered_map>
 
-#include "DyckAA/EdgeLabel.h"
+#include "DyckGraph/DyckEdgeLabel.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/ProgressBar.h"
 
