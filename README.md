@@ -9,7 +9,7 @@ concurrent java programs", "Persuasive prediction of concurrency
 access anomalies", etc. You can read them for details.
 
 We have built and tested it on *32-bit* x86 linux architectures using
-gcc 4.8.2 and llvm-3.6.
+llvm-12.
 
 If you use Canary, please cite Canary as below (latex style). 
 
@@ -22,8 +22,10 @@ Building Canary
 ```bash
 git clone https://github.com/qingkaishi/canary.git
 cd canary
-scons # >= 2.3.0
-sudo scons install
+mkdir build
+cd build
+cmake ..
+make
 ```
 
 
@@ -37,14 +39,6 @@ Using Canary
 # since canary now does not support them
 clang -c -emit-llvm -O2 -g <src_file> -o <bitcode_file>
 canary <bitcode_file> -o <output_file>
-```
-
-Or you can build a shared library (you need to modify the Makefile yourself), 
-and use the following equivalent commands.
-
-```bash
-clang -c -emit-llvm -O2 -g <src_file> -o <bitcode_file>
-opt -load dyckaa.so -lowerinvoke  -dyckaa -basicaa  <bitcode_file> -o <output_file>
 ```
 
 * -print-alias-set-info
@@ -80,48 +74,3 @@ to the edges in call graphs.
 * -preserve-dyck-callgraph
 Preserve the call graph for later usage. Only using  -dot-dyck-callgraph
 will not preserve the call graph.
-
-* -leap-transformer
-A transformer for LEAP. Please read ``LEAP: lightweight deterministic 
-multi-processor replay of concurrent java programs". Here is an example.
-
-```bash
-# transform
-canary -preserve-dyck-callgraph -leap-transformer <bitcode_file> -o <output_file>
-# link a record version
-clang++ <ouput_file> -o <executable> -lleaprecord
-# execute it
-# link a replay version
-clang++ <ouput_file> -o <executable> -lleapreplay
-# now you can replay
-```
-
-* -trace-transformer
-A transformer for Pecan. Please read "Persuasive prediction of concurrency 
-access anomalies". Here is an example.
-
-```bash
-canary -preserve-dyck-callgraph -trace-transformer <bitcode_file> -o <output_file>
-# link a record version 
-clang++ <ouput_file> -o <executable> -ltrace
-# a log file will be produced after executing it; using the following command
-# to analyze it.  
-pecan <log_file> <result_file>
-```
-
-NOTE
------
-Transformers and corresponding supports are not updated in time.
-
-Bugs
-------
-
-Please help us look for bugs. Please feel free to contact Qingkai.
-Email: qingkaishi@gmail.com
-
-TODO
-------
-* Upgrade Canary:
-
-> 1. inter-proceduare analysis: performance optimization
-
