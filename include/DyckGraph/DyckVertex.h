@@ -27,8 +27,8 @@ class DyckGraph;
 class DyckVertex {
 private:
     static int global_indx;
-    int index{};
-    const char *name{};
+    int index;
+    const char *name;
 
     std::set<void *> in_lables;
     std::set<void *> out_lables;
@@ -38,10 +38,6 @@ private:
 
     /// only store non-null value
     std::set<void *> equivclass;
-
-    /// Default constructor is not visible.
-    /// please use DyckGraph::retrieveDyckVertex for initialization
-    DyckVertex() = default;
 
     /// The constructor is not visible. The first argument is the pointer of the value that you want to encapsulate.
     /// The second argument is the name of the vertex, which will be used in void DyckGraph::printAsDot() function.

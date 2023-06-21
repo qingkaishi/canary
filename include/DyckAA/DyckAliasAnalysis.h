@@ -159,6 +159,4 @@ public:
     bool isDefaultMemAllocaFunction(Value *CalledValue);
 };
 
-llvm::ModulePass *createDyckAliasAnalysisPass();
-
 #endif // DYCKAA_DYCKALIASANALYSIS_H

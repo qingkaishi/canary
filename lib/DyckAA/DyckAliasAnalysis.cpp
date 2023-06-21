@@ -40,24 +40,6 @@ static cl::opt<bool> CountFP("count-fp", cl::init(false), cl::Hidden,
 char DyckAliasAnalysis::ID = 0;
 static RegisterPass<DyckAliasAnalysis> X("dyckaa", "a unification based alias analysis");
 
-static const Function *getParent(const Value *V) {
-    if (const auto *inst = dyn_cast<Instruction>(V))
-        return inst->getParent()->getParent();
-
-    if (const auto *arg = dyn_cast<Argument>(V))
-        return arg->getParent();
-
-    return nullptr;
-}
-
-static bool notDifferentParent(const Value *O1, const Value *O2) {
-
-    const Function *F1 = getParent(O1);
-    const Function *F2 = getParent(O2);
-
-    return !F1 || !F2 || F1 == F2;
-}
-
 DyckAliasAnalysis::DyckAliasAnalysis() :
         ModulePass(ID) {
     dyck_graph = new DyckGraph;
@@ -290,6 +272,8 @@ std::vector<Value *> *DyckAliasAnalysis::getDefaultPointstoMemAlloca(Value *ptr)
             }
         } else if (isa<InvokeInst>(al)) {
             llvm_unreachable("find invoke inst, please use -lowerinvoke");
+        } else if (isa<CallBrInst>(al)) {
+            llvm_unreachable("find callbr inst, please use -lowerinvoke");
         }
     }
 
@@ -333,13 +317,13 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
         addAllocLikeFunc("_ZnwmRKSt9nothrow_t");
     }
 
-    auto *aaa = new AAAnalyzer(&M, this, dyck_graph, call_graph);
+    AAAnalyzer aaa(&M, this, dyck_graph, call_graph);
 
     /// step 1: intra-procedure analysis
-    aaa->intra_procedure_analysis();
+    aaa.intra_procedure_analysis();
 
     /// step 2: inter-procedure analysis
-    aaa->inter_procedure_analysis();
+    aaa.inter_procedure_analysis();
 
     /* call graph */
     if (DotCallGraph) {
@@ -353,9 +337,6 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
         call_graph->printFunctionPointersInformation(M.getModuleIdentifier());
         outs() << "Done!\n\n";
     }
-
-    delete aaa;
-    aaa = nullptr;
 
     if (!this->callGraphPreserved()) {
         delete this->call_graph;
@@ -558,9 +539,5 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         log.close();
         outs() << "Done! \n";
     }
-}
-
-ModulePass *createDyckAliasAnalysisPass() {
-    return new DyckAliasAnalysis();
 }
 

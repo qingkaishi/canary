@@ -126,9 +126,7 @@ int main(int argc, char **argv) {
     Passes.add(createSCCPPass());
     Passes.add(createLoopSimplifyPass());
     Passes.add(new NotificationPass("Start preprocessing the input bitcode ... ""Done!"));
-    Passes.add(new NotificationPass("Start alias analysis ... "));
-    Passes.add(createDyckAliasAnalysisPass());
-    Passes.add(new NotificationPass("Start alias analysis ... ""Done!"));
+    Passes.add(new DyckAliasAnalysis());
 
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {
