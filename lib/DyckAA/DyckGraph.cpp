@@ -18,7 +18,7 @@
 
 #include <cassert>
 #include <cstdio>
-#include "DyckGraph/DyckGraph.h"
+#include "DyckAA/DyckGraph.h"
 
 void DyckGraph::printAsDot(const char *filename) const {
     FILE *f = fopen(filename, "w+");

@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKGRAPH_DYCKVERTEX_H
-#define DYCKGRAPH_DYCKVERTEX_H
+#ifndef DYCKAA_DYCKVERTEX_H
+#define DYCKAA_DYCKVERTEX_H
 
 #include <map>
 #include <set>
@@ -112,5 +112,5 @@ private:
     void removeSource(DyckVertex *ver, void *label);
 };
 
-#endif // DYCKGRAPH_DYCKVERTEX_H
+#endif // DYCKAA_DYCKVERTEX_H
 

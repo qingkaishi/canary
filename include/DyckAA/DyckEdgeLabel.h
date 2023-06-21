@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKGRAPH_DYCKEDGELABEL_H
-#define DYCKGRAPH_DYCKEDGELABEL_H
+#ifndef DYCKAA_DYCKEDGELABEL_H
+#define DYCKAA_DYCKEDGELABEL_H
 
 #include <string>
 #include <map>
@@ -86,5 +86,5 @@ public:
     bool isLabelTy(LABEL_TY type) override { return type == DyckEdgeLabel::INDEX_TYPE; }
 };
 
-#endif // DYCKGRAPH_DYCKEDGELABEL_H
+#endif // DYCKAA_DYCKEDGELABEL_H
 

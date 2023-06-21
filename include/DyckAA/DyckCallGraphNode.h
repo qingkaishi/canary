@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKCG_DYCKCALLGRAPHNODE_H
-#define DYCKCG_DYCKCALLGRAPHNODE_H
+#ifndef DYCKAA_DYCKCALLGRAPHNODE_H
+#define DYCKAA_DYCKCALLGRAPHNODE_H
 
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Analysis/Passes.h>
@@ -134,5 +134,5 @@ public:
 };
 
 
-#endif // DYCKCG_DYCKCALLGRAPHNODE_H
+#endif // DYCKAA_DYCKCALLGRAPHNODE_H
 

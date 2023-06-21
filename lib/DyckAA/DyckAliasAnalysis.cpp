@@ -21,8 +21,9 @@
 #include <cstdio>
 #include <stack>
 
+#include "AAAnalyzer.h"
 #include "DyckAA/DyckAliasAnalysis.h"
-#include "DyckCG/DyckCallGraph.h"
+#include "DyckAA/DyckCallGraph.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc(

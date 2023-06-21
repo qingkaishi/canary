@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKCG_DYCKCALLGRAPH_H
-#define DYCKCG_DYCKCALLGRAPH_H
+#ifndef DYCKAA_DYCKCALLGRAPH_H
+#define DYCKAA_DYCKCALLGRAPH_H
 
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/SmallVector.h>
@@ -38,7 +38,7 @@
 #include <vector>
 #include <cstdio>
 
-#include "DyckCG/DyckCallGraphNode.h"
+#include "DyckAA/DyckCallGraphNode.h"
 
 using namespace llvm;
 
@@ -89,5 +89,5 @@ public:
 };
 
 
-#endif // DYCKCG_DYCKCALLGRAPH_H
+#endif // DYCKAA_DYCKCALLGRAPH_H
 

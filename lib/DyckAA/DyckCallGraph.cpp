@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "DyckCG/DyckCallGraph.h"
+#include "DyckAA/DyckCallGraph.h"
 
 static cl::opt<bool>
         WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,

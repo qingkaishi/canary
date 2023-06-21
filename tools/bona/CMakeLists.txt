@@ -39,7 +39,7 @@ set(LLVM_LINK_COMPONENTS
 add_executable(bona bona.cpp)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(bona PRIVATE
-            CanaryDyckAA CanaryDyckGraph CanaryCallGraph CanarySupport
+            CanaryDyckAA CanarySupport
             -Wl,--start-group
             ${LLVM_LINK_COMPONENTS}
             -Wl,--end-group
@@ -47,7 +47,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     )
 else()
     target_link_libraries(bona PRIVATE
-            CanaryDyckAA CanaryDyckGraph CanaryCallGraph CanarySupport
+            CanaryDyckAA CanarySupport
             ${LLVM_LINK_COMPONENTS}
             z ncurses pthread dl
     )

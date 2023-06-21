@@ -16,13 +16,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKGRAPH_DYCKHALFGRAPH_H
-#define DYCKGRAPH_DYCKHALFGRAPH_H
+#ifndef DYCKAA_DYCKHALFGRAPH_H
+#define DYCKAA_DYCKHALFGRAPH_H
 
 #include <stack>
 #include <unordered_map>
 
-#include "DyckGraph/DyckVertex.h"
+#include "DyckAA/DyckVertex.h"
 
 
 /// This class models a dyck-cfl language as a graph, which does not contain the barred edges.
@@ -81,5 +81,5 @@ private:
     bool containsInWorkList(std::multimap<DyckVertex *, void *> &list, DyckVertex *v, void *l);
 };
 
-#endif // DYCKGRAPH_DYCKHALFGRAPH_H
+#endif // DYCKAA_DYCKHALFGRAPH_H
 

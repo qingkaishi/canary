@@ -22,8 +22,8 @@
 #include <map>
 #include <unordered_map>
 
-#include "DyckGraph/DyckEdgeLabel.h"
 #include "DyckAA/DyckAliasAnalysis.h"
+#include "DyckAA/DyckEdgeLabel.h"
 #include "Support/ProgressBar.h"
 
 class DyckAliasAnalysis;

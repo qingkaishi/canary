@@ -35,9 +35,9 @@
 #include <llvm/IR/InlineAsm.h>
 #include <set>
 
-#include "DyckGraph/DyckGraph.h"
-#include "DyckCG/DyckCallGraph.h"
-#include "DyckAA/AAAnalyzer.h"
+#include "DyckAA/DyckEdgeLabel.h"
+#include "DyckAA/DyckGraph.h"
+#include "DyckAA/DyckCallGraph.h"
 
 using namespace llvm;
 

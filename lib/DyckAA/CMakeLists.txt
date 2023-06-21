@@ -1,5 +1,9 @@
 
 add_library(CanaryDyckAA STATIC
-        DyckAliasAnalysis.cpp
         AAAnalyzer.cpp
+        DyckAliasAnalysis.cpp
+        DyckCallGraph.cpp
+        DyckCallGraphNode.cpp
+        DyckGraph.cpp
+        DyckVertex.cpp
 )

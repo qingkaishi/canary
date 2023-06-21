@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "DyckCG/DyckCallGraphNode.h"
+#include "DyckAA/DyckCallGraphNode.h"
 
 Call::Call(Instruction *inst, Value *calledValue, std::vector<Value *> *args) {
     assert(calledValue != nullptr && "Error when create a call: called value is null!");
