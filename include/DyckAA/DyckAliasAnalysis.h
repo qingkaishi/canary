@@ -19,12 +19,7 @@
 #ifndef DYCKAA_DYCKALIASANALYSIS_H
 #define DYCKAA_DYCKALIASANALYSIS_H
 
-#include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Pass.h>
-#include <llvm/Analysis/CaptureTracking.h>
-#include <llvm/Analysis/MemoryBuiltins.h>
-#include <llvm/Analysis/InstructionSimplify.h>
-#include <llvm/Analysis/ValueTracking.h>
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/ErrorHandling.h>

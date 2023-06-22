@@ -60,6 +60,7 @@ AAAnalyzer::~AAAnalyzer() {
 void AAAnalyzer::intra_procedure_analysis() {
     signal(SIGSEGV, OnSegmentFalut);
 
+    outs() << "Start intra-procedural analysis ... ";
     long instNum = 0;
     long intrinsicsNum = 0;
     for (auto &F: *module) {
@@ -82,6 +83,7 @@ void AAAnalyzer::intra_procedure_analysis() {
     DEBUG_WITH_TYPE("dyckaa-stats", errs() << "\n# Instructions: " << instNum << "\n");
     DEBUG_WITH_TYPE("dyckaa-stats", errs() << "# Functions: " << module->size() - intrinsicsNum << "\n");
 
+    outs() << "Done!\n";
     signal(SIGSEGV, SIG_DFL);
 }
 
@@ -105,9 +107,6 @@ void AAAnalyzer::inter_procedure_analysis() {
         if (IterationCounter++ >= NumInterIteration.getValue()) {
             break;
         }
-
-        // outs() << "\n\nIteration #" << IterationCounter << "... \n\n";
-        // outs() << "Phase: " << IterationPhase << "\n\n";
 
         bool finished = true;
         dgraph->qirunAlgorithm();

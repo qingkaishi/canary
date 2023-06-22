@@ -41,7 +41,7 @@
 
 #include <memory>
 
-#include "DyckAA/DyckAliasAnalysis.h"
+#include "BonaPass.h"
 
 using namespace llvm;
 
@@ -70,7 +70,7 @@ public:
     }
 
     bool runOnModule(Module &) override {
-        outs() << Message << "\n";
+        outs() << Message;
         return false;
     }
 };
@@ -125,8 +125,8 @@ int main(int argc, char **argv) {
     Passes.add(createPromoteMemoryToRegisterPass());
     Passes.add(createSCCPPass());
     Passes.add(createLoopSimplifyPass());
-    Passes.add(new NotificationPass("Start preprocessing the input bitcode ... ""Done!"));
-    Passes.add(new DyckAliasAnalysis());
+    Passes.add(new NotificationPass("Done!\n"));
+    Passes.add(new BonaPass());
 
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {
