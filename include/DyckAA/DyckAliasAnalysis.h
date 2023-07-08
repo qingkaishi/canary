@@ -53,12 +53,14 @@ public:
 
     bool mayAlias(Value *V1, Value *V2) const;
 
+    bool mayNull(Value *V, bool HeapAllocaReturnsNonNull = true) const;
+
 private:
     DyckGraph *dyck_graph;
     DyckCallGraph *call_graph;
 
     std::set<Function *> mem_allocas;
-    std::map<DyckVertex *, std::vector<Value *> *> vertexMemAllocaMap;
+    std::set<DyckVertex *> include_nulls;
 
 private:
     friend class AAAnalyzer;
@@ -118,30 +120,7 @@ public:
     /// Get the set of objects that a pointer may point to,
     /// e.g. for %a = load i32* %b, {%a} will be returned for the
     /// pointer %b
-    void getPointstoObjects(std::set<Value *> &Objects, Value *Pointer);
-
-    /// Given a pointer %p, suppose the memory location that %p points to
-    /// is allocated by instruction "%p = malloc(...)", then the instruction
-    /// will be returned.
-    ///
-    /// For a global variable @q, since its memory location is allocated
-    /// statically, itself will be returned.
-    ///
-    /// Default mem alloca function includes
-    /// {
-    ///    "calloc", "malloc", "realloc",
-    ///    "_Znaj", "_ZnajRKSt9nothrow_t",
-    ///    "_Znam", "_ZnamRKSt9nothrow_t",
-    ///    "_Znwj", "_ZnwjRKSt9nothrow_t",
-    ///    "_Znwm", "_ZnwmRKSt9nothrow_t"
-    /// }
-    ///
-    /// For a pointer that points to a struct or class field, this interface
-    /// may return you nothing, because the field may be initialized using
-    /// the same allocation instruction as the struct or class. For example
-    /// %addr = alloca {int, int} not only initializes the memory %addr points to,
-    /// but also initializes the memory gep %addr 0 and gep %addr 1 point to.
-    std::vector<Value *> *getDefaultPointstoMemAlloca(Value *Pointer);
+    void getPointstoObjects(std::set<Value *> &Objects, Value *Pointer) const;
 
     /// Default mem alloca function includes
     /// {
@@ -151,7 +130,7 @@ public:
     ///    "_Znwj", "_ZnwjRKSt9nothrow_t",
     ///    "_Znwm", "_ZnwmRKSt9nothrow_t"
     /// }
-    bool isDefaultMemAllocaFunction(Value *CalledValue);
+    bool isDefaultMemAllocaFunction(Value *CalledValue) const;
 };
 
 #endif // DYCKAA_DYCKALIASANALYSIS_H

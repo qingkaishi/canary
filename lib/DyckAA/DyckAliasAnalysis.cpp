@@ -66,10 +66,6 @@ DyckAliasAnalysis::~DyckAliasAnalysis() {
         delete ilIt->second;
         ilIt++;
     }
-
-    for (auto &it: vertexMemAllocaMap) {
-        delete it.second;
-    }
 }
 
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
@@ -83,6 +79,25 @@ const std::set<Value *> *DyckAliasAnalysis::getAliasSet(Value *ptr) const {
 
 bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
     return getAliasSet(V1)->count(V2);
+}
+
+bool DyckAliasAnalysis::mayNull(Value *V, bool HeapAllocaReturnsNonNull) const {
+    if (isa<GlobalValue>(V)) {
+        return false;
+    } else if (isa<AllocaInst>(V)) {
+        return false;
+    } else if (auto *CI = dyn_cast<CallInst>(V)) {
+        if (HeapAllocaReturnsNonNull && isDefaultMemAllocaFunction(CI->getCalledOperand()))
+            return false;
+    } else if (isa<InvokeInst>(V)) {
+        llvm_unreachable("invoke is not supported!");
+    } else if (isa<CallBrInst>(V)) {
+        llvm_unreachable("callbr is not supported!");
+    }
+
+    auto *DV = dyck_graph->findDyckVertex(V);
+    if (!DV) return false;
+    return include_nulls.count(DV);
 }
 
 void DyckAliasAnalysis::getEscapedPointersFrom(std::vector<const std::set<Value *> *> *ret, Value *from) {
@@ -215,7 +230,7 @@ void DyckAliasAnalysis::getEscapedPointersTo(std::set<DyckVertex *> *ret, Functi
     }
 }
 
-void DyckAliasAnalysis::getPointstoObjects(std::set<Value *> &objects, Value *pointer) {
+void DyckAliasAnalysis::getPointstoObjects(std::set<Value *> &objects, Value *pointer) const {
     assert(pointer != nullptr);
 
     DyckVertex *rt = dyck_graph->retrieveDyckVertex(pointer).first;
@@ -231,7 +246,7 @@ void DyckAliasAnalysis::getPointstoObjects(std::set<Value *> &objects, Value *po
     }
 }
 
-bool DyckAliasAnalysis::isDefaultMemAllocaFunction(Value *calledValue) {
+bool DyckAliasAnalysis::isDefaultMemAllocaFunction(Value *calledValue) const {
     if (isa<Function>(calledValue)) {
         if (mem_allocas.count((Function *) calledValue)) {
             return true;
@@ -245,40 +260,6 @@ bool DyckAliasAnalysis::isDefaultMemAllocaFunction(Value *calledValue) {
     }
 
     return false;
-}
-
-std::vector<Value *> *DyckAliasAnalysis::getDefaultPointstoMemAlloca(Value *ptr) {
-    assert(ptr->getType()->isPointerTy());
-
-    DyckVertex *v = dyck_graph->retrieveDyckVertex(ptr).first;
-    if (vertexMemAllocaMap.count(v)) {
-        return vertexMemAllocaMap[v];
-    }
-
-    auto *objects = new std::vector<Value *>;
-    vertexMemAllocaMap[v] = objects;
-
-    // find allocas in v self
-    auto aliases = (const std::set<Value *> *) v->getEquivalentSet();
-
-    for (auto &al: *aliases) {
-        if (isa<GlobalVariable>(al) || isa<Function>(al)) {
-            objects->push_back(al);
-        } else if (isa<AllocaInst>(al)) {
-            objects->push_back(al);
-        } else if (auto *cs = dyn_cast<CallInst>(al)) {
-            Value *calledValue = cs->getCalledOperand();
-            if (isDefaultMemAllocaFunction(calledValue)) {
-                objects->push_back(al);
-            }
-        } else if (isa<InvokeInst>(al)) {
-            llvm_unreachable("find invoke inst, please use -lowerinvoke");
-        } else if (isa<CallBrInst>(al)) {
-            llvm_unreachable("find callbr inst, please use -lowerinvoke");
-        }
-    }
-
-    return objects;
 }
 
 bool DyckAliasAnalysis::callGraphPreserved() const {
@@ -348,6 +329,18 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
         outs() << "Printing alias set information...\n";
         this->printAliasSetInformation(M);
         outs() << "Done!\n\n";
+    }
+
+    // check if an alias set include null ptr
+    for (auto *DV: dyck_graph->getVertices()) {
+        auto *AliasSet = (std::set<Value *> *) DV->getEquivalentSet();
+        if (!AliasSet) continue;
+        for (auto *V: *AliasSet) {
+            if (isa<ConstantPointerNull>(V)) {
+                include_nulls.insert(DV);
+                break;
+            }
+        }
     }
 
     DEBUG_WITH_TYPE("validate-dyckgraph", dyck_graph->validation(__FILE__, __LINE__));
