@@ -16,30 +16,55 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef NCA_NULLCHECKANALYSIS_H
-#define NCA_NULLCHECKANALYSIS_H
+#ifndef NCA_LOCALNULLCHECKANALYSIS_H
+#define NCA_LOCALNULLCHECKANALYSIS_H
 
-#include <llvm/IR/Function.h>
-#include <list>
-#include <set>
+#include <llvm/ADT/BitVector.h>
+#include <llvm/IR/Instruction.h>
 #include <unordered_map>
 
 using namespace llvm;
 
-class LocalNullCheckAnalysis;
+typedef std::pair<Instruction *, unsigned> Edge;
 
-class NullCheckAnalysis {
+class LocalNullCheckAnalysis {
 private:
-    std::unordered_map<Function *, LocalNullCheckAnalysis *> AnalysisMap;
+    /// map an instruction to a mask, if ith bit of mask is set, it must not be null pointer
+    std::unordered_map<Instruction *, int32_t> InstNonNullMap;
+
+    ///
+    std::unordered_map<Value *, size_t> PtrIDMap;
+
+    ///
+    std::vector<Value *> IDPtrMap;
+
+    ///
+    std::map<Edge, BitVector> DataflowFacts;
+
+    /// the function we analyze
+    Function *F;
 
 public:
-    NullCheckAnalysis() = default;
-
-    void run(Module &M);
+    explicit LocalNullCheckAnalysis(Function *F);
 
     /// \p Ptr must be an operand of \p Inst
     /// return true if \p Ptr at \p Inst may be a null pointer
     bool mayNull(Value *Ptr, Instruction *Inst);
+
+    void run();
+
+private:
+    void nca();
+
+    void merge(std::vector<Edge> &, BitVector &);
+
+    void transfer(Edge, const BitVector &, BitVector &);
+
+    void tag();
+
+    void init();
+
+    bool nonnull(Value *);
 };
 
-#endif // NCA_NULLCHECKANALYSIS_H
+#endif //NCA_LOCALNULLCHECKANALYSIS_H

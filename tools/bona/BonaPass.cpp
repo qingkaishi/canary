@@ -36,10 +36,10 @@ void BonaPass::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
 bool BonaPass::runOnModule(Module &M) {
-    auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
-    auto AliasAnalysis = [DyckAA](Value *A, Value *B) {
-        return DyckAA->mayAlias(A, B);
-    };
-    NullCheckAnalysis NCA(AliasAnalysis);
+    // auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
+
+    outs() << "Start NCA ... ";
+    NullCheckAnalysis().run(M);
+    outs() << "Done!\n";
     return false;
 }

@@ -16,30 +16,21 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef NCA_NULLCHECKANALYSIS_H
-#define NCA_NULLCHECKANALYSIS_H
+#ifndef SUPPORT_API_H
+#define SUPPORT_API_H
 
-#include <llvm/IR/Function.h>
-#include <list>
-#include <set>
-#include <unordered_map>
+#include <llvm/IR/Instruction.h>
 
 using namespace llvm;
 
-class LocalNullCheckAnalysis;
-
-class NullCheckAnalysis {
-private:
-    std::unordered_map<Function *, LocalNullCheckAnalysis *> AnalysisMap;
-
+class API {
 public:
-    NullCheckAnalysis() = default;
+    static bool isMemoryAllocate(Instruction *);
 
-    void run(Module &M);
+    static bool isHeapAllocate(Instruction *);
 
-    /// \p Ptr must be an operand of \p Inst
-    /// return true if \p Ptr at \p Inst may be a null pointer
-    bool mayNull(Value *Ptr, Instruction *Inst);
+    static bool isStackAllocate(Instruction *);
+
 };
 
-#endif // NCA_NULLCHECKANALYSIS_H
+#endif //SUPPORT_API_H

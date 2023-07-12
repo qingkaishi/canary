@@ -16,17 +16,27 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <llvm/IR/CFG.h>
+#include <llvm/IR/Module.h>
+#include "NCA/LocalNullCheckAnalysis.h"
 #include "NCA/NullCheckAnalysis.h"
+#include "Support/TimeRecorder.h"
 
 
 bool NullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
-    return false;
-}
-
-void NullCheckAnalysis::run(Function &F) {
-
+    auto It = AnalysisMap.find(Inst->getFunction());
+    if (It != AnalysisMap.end())
+        return It->second->mayNull(Ptr, Inst);
+    else return true;
 }
 
 void NullCheckAnalysis::run(Module &M) {
+    TimeRecorder TR("NCA");
 
+    for (auto &F: M)
+        if (!F.empty()) {
+            auto *LNCA = new LocalNullCheckAnalysis(&F);
+            LNCA->run();
+            AnalysisMap[&F] = LNCA;
+        }
 }

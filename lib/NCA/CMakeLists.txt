@@ -1,3 +1,4 @@
 add_library(CanaryNCA STATIC
-    NullCheckAnalysis.cpp
+        LocalNullCheckAnalysis.cpp
+        NullCheckAnalysis.cpp
 )
