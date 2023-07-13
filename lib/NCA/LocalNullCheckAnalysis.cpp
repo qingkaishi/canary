@@ -77,7 +77,7 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Dri
 
     for (auto &B: *F) for (auto &I: B) InstNonNullMap[&I] = 0;
 
-    DT = &Driver->getAnalysis<DominatorTreeWrapperPass>(*F).getDomTree();
+    DT = nullptr; //&Driver->getAnalysis<DominatorTreeWrapperPass>(*F).getDomTree();
     label();
 }
 
@@ -369,6 +369,8 @@ void LocalNullCheckAnalysis::nca() {
 }
 
 void LocalNullCheckAnalysis::label() {
+    if (!DT) return;
+
     for (auto &B: *F) {
         for (auto &I: B) {
             auto *Br = dyn_cast<BranchInst>(&I);

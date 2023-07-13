@@ -19,7 +19,9 @@
 #include <llvm/IR/Dominators.h>
 #include "BonaPass.h"
 #include "DyckAA/DyckAliasAnalysis.h"
-#include "NCA/NullCheckAnalysis.h"
+#include "NCA/LocalNullCheckAnalysis.h"
+#include "Support/ThreadPool.h"
+#include "Support/TimeRecorder.h"
 
 char BonaPass::ID = 0;
 static RegisterPass<BonaPass> X("bona", "soundly checking if a pointer may be nullptr.");
@@ -35,7 +37,13 @@ void BonaPass::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
 bool BonaPass::runOnModule(Module &M) {
-    NullCheckAnalysis NCA(this);
-    NCA.run(M);
+    TimeRecorder TR("NCA");
+    for (auto &F: M)
+        if (!F.empty()) {
+            ThreadPool::get()->enqueue([this, &F]() {
+                LocalNullCheckAnalysis(this, &F).run();
+            });
+        }
+    ThreadPool::get()->waitAll();
     return false;
 }
