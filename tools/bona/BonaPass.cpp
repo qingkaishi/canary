@@ -16,6 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <llvm/IR/Dominators.h>
 #include "BonaPass.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "NCA/NullCheckAnalysis.h"
@@ -23,23 +24,18 @@
 char BonaPass::ID = 0;
 static RegisterPass<BonaPass> X("bona", "soundly checking if a pointer may be nullptr.");
 
-BonaPass::BonaPass() : ModulePass(ID) {
-
-}
+BonaPass::BonaPass() : ModulePass(ID) {}
 
 BonaPass::~BonaPass() = default;
 
-
 void BonaPass::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<DyckAliasAnalysis>();
+    AU.addRequired<DominatorTreeWrapperPass>();
     AU.setPreservesAll();
 }
 
 bool BonaPass::runOnModule(Module &M) {
-    // auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
-
-    outs() << "Start NCA ... ";
-    NullCheckAnalysis().run(M);
-    outs() << "Done!\n";
+    NullCheckAnalysis NCA(this);
+    NCA.run(M);
     return false;
 }

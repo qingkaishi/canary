@@ -22,6 +22,11 @@
 #include "Support/TimeRecorder.h"
 
 
+NullCheckAnalysis::~NullCheckAnalysis() {
+    for (auto &It: AnalysisMap) delete It.second;
+    decltype(AnalysisMap)().swap(AnalysisMap);
+}
+
 bool NullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
     auto It = AnalysisMap.find(Inst->getFunction());
     if (It != AnalysisMap.end())
@@ -34,7 +39,7 @@ void NullCheckAnalysis::run(Module &M) {
 
     for (auto &F: M)
         if (!F.empty()) {
-            auto *LNCA = new LocalNullCheckAnalysis(&F);
+            auto *LNCA = new LocalNullCheckAnalysis(Driver, &F);
             LNCA->run();
             AnalysisMap[&F] = LNCA;
         }

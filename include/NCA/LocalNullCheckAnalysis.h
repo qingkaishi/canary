@@ -20,7 +20,9 @@
 #define NCA_LOCALNULLCHECKANALYSIS_H
 
 #include <llvm/ADT/BitVector.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/IR/Instruction.h>
+#include <llvm/Pass.h>
 #include <set>
 #include <unordered_map>
 
@@ -48,8 +50,14 @@ private:
     /// The function we analyze
     Function *F;
 
+    /// driver pass
+    Pass *Driver;
+
+    /// Dominator tree
+    DominatorTree *DT;
+
 public:
-    explicit LocalNullCheckAnalysis(Function *F);
+    explicit LocalNullCheckAnalysis(Pass* P, Function *F);
 
     /// \p Ptr must be an operand of \p Inst
     /// return true if \p Ptr at \p Inst may be a null pointer

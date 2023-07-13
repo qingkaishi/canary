@@ -17,6 +17,7 @@
  */
 
 #include <llvm/IR/CFG.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Intrinsics.h>
@@ -25,7 +26,7 @@
 #include "NCA/LocalNullCheckAnalysis.h"
 #include "Support/API.h"
 
-LocalNullCheckAnalysis::LocalNullCheckAnalysis(Function *F) : F(F) {
+LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Driver(P) {
     for (unsigned K = 0; K < F->arg_size(); ++K) {
         auto *Arg = F->getArg(K);
         if (Arg->getType()->isPointerTy()) {
@@ -49,7 +50,10 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Function *F) : F(F) {
         }
     }
 
-    // todo init unreachable edges by calling label(Edge)
+    for (auto &B: *F) for (auto &I: B) InstNonNullMap[&I] = 0;
+
+    DT = &Driver->getAnalysis<DominatorTreeWrapperPass>(*F).getDomTree();
+    label();
 }
 
 bool LocalNullCheckAnalysis::nonnull(Value *V) {
@@ -131,8 +135,6 @@ void LocalNullCheckAnalysis::init() {
 }
 
 void LocalNullCheckAnalysis::tag() {
-    for (auto &B: *F) for (auto &I: B) InstNonNullMap[&I] = 0;
-
     BitVector ResultOfMerging;
     std::vector<Edge> IncomingEdges;
     for (auto &B: *F) {
@@ -253,10 +255,14 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
             }
         }
             break;
-        case Instruction::ICmp: {
-            auto CmpInst = (ICmpInst *) Inst;
-            auto Op0 = Inst->getOperand(0);
-            auto Op1 = Inst->getOperand(1);
+        case Instruction::Br: {
+            auto *BrInst = (BranchInst *) Inst;
+            if (!BrInst->isConditional()) break;
+            auto CmpInst = dyn_cast<ICmpInst>(BrInst->getCondition());
+            if (!CmpInst) break;
+
+            auto Op0 = CmpInst->getOperand(0);
+            auto Op1 = CmpInst->getOperand(1);
             if (CmpInst->getPredicate() == CmpInst::ICMP_EQ && BrNo == 1
                 || CmpInst->getPredicate() == CmpInst::ICMP_NE && BrNo == 0) {
                 if (isa<ConstantPointerNull>(Op0)) Set(Op1);
@@ -340,9 +346,65 @@ void LocalNullCheckAnalysis::nca() {
 }
 
 void LocalNullCheckAnalysis::label() {
-    // todo label unreachable edges based on nca's result
+    for (auto &B: *F) {
+        for (auto &I: B) {
+            auto *Br = dyn_cast<BranchInst>(&I);
+            if (!Br || !Br->isConditional()) continue;
+
+            auto *ICmp = dyn_cast<ICmpInst>(Br->getCondition());
+            if (!ICmp) continue;
+            auto Predicate = ICmp->getPredicate();
+            if (Predicate != CmpInst::ICMP_EQ && Predicate != CmpInst::ICMP_NE) continue;
+            auto *Op0 = ICmp->getOperand(0);
+            auto *Op1 = ICmp->getOperand(1);
+
+            if (Predicate == CmpInst::ICMP_EQ) {
+                if (isa<ConstantPointerNull>(Op0)) {
+                    // null == op1
+                    if (!mayNull(Op1, ICmp)) label({Br, 0});
+                } else if (isa<ConstantPointerNull>(Op1)) {
+                    // op0 == null
+                    if (!mayNull(Op0, ICmp)) label({Br, 0});
+                }
+            } else {
+                if (isa<ConstantPointerNull>(Op0)) {
+                    if (!mayNull(Op1, ICmp)) label({Br, 1});
+                } else if (isa<ConstantPointerNull>(Op1)) {
+                    if (!mayNull(Op0, ICmp)) label({Br, 1});
+                }
+            }
+        }
+    }
 }
 
-void LocalNullCheckAnalysis::label(Edge) {
-    // todo
+void LocalNullCheckAnalysis::label(Edge E) {
+    // have been labeled before, skip
+    if (UnreachableEdges.count(E)) return;
+    UnreachableEdges.insert(E);
+
+    assert(E.first->isTerminator());
+    auto *Start = E.first->getParent();
+    auto *End = E.first->getSuccessor(E.second);
+
+    std::set<BasicBlock *> UnreachableBlocks;
+    SmallVector<BasicBlock *, 10> Candidates;
+    DT->getDescendants(End, Candidates);
+    for (auto *B: Candidates) {
+        if (!DT->dominates({Start, End}, B)) continue;
+        UnreachableBlocks.insert(B);
+    }
+
+    for (auto *B: UnreachableBlocks) {
+        for (auto &I: *B) {
+            if (I.isTerminator()) {
+                for (unsigned K = 0; K < I.getNumSuccessors(); ++K) {
+                    if (UnreachableBlocks.count(I.getSuccessor(K))) {
+                        UnreachableEdges.emplace(&I, K);
+                    }
+                }
+            } else {
+                UnreachableEdges.emplace(&I, 0);
+            }
+        }
+    }
 }

@@ -20,6 +20,7 @@
 #define NCA_NULLCHECKANALYSIS_H
 
 #include <llvm/IR/Function.h>
+#include <llvm/Pass.h>
 #include <list>
 #include <set>
 #include <unordered_map>
@@ -30,10 +31,14 @@ class LocalNullCheckAnalysis;
 
 class NullCheckAnalysis {
 private:
+    Pass *Driver;
+
     std::unordered_map<Function *, LocalNullCheckAnalysis *> AnalysisMap;
 
 public:
-    NullCheckAnalysis() = default;
+    explicit NullCheckAnalysis(Pass *P) : Driver(P) {}
+
+    ~NullCheckAnalysis();
 
     void run(Module &M);
 
