@@ -26,26 +26,51 @@
 #include "NCA/LocalNullCheckAnalysis.h"
 #include "Support/API.h"
 
-LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Driver(P) {
+LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Driver(P), NEA(P, F) {
+    // mark nonnull groups
+    auto MustNotNull = [](Value *V) -> bool {
+        V = V->stripPointerCastsAndAliases();
+        if (isa<GlobalValue>(V)) return true;
+        if (auto CI = dyn_cast<Instruction>(V))
+            return API::isMemoryAllocate(CI);
+        return false;
+    };
+
     for (unsigned K = 0; K < F->arg_size(); ++K) {
         auto *Arg = F->getArg(K);
-        if (Arg->getType()->isPointerTy()) {
-            IDPtrMap.push_back(Arg);
-            PtrIDMap[Arg] = IDPtrMap.size() - 1;
+        if (Arg->getType()->isPointerTy() && MustNotNull(Arg)) InitNonNulls.insert(NEA.get(Arg));
+    }
+    for (auto &B: *F) {
+        for (auto &I: B) {
+            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
+                auto Op = I.getOperand(K);
+                if (Op->getType()->isPointerTy() && MustNotNull(Op)) InitNonNulls.insert(NEA.get(Op));
+            }
+            if (I.getType()->isPointerTy() && MustNotNull(&I)) InitNonNulls.insert(NEA.get(&I));
         }
     }
 
+
+    // init nca
+    for (unsigned K = 0; K < F->arg_size(); ++K) {
+        auto *Arg = F->getArg(K);
+        if (!Arg->getType()->isPointerTy()) continue;
+        auto ArgX = NEA.get(Arg);
+        if (InitNonNulls.count(ArgX)) continue;
+        unsigned ID = PtrIDMap.size();
+        PtrIDMap[ArgX] = ID;
+    }
     for (auto &B: *F) {
         for (auto &I: B) {
             for (unsigned K = 0; K < I.getNumOperands(); ++K) {
                 auto Op = I.getOperand(K);
                 if (!Op->getType()->isPointerTy()) continue;
-                if (nonnull(Op)) continue;
-                auto It = PtrIDMap.find(Op);
-                if (It == PtrIDMap.end()) {
-                    IDPtrMap.push_back(Op);
-                    PtrIDMap[Op] = IDPtrMap.size() - 1;
-                }
+                auto OpX = NEA.get(Op);
+                if (InitNonNulls.count(OpX)) continue;
+                auto It = PtrIDMap.find(OpX);
+                if (It != PtrIDMap.end()) continue;
+                unsigned ID = PtrIDMap.size();
+                PtrIDMap[NEA.get(OpX)] = ID;
             }
         }
     }
@@ -56,17 +81,12 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Dri
     label();
 }
 
-bool LocalNullCheckAnalysis::nonnull(Value *V) {
-    V = V->stripPointerCastsAndAliases();
-    if (isa<GlobalValue>(V)) return true;
-    if (auto CI = dyn_cast<Instruction>(V))
-        return API::isMemoryAllocate(CI);
-    return false;
-}
-
 bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
-    // not used as a ptr type or must be nonnull
-    if (!Ptr->getType()->isPointerTy() || nonnull(Ptr)) return false;
+    // not used as a ptr
+    if (!Ptr->getType()->isPointerTy()) return false;
+
+    // must be nonnull
+    if (InitNonNulls.count(NEA.get(Ptr))) return false;
 
     // ptrs in unreachable blocks are considered nonnull
     bool AllPredUnreachable = true;
@@ -104,7 +124,7 @@ bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
 }
 
 void LocalNullCheckAnalysis::run() {
-    outs() << "running on " << F->getName() << " (# ptrs: " << IDPtrMap.size() << "; # blocks: " << F->size() << ")\n";
+    outs() << "running on " << F->getName() << " (# ptrs: " << PtrIDMap.size() << "; # blocks: " << F->size() << ")\n";
 
     // 1. init a map from each instruction to a set of nonnull pointers
     init();
@@ -124,14 +144,14 @@ void LocalNullCheckAnalysis::init() {
         for (auto &I: B) {
             if (I.isTerminator()) {
                 for (unsigned K = 0; K < I.getNumSuccessors(); ++K) {
-                    DataflowFacts[{&I, K}] = BitVector(IDPtrMap.size());
+                    DataflowFacts[{&I, K}] = BitVector(PtrIDMap.size());
                 }
             } else {
-                DataflowFacts[{&I, 0}] = BitVector(IDPtrMap.size());
+                DataflowFacts[{&I, 0}] = BitVector(PtrIDMap.size());
             }
         }
     }
-    DataflowFacts[{nullptr, 0}] = BitVector(IDPtrMap.size());
+    DataflowFacts[{nullptr, 0}] = BitVector(PtrIDMap.size());
 }
 
 void LocalNullCheckAnalysis::tag() {
@@ -164,7 +184,7 @@ void LocalNullCheckAnalysis::tag() {
             auto &Orig = InstNonNullMap[&I];
             for (auto K = 0; K < I.getNumOperands(); ++K) {
                 auto OpK = I.getOperand(K);
-                auto It = PtrIDMap.find(OpK);
+                auto It = PtrIDMap.find(NEA.get(OpK));
                 if (It == PtrIDMap.end()) continue;
                 auto OpKMustNonNull = NonNulls->test(It->second);
                 if (OpKMustNonNull) {
@@ -186,11 +206,13 @@ void LocalNullCheckAnalysis::merge(std::vector<Edge> &IncomingEdges, BitVector &
 }
 
 void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Out) {
+    // fixme use nea
     // assume In, evaluate E's fact as Out
     Out = In;
 
     auto Set = [this, &Out](Value *Ptr) {
         size_t PtrID = UINT64_MAX;
+        Ptr = NEA.get(Ptr);
         auto It = PtrIDMap.find(Ptr);
         if (It != PtrIDMap.end())
             PtrID = It->second;
@@ -199,6 +221,7 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
 
     auto Count = [this, &In](Value *Ptr) -> bool {
         size_t PtrID = UINT64_MAX;
+        Ptr = NEA.get(Ptr);
         auto It = PtrIDMap.find(Ptr);
         if (It != PtrIDMap.end())
             PtrID = It->second;

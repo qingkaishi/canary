@@ -26,6 +26,8 @@
 #include <set>
 #include <unordered_map>
 
+#include "NCA/NullEquivalenceAnalysis.h"
+
 using namespace llvm;
 
 typedef std::pair<Instruction *, unsigned> Edge;
@@ -37,9 +39,6 @@ private:
 
     /// Ptr -> ID
     std::unordered_map<Value *, size_t> PtrIDMap;
-
-    /// ID -> Ptr
-    std::vector<Value *> IDPtrMap;
 
     /// Edge -> a BitVector, in which if IDth bit is set, the corresponding ptr is not null
     std::map<Edge, BitVector> DataflowFacts;
@@ -55,6 +54,12 @@ private:
 
     /// Dominator tree
     DominatorTree *DT;
+
+    /// ptr groups
+    NullEquivalenceAnalysis NEA;
+
+    /// init nonnull set
+    std::set<Value *> InitNonNulls;
 
 public:
     explicit LocalNullCheckAnalysis(Pass* P, Function *F);
@@ -79,8 +84,6 @@ private:
     void label();
 
     void label(Edge);
-
-    bool nonnull(Value *);
 };
 
 #endif //NCA_LOCALNULLCHECKANALYSIS_H

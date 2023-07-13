@@ -16,26 +16,34 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef NCA_NULLEQUIVALENCEANALYSIS_H
+#define NCA_NULLEQUIVALENCEANALYSIS_H
+
+#include <llvm/ADT/BitVector.h>
 #include <llvm/IR/Dominators.h>
-#include "BonaPass.h"
-#include "DyckAA/DyckAliasAnalysis.h"
-#include "NCA/NullCheckAnalysis.h"
+#include <llvm/IR/Function.h>
+#include <llvm/Pass.h>
+#include <set>
+#include <unordered_map>
 
-char BonaPass::ID = 0;
-static RegisterPass<BonaPass> X("bona", "soundly checking if a pointer may be nullptr.");
+#include "Support/DisjointSet.h"
 
-BonaPass::BonaPass() : ModulePass(ID) {}
+using namespace llvm;
 
-BonaPass::~BonaPass() = default;
+/// a ptr in a group is nonnull, then all ptrs in the group are nonnull
+class NullEquivalenceAnalysis {
+private:
+    Pass *Driver;
 
-void BonaPass::getAnalysisUsage(AnalysisUsage &AU) const {
-    //AU.addRequired<DyckAliasAnalysis>();
-    AU.addRequired<DominatorTreeWrapperPass>();
-    AU.setPreservesAll();
-}
+    DisjointSet<Value *> DisSet;
 
-bool BonaPass::runOnModule(Module &M) {
-    NullCheckAnalysis NCA(this);
-    NCA.run(M);
-    return false;
-}
+public:
+    NullEquivalenceAnalysis(Pass *, Function *);
+
+    Value *get(Value *);
+
+private:
+
+};
+
+#endif //NCA_NULLEQUIVALENCEANALYSIS_H
