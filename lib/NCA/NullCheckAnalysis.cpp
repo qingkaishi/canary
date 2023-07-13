@@ -16,7 +16,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/IR/CFG.h>
 #include <llvm/IR/Module.h>
 #include "NCA/LocalNullCheckAnalysis.h"
 #include "NCA/NullCheckAnalysis.h"

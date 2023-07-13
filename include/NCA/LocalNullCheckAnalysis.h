@@ -21,6 +21,7 @@
 
 #include <llvm/ADT/BitVector.h>
 #include <llvm/IR/Instruction.h>
+#include <set>
 #include <unordered_map>
 
 using namespace llvm;
@@ -29,19 +30,22 @@ typedef std::pair<Instruction *, unsigned> Edge;
 
 class LocalNullCheckAnalysis {
 private:
-    /// map an instruction to a mask, if ith bit of mask is set, it must not be null pointer
+    /// Mapping an instruction to a mask, if ith bit of mask is set, it must not be null pointer
     std::unordered_map<Instruction *, int32_t> InstNonNullMap;
 
-    ///
+    /// Ptr -> ID
     std::unordered_map<Value *, size_t> PtrIDMap;
 
-    ///
+    /// ID -> Ptr
     std::vector<Value *> IDPtrMap;
 
-    ///
+    /// Edge -> a BitVector, in which if IDth bit is set, the corresponding ptr is not null
     std::map<Edge, BitVector> DataflowFacts;
 
-    /// the function we analyze
+    /// unreachable edges collected during nca
+    std::set<Edge> UnreachableEdges;
+
+    /// The function we analyze
     Function *F;
 
 public:
@@ -63,6 +67,10 @@ private:
     void tag();
 
     void init();
+
+    void label();
+
+    void label(Edge);
 
     bool nonnull(Value *);
 };

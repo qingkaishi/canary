@@ -19,6 +19,7 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
 #include <set>
 #include "NCA/LocalNullCheckAnalysis.h"
@@ -47,6 +48,8 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Function *F) : F(F) {
             }
         }
     }
+
+    // todo init unreachable edges by calling label(Edge)
 }
 
 bool LocalNullCheckAnalysis::nonnull(Value *V) {
@@ -58,6 +61,29 @@ bool LocalNullCheckAnalysis::nonnull(Value *V) {
 }
 
 bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
+    // not used as a ptr type or must be nonnull
+    if (!Ptr->getType()->isPointerTy() || nonnull(Ptr)) return false;
+
+    // ptrs in unreachable blocks are considered nonnull
+    bool AllPredUnreachable = true;
+    if (Inst == &Inst->getParent()->front()) {
+        for (auto PIt = pred_begin(Inst->getParent()), PE = pred_end(Inst->getParent()); PIt != PE; ++PIt) {
+            auto *PredTerm = (*PIt)->getTerminator();
+            for (unsigned J = 0; J < PredTerm->getNumSuccessors(); ++J) {
+                if (PredTerm->getSuccessor(J) != Inst->getParent()) continue;
+                if (!UnreachableEdges.count({PredTerm, J})) {
+                    AllPredUnreachable = false;
+                    break;
+                }
+            }
+            if (!AllPredUnreachable) break;
+        }
+    } else {
+        AllPredUnreachable = UnreachableEdges.count({Inst->getPrevNode(), 0});
+    }
+    if (AllPredUnreachable) return false;
+
+    // check nca results
     bool IsOperand = false;
     unsigned K = 0;
     for (; K < Inst->getNumOperands(); ++K) {
@@ -67,7 +93,6 @@ bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
         }
     }
     assert(IsOperand && "Ptr must be an operand of Inst!");
-    if (!Ptr->getType()->isPointerTy() || nonnull(Ptr)) return false; // not used as a ptr type
     if (K >= 32) return true; // more than 32 operands in this weird instruction
     auto It = InstNonNullMap.find(Inst);
     assert(It != InstNonNullMap.end());
@@ -75,7 +100,7 @@ bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
 }
 
 void LocalNullCheckAnalysis::run() {
-    outs() << "running on " << F->getName() << " (ptrsize: " << IDPtrMap.size() << "; blocksize: " << F->size() << ")\n";
+    outs() << "running on " << F->getName() << " (# ptrs: " << IDPtrMap.size() << "; # blocks: " << F->size() << ")\n";
 
     // 1. init a map from each instruction to a set of nonnull pointers
     init();
@@ -85,6 +110,9 @@ void LocalNullCheckAnalysis::run() {
 
     // 3. tag possible null pointers at each instruction
     tag();
+
+    // 4. label unreachable edges
+    label();
 }
 
 void LocalNullCheckAnalysis::init() {
@@ -180,6 +208,7 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
 
     // analyze each instruction type
     auto *Inst = E.first;
+    auto BrNo = E.second;
     switch (Inst->getOpcode()) {
         case Instruction::Load:
         case Instruction::Store:
@@ -210,15 +239,29 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
             break;
         case Instruction::Call: {
             auto *CI = (CallInst *) Inst;
-            if (CI->getCalledFunction()) {
-                if (API::isMemoryAllocate(CI)) Set(Inst);
+            if (auto *Callee = CI->getCalledFunction()) {
+                if (Callee->isIntrinsic() && Callee->getIntrinsicID() >= Intrinsic::memcpy
+                    && Callee->getIntrinsicID() <= Intrinsic::memset_element_unordered_atomic) {
+                    for (unsigned K = 0; K < CI->getNumArgOperands(); ++K) {
+                        auto Op = CI->getArgOperand(K);
+                        if (!Op->getType()->isPointerTy()) continue;
+                        Set(Op);
+                    }
+                } else if (API::isMemoryAllocate(CI)) Set(Inst);
             } else {
                 Set(CI->getCalledOperand());
             }
         }
             break;
         case Instruction::ICmp: {
-            // todo
+            auto CmpInst = (ICmpInst *) Inst;
+            auto Op0 = Inst->getOperand(0);
+            auto Op1 = Inst->getOperand(1);
+            if (CmpInst->getPredicate() == CmpInst::ICMP_EQ && BrNo == 1
+                || CmpInst->getPredicate() == CmpInst::ICMP_NE && BrNo == 0) {
+                if (isa<ConstantPointerNull>(Op0)) Set(Op1);
+                else if (isa<ConstantPointerNull>(Op1)) Set(Op0);
+            }
         }
             break;
         default:
@@ -244,9 +287,11 @@ void LocalNullCheckAnalysis::nca() {
     BitVector ResultOfTransfer;
     while (!WorkList.empty()) {
         auto Edge = WorkList.back();
+        WorkList.pop_back();
+        if (UnreachableEdges.count(Edge)) continue;
+
         auto EdgeInst = Edge.first;
         auto &EdgeFact = DataflowFacts.at(Edge); // this loop iteration re-compute EdgeFact
-        WorkList.pop_back();
 
         // 1. merge
         IncomingEdges.clear();
@@ -284,11 +329,20 @@ void LocalNullCheckAnalysis::nca() {
                             EdgeInst->getNextNode();
             if (NextInst->isTerminator()) {
                 for (unsigned K = 0; K < NextInst->getNumSuccessors(); ++K) {
+                    if (UnreachableEdges.count({NextInst, K})) continue;
                     WorkList.emplace_back(NextInst, K);
                 }
-            } else {
+            } else if (!UnreachableEdges.count({NextInst, 0})) {
                 WorkList.emplace_back(NextInst, 0);
             }
         }
     }
+}
+
+void LocalNullCheckAnalysis::label() {
+    // todo label unreachable edges based on nca's result
+}
+
+void LocalNullCheckAnalysis::label(Edge) {
+    // todo
 }
