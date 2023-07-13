@@ -31,7 +31,7 @@ BonaPass::BonaPass() : ModulePass(ID) {}
 BonaPass::~BonaPass() = default;
 
 void BonaPass::getAnalysisUsage(AnalysisUsage &AU) const {
-    //AU.addRequired<DyckAliasAnalysis>();
+    AU.addRequired<DyckAliasAnalysis>();
     AU.addRequired<DominatorTreeWrapperPass>();
     AU.setPreservesAll();
 }
