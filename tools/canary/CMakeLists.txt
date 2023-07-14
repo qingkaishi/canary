@@ -37,7 +37,7 @@ set(LLVM_LINK_COMPONENTS
 add_executable(canary canary.cpp)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(canary PRIVATE
-            CanaryNullPointer CanaryDyckAA CanarySupport
+            CanaryNullPointer CanaryDyckAA CanaryTransform CanarySupport
             -Wl,--start-group
             ${LLVM_LINK_COMPONENTS}
             -Wl,--end-group
@@ -45,7 +45,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     )
 else()
     target_link_libraries(canary PRIVATE
-            CanaryNullPointer CanaryDyckAA CanarySupport
+            CanaryNullPointer CanaryDyckAA CanaryTransform CanarySupport
             ${LLVM_LINK_COMPONENTS}
             z ncurses pthread dl
     )

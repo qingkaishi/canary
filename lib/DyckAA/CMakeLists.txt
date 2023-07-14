@@ -6,4 +6,5 @@ add_library(CanaryDyckAA STATIC
         DyckCallGraphNode.cpp
         DyckGraph.cpp
         DyckVertex.cpp
+        DyckVFG.cpp
 )

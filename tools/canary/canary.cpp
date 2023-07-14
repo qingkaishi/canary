@@ -1,5 +1,5 @@
 /*
- *  Popeye lifts protocol source code in C to its specification in BNF
+ *  Canary features a fast unification-based alias analysis for C programs
  *  Copyright (C) 2021 Qingkai Shi <qingkaishi@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -42,6 +42,7 @@
 #include <memory>
 
 #include "NullPointer/NullBoosterPass.h"
+#include "Transform/LowerConstantExpr.h"
 
 using namespace llvm;
 
@@ -125,6 +126,7 @@ int main(int argc, char **argv) {
     Passes.add(createPromoteMemoryToRegisterPass());
     Passes.add(createSCCPPass());
     Passes.add(createLoopSimplifyPass());
+    Passes.add(new LowerConstantExpr());
     Passes.add(new NotificationPass("Done!\n"));
     Passes.add(new NullBoosterPass());
 
