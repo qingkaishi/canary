@@ -21,7 +21,7 @@
 #include <string>
 #include "Support/API.h"
 
-static std::set<std::string> MallocFuncs = {
+std::set<std::string> API::HeapAllocFunctions = {
         "malloc",
         "calloc",
         "memalign",
@@ -58,7 +58,7 @@ bool API::isMemoryAllocate(Instruction *I) {
 bool API::isHeapAllocate(Instruction *I) {
     if (auto CI = dyn_cast<CallInst>(I)) {
         if (auto Callee = CI->getCalledFunction()) {
-            return MallocFuncs.count(Callee->getName().str());
+            return HeapAllocFunctions.count(Callee->getName().str());
         }
     }
     return false;

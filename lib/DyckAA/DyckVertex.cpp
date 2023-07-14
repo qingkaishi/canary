@@ -24,9 +24,8 @@ DyckVertex::DyckVertex(void * v, const char * itsname) {
 	name = itsname;
 	index = global_indx++;
 
-	if (v != nullptr) {
+	if (v != nullptr)
 		equivclass.insert(v);
-	}
 }
 
 DyckVertex::~DyckVertex() = default;

@@ -37,6 +37,7 @@
 using namespace llvm;
 
 class DyckAliasAnalysis : public ModulePass {
+    friend class AAAnalyzer;
 public:
     static char ID;
 
@@ -53,18 +54,9 @@ public:
 
     bool mayAlias(Value *V1, Value *V2) const;
 
-    bool mayNull(Value *V, bool HeapAllocaReturnsNonNull = true) const;
-
 private:
     DyckGraph *dyck_graph;
     DyckCallGraph *call_graph;
-
-    std::set<Function *> mem_allocas;
-    std::set<DyckVertex *> include_nulls;
-
-private:
-    friend class AAAnalyzer;
-
     DyckEdgeLabel *DEREF_LABEL;
     std::map<long, DyckEdgeLabel *> OFFSET_LABEL_MAP;
     std::map<long, DyckEdgeLabel *> INDEX_LABEL_MAP;
@@ -121,16 +113,6 @@ public:
     /// e.g. for %a = load i32* %b, {%a} will be returned for the
     /// pointer %b
     void getPointstoObjects(std::set<Value *> &Objects, Value *Pointer) const;
-
-    /// Default mem alloca function includes
-    /// {
-    ///    "calloc", "malloc", "realloc",
-    ///    "_Znaj", "_ZnajRKSt9nothrow_t",
-    ///    "_Znam", "_ZnamRKSt9nothrow_t",
-    ///    "_Znwj", "_ZnwjRKSt9nothrow_t",
-    ///    "_Znwm", "_ZnwmRKSt9nothrow_t"
-    /// }
-    bool isDefaultMemAllocaFunction(Value *CalledValue) const;
 };
 
 #endif // DYCKAA_DYCKALIASANALYSIS_H

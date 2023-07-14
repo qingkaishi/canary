@@ -33,14 +33,16 @@ class NullCheckAnalysis {
 private:
     Pass *Driver;
 
+    Module *M;
+
     std::unordered_map<Function *, LocalNullCheckAnalysis *> AnalysisMap;
 
 public:
-    explicit NullCheckAnalysis(Pass *P) : Driver(P) {}
+    NullCheckAnalysis(Pass *P, Module *M) : Driver(P), M(M) {}
 
     ~NullCheckAnalysis();
 
-    void run(Module &M);
+    void run();
 
     /// \p Ptr must be an operand of \p Inst
     /// return true if \p Ptr at \p Inst may be a null pointer

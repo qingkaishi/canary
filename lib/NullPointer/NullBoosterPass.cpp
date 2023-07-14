@@ -18,9 +18,8 @@
 
 #include <llvm/IR/Dominators.h>
 #include "DyckAA/DyckAliasAnalysis.h"
-#include "NullPointer/LocalNullCheckAnalysis.h"
 #include "NullPointer/NullBoosterPass.h"
-#include "Support/ThreadPool.h"
+#include "NullPointer/NullCheckAnalysis.h"
 #include "Support/TimeRecorder.h"
 
 char NullBoosterPass::ID = 0;
@@ -37,13 +36,8 @@ void NullBoosterPass::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
 bool NullBoosterPass::runOnModule(Module &M) {
-    TimeRecorder TR("NCA");
-    for (auto &F: M)
-        if (!F.empty()) {
-            ThreadPool::get()->enqueue([this, &F]() {
-                LocalNullCheckAnalysis(this, &F).run();
-            });
-        }
-    ThreadPool::get()->wait();
+    TimeRecorder TR("Running NullBoosterPass");
+    NullCheckAnalysis NCA(this, &M);
+    NCA.run();
     return false;
 }

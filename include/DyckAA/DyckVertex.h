@@ -41,8 +41,6 @@ private:
 
     /// The constructor is not visible. The first argument is the pointer of the value that you want to encapsulate.
     /// The second argument is the name of the vertex, which will be used in void DyckGraph::printAsDot() function.
-    /// You are not recommended to assign names to vertices when you need not to print the graph,
-    /// because it may be time-consuming for you to construct names for vertices.
     /// please use DyckGraph::retrieveDyckVertex for initialization.
     explicit DyckVertex(void *v, const char *itsname = nullptr);
 

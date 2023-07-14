@@ -43,8 +43,7 @@ static void OnSegmentFalut(int) {
     abort();
 }
 
-AAAnalyzer::AAAnalyzer(Module *m, DyckAliasAnalysis *a, DyckGraph *d, DyckCallGraph *cg) :
-        PB("[Canary]", ProgressBar::PBS_CharacterStyle) {
+AAAnalyzer::AAAnalyzer(Module *m, DyckAliasAnalysis *a, DyckGraph *d, DyckCallGraph *cg) {
     module = m;
     aa = a;
     dgraph = d;
@@ -88,32 +87,21 @@ void AAAnalyzer::intra_procedure_analysis() {
 }
 
 void AAAnalyzer::inter_procedure_analysis() {
-    // The following three variables control the progress bar.
-    // IterationCounter records the number of iterations so far.
-    // Because we do not know how many iterations it will do,
-    // at the beginning, we assume it will do ``InterationStep"
-    // iterations. If the number of iteration exceeds ``InterationStep",
-    // we say it goes into a new iteration phase, which is
-    // recorded by IterationPhase.
-    //
-    // InterationStep is 5 in default because it will not
-    // exceed 5 iterations in most cases.
-    unsigned IterationCounter = 0;
-    unsigned IterationPhase = 0;
-    const unsigned InterationStep = 5;
+    outs() << "Start inter-procedural analysis ... \n";
 
+    unsigned IterationCounter = 0;
     std::map<DyckCallGraphNode *, std::set<CommonCall *>> handledCommonCalls;
     while (true) {
         if (IterationCounter++ >= NumInterIteration.getValue()) {
             break;
         }
+        outs() << "\t Iteration " << IterationCounter << "\n";
 
         bool finished = true;
         dgraph->qirunAlgorithm();
 
         { // direct calls
-            //outs() << "Handling direct calls...";
-            outs().flush();
+            outs() << "\t\t Handling direct calls...";
             auto dfit = callgraph->begin();
             while (dfit != callgraph->end()) {
                 DyckCallGraphNode *df = dfit->second;
@@ -140,10 +128,11 @@ void AAAnalyzer::inter_procedure_analysis() {
                 // ---------------------------------------------------
                 ++dfit;
             }
-            //outs() << "Done!\n";
+            outs() << "Done!\n";
         }
 
         { // indirect call
+            outs() << "\t\t Handling indirect calls...";
             int NumProcessedFunctions = 0;
             auto dfit = callgraph->begin();
             while (dfit != callgraph->end()) {
@@ -153,26 +142,17 @@ void AAAnalyzer::inter_procedure_analysis() {
                     finished = false;
                 }
 
-                PB.showProgress((float) (NumProcessedFunctions + callgraph->size() * (IterationCounter - 1))
-                                / ((float) callgraph->size() * InterationStep * ((float) IterationPhase + 1)));
-
                 ++dfit;
             }
+            outs() << "Done!\n";
         }
 
         if (finished) {
             break;
         }
-
-        if (IterationCounter / InterationStep == IterationPhase + 1) {
-            ++IterationPhase;
-            printf("\r\033[K"); // clear the line
-            PB.reset();
-        }
     }
 
-    PB.showProgress(1);
-    printf("\n");
+    outs() << "Done!\n";
 }
 
 void AAAnalyzer::printNoAliasedPointerCalls() {

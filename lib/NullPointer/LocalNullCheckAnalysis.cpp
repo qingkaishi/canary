@@ -124,7 +124,7 @@ bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
 }
 
 void LocalNullCheckAnalysis::run() {
-    outs() << "running on " << F->getName() << " (# ptrs: " << PtrIDMap.size() << "; # blocks: " << F->size() << ")\n";
+    outs() << "Running on " << F->getName() << " (# Ptrs: " << PtrIDMap.size() << "; # Blocks: " << F->size() << ")\n";
 
     // 1. init a map from each instruction to a set of nonnull pointers
     init();

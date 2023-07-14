@@ -24,6 +24,7 @@
 #include "AAAnalyzer.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckCallGraph.h"
+#include "Support/TimeRecorder.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc(
@@ -79,25 +80,6 @@ const std::set<Value *> *DyckAliasAnalysis::getAliasSet(Value *ptr) const {
 
 bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
     return getAliasSet(V1)->count(V2);
-}
-
-bool DyckAliasAnalysis::mayNull(Value *V, bool HeapAllocaReturnsNonNull) const {
-    if (isa<GlobalValue>(V)) {
-        return false;
-    } else if (isa<AllocaInst>(V)) {
-        return false;
-    } else if (auto *CI = dyn_cast<CallInst>(V)) {
-        if (HeapAllocaReturnsNonNull && isDefaultMemAllocaFunction(CI->getCalledOperand()))
-            return false;
-    } else if (isa<InvokeInst>(V)) {
-        llvm_unreachable("invoke is not supported!");
-    } else if (isa<CallBrInst>(V)) {
-        llvm_unreachable("callbr is not supported!");
-    }
-
-    auto *DV = dyck_graph->findDyckVertex(V);
-    if (!DV) return false;
-    return include_nulls.count(DV);
 }
 
 void DyckAliasAnalysis::getEscapedPointersFrom(std::vector<const std::set<Value *> *> *ret, Value *from) {
@@ -246,22 +228,6 @@ void DyckAliasAnalysis::getPointstoObjects(std::set<Value *> &objects, Value *po
     }
 }
 
-bool DyckAliasAnalysis::isDefaultMemAllocaFunction(Value *calledValue) const {
-    if (isa<Function>(calledValue)) {
-        if (mem_allocas.count((Function *) calledValue)) {
-            return true;
-        }
-    } else {
-        for (auto &func: mem_allocas) {
-            if (mayAlias(calledValue, func)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 bool DyckAliasAnalysis::callGraphPreserved() const {
     return PreserveCallGraph;
 }
@@ -276,28 +242,7 @@ DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
 }
 
 bool DyckAliasAnalysis::runOnModule(Module &M) {
-    {
-        auto addAllocLikeFunc = [this, &M](const char *name) {
-            if (Function *F = M.getFunction(name)) {
-                this->mem_allocas.insert(F);
-            }
-        };
-        addAllocLikeFunc("malloc");
-        addAllocLikeFunc("calloc");
-        addAllocLikeFunc("realloc");
-        addAllocLikeFunc("valloc");
-        addAllocLikeFunc("reallocf");
-        addAllocLikeFunc("strdup");
-        addAllocLikeFunc("strndup");
-        addAllocLikeFunc("_Znaj");
-        addAllocLikeFunc("_ZnajRKSt9nothrow_t");
-        addAllocLikeFunc("_Znam");
-        addAllocLikeFunc("_ZnamRKSt9nothrow_t");
-        addAllocLikeFunc("_Znwj");
-        addAllocLikeFunc("_ZnwjRKSt9nothrow_t");
-        addAllocLikeFunc("_Znwm");
-        addAllocLikeFunc("_ZnwmRKSt9nothrow_t");
-    }
+    TimeRecorder DyckAA("Running DyckAA");
 
     AAAnalyzer aaa(&M, this, dyck_graph, call_graph);
 
@@ -329,18 +274,6 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
         outs() << "Printing alias set information...\n";
         this->printAliasSetInformation(M);
         outs() << "Done!\n\n";
-    }
-
-    // check if an alias set include null ptr
-    for (auto *DV: dyck_graph->getVertices()) {
-        auto *AliasSet = (std::set<Value *> *) DV->getEquivalentSet();
-        if (!AliasSet) continue;
-        for (auto *V: *AliasSet) {
-            if (isa<ConstantPointerNull>(V)) {
-                include_nulls.insert(DV);
-                break;
-            }
-        }
     }
 
     DEBUG_WITH_TYPE("validate-dyckgraph", dyck_graph->validation(__FILE__, __LINE__));

@@ -31,6 +31,7 @@ public:
 
     static bool isStackAllocate(Instruction *);
 
+    static std::set<std::string> HeapAllocFunctions;
 };
 
 #endif //SUPPORT_API_H

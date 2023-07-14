@@ -19,6 +19,7 @@
 #include <llvm/IR/Module.h>
 #include "NullPointer/LocalNullCheckAnalysis.h"
 #include "NullPointer/NullCheckAnalysis.h"
+#include "Support/ThreadPool.h"
 #include "Support/TimeRecorder.h"
 
 
@@ -34,13 +35,22 @@ bool NullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
     else return true;
 }
 
-void NullCheckAnalysis::run(Module &M) {
-    TimeRecorder TR("NCA");
+void NullCheckAnalysis::run() {
+    // record time
+    TimeRecorder TR("Running NullCheckAnalysis");
 
-    for (auto &F: M)
-        if (!F.empty()) {
-            auto *LNCA = new LocalNullCheckAnalysis(Driver, &F);
-            LNCA->run();
-            AnalysisMap[&F] = LNCA;
-        }
+    // allocate space for each function for thread safety
+    for (auto &F: *M) if (!F.empty()) AnalysisMap[&F] = nullptr;
+
+    // run local nca for each function concurrently
+    for (auto &F: *M)
+        if (!F.empty())
+            ThreadPool::get()->enqueue([this, &F]() {
+                auto *LNCA = new LocalNullCheckAnalysis(Driver, &F);
+                AnalysisMap.at(&F) = LNCA;
+                LNCA->run();
+            });
+
+    // wait for all tasks to finish
+    ThreadPool::get()->wait();
 }

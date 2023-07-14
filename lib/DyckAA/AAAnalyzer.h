@@ -24,7 +24,6 @@
 
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckEdgeLabel.h"
-#include "Support/ProgressBar.h"
 
 class DyckAliasAnalysis;
 
@@ -45,8 +44,6 @@ private:
 private:
     std::map<Type *, FunctionTypeNode *> functionTyNodeMap;
     std::set<FunctionTypeNode *> tyroots;
-
-    ProgressBar PB;
 
 public:
     AAAnalyzer(Module *m, DyckAliasAnalysis *a, DyckGraph *d, DyckCallGraph *cg);
