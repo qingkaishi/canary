@@ -44,7 +44,7 @@ public:
     auto enqueue(F &&, Args &&...) -> std::future<typename std::result_of<F(Args...)>::type>;
 
     /// Wait until no tasks remain
-    void waitAll();
+    void wait();
 
     /// each thread is allowed to deaclare a thread local
     /// if you want to decalre more, you can pack them into a struct

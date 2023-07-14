@@ -97,7 +97,7 @@ ThreadPool::ThreadPool() : IsStop(false) {
     }
 }
 
-void ThreadPool::waitAll() {
+void ThreadPool::wait() {
     while (true) {
         {
             std::unique_lock<std::mutex> Lock(this->QueueMutex);

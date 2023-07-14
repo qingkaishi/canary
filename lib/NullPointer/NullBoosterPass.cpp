@@ -44,6 +44,6 @@ bool NullBoosterPass::runOnModule(Module &M) {
                 LocalNullCheckAnalysis(this, &F).run();
             });
         }
-    ThreadPool::get()->waitAll();
+    ThreadPool::get()->wait();
     return false;
 }
