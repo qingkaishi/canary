@@ -19,10 +19,10 @@
 #include "DyckAA/DyckVFG.h"
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
-
+    // create a VFG for each function, connect them, delete local VFGs
 }
 
-DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *M) {
+DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *F) {
 
 }
 

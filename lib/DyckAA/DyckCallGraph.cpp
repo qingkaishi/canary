@@ -18,136 +18,131 @@
 
 #include "DyckAA/DyckCallGraph.h"
 
-static cl::opt<bool>
-        WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
-                       cl::desc("Determine whether there are edge lables in the cg."));
+static cl::opt<bool> WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
+                                    cl::desc("Determine whether there are edge lables in the cg."));
 
-void DyckCallGraph::dotCallGraph(const std::string &mIdentifier) {
-    std::string dotfilename;
-    dotfilename.append(mIdentifier);
-    dotfilename.append(".maycg.dot");
+void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
+    std::string DotFileName;
+    DotFileName.append(ModuleIdentifier);
+    DotFileName.append(".maycg.dot");
 
-    FILE *fout = fopen(dotfilename.data(), "w+");
-    fprintf(fout, "digraph maycg {\n");
+    FILE *FOut = fopen(DotFileName.data(), "w+");
+    fprintf(FOut, "digraph maycg {\n");
 
-    auto fwIt = FunctionMap.begin();
-    while (fwIt != FunctionMap.end()) {
-        DyckCallGraphNode *fw = fwIt->second;
-        fprintf(fout, "\tf%d[label=\"%s\"]\n", fw->getIndex(), fw->getLLVMFunction()->getName().data());
-        fwIt++;
+    auto FWIt = FunctionMap.begin();
+    while (FWIt != FunctionMap.end()) {
+        DyckCallGraphNode *FW = FWIt->second;
+        fprintf(FOut, "\tf%d[label=\"%s\"]\n", FW->getIndex(), FW->getLLVMFunction()->getName().data());
+        FWIt++;
     }
 
-    fwIt = FunctionMap.begin();
-    while (fwIt != FunctionMap.end()) {
-        DyckCallGraphNode *fw = fwIt->second;
-        std::set<CommonCall *> *commonCalls = &(fw->getCommonCalls());
-        auto comIt = commonCalls->begin();
-        while (comIt != commonCalls->end()) {
-            CommonCall *cc = *comIt;
-            auto *callee = (Function *) cc->calledValue;
+    FWIt = FunctionMap.begin();
+    while (FWIt != FunctionMap.end()) {
+        DyckCallGraphNode *FW = FWIt->second;
+        std::set<CommonCall *> *CommonCalls = &(FW->getCommonCalls());
+        auto CCIt = CommonCalls->begin();
+        while (CCIt != CommonCalls->end()) {
+            CommonCall *CC = *CCIt;
+            auto *Callee = (Function *) CC->CalledValue;
 
-            if (FunctionMap.count(callee)) {
+            if (FunctionMap.count(Callee)) {
                 if (WithEdgeLabels) {
-                    Value *ci = cc->instruction;
-                    std::string s;
-                    raw_string_ostream rso(s);
-                    if (ci != nullptr) {
-                        rso << *(ci);
+                    Value *CI = CC->Inst;
+                    std::string S;
+                    raw_string_ostream RSO(S);
+                    if (CI != nullptr) {
+                        RSO << *(CI);
                     } else {
-                        rso << "Hidden";
+                        RSO << "Hidden";
                     }
-                    std::string &edgelabel = rso.str();
-                    for (char &i: edgelabel) {
-                        if (i == '\"') {
-                            i = '`';
+                    std::string &EdgeLabelStr = RSO.str();
+                    for (char &C: EdgeLabelStr) {
+                        if (C == '\"') {
+                            C = '`';
                         }
 
-                        if (i == '\n') {
-                            i = ' ';
+                        if (C == '\n') {
+                            C = ' ';
                         }
                     }
-                    fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[callee]->getIndex(),
-                            edgelabel.data());
+                    fprintf(FOut, "\tf%d->f%d[label=\"%s\"]\n", FW->getIndex(), FunctionMap[Callee]->getIndex(),
+                            EdgeLabelStr.data());
                 } else {
-                    fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), FunctionMap[callee]->getIndex());
+                    fprintf(FOut, "\tf%d->f%d\n", FW->getIndex(), FunctionMap[Callee]->getIndex());
                 }
             } else {
                 errs() << "ERROR in printCG when print common function calls.\n";
                 exit(-1);
             }
-            comIt++;
+            CCIt++;
         }
 
-        std::set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
-        auto fpIt = fpCallsMap->begin();
-        while (fpIt != fpCallsMap->end()) {
-            PointerCall *pcall = *fpIt;
-            std::set<Function *> *mayCalled = &((*fpIt)->mayAliasedCallees);
+        std::set<PointerCall *> *FPCallsMap = &(FW->getPointerCalls());
+        auto FPIt = FPCallsMap->begin();
+        while (FPIt != FPCallsMap->end()) {
+            PointerCall *PC = *FPIt;
+            std::set<Function *> *MayCalled = &((*FPIt)->MayAliasedCallees);
 
-            char *edgeLabelData = nullptr;
+            char *EdgeLabelData = nullptr;
             if (WithEdgeLabels) {
-                std::string s;
-                raw_string_ostream rso(s);
-                if (pcall->instruction != nullptr) {
-                    rso << *(pcall->instruction);
+                std::string S;
+                raw_string_ostream RSO(S);
+                if (PC->Inst != nullptr) {
+                    RSO << *(PC->Inst);
                 } else {
-                    rso << "Hidden";
+                    RSO << "Hidden";
                 }
-                std::string &edgelabel = rso.str(); // edge label is the call inst
-                for (char &i: edgelabel) {
-                    if (i == '\"') {
-                        i = '`';
+                std::string &EdgeLabelStr = RSO.str(); // edge label is the call inst
+                for (char &C: EdgeLabelStr) {
+                    if (C == '\"') {
+                        C = '`';
                     }
 
-                    if (i == '\n') {
-                        i = ' ';
+                    if (C == '\n') {
+                        C = ' ';
                     }
                 }
-                edgeLabelData = const_cast<char *> (edgelabel.data());
+                EdgeLabelData = const_cast<char *> (EdgeLabelStr.data());
             }
-            auto mcIt = mayCalled->begin();
-            while (mcIt != mayCalled->end()) {
-                Function *mcf = *mcIt;
-                if (FunctionMap.count(mcf)) {
+            auto MCIt = MayCalled->begin();
+            while (MCIt != MayCalled->end()) {
+                Function *MCF = *MCIt;
+                if (FunctionMap.count(MCF)) {
                     if (WithEdgeLabels) {
-                        fprintf(fout, "\tf%d->f%d[label=\"%s\"]\n", fw->getIndex(), FunctionMap[mcf]->getIndex(),
-                                edgeLabelData);
+                        fprintf(FOut, "\tf%d->f%d[label=\"%s\"]\n", FW->getIndex(), FunctionMap[MCF]->getIndex(),
+                                EdgeLabelData);
                     } else {
-                        fprintf(fout, "\tf%d->f%d\n", fw->getIndex(), FunctionMap[mcf]->getIndex());
+                        fprintf(FOut, "\tf%d->f%d\n", FW->getIndex(), FunctionMap[MCF]->getIndex());
                     }
                 } else {
                     errs() << "ERROR in printCG when print fp calls.\n";
                     exit(-1);
                 }
-
-                mcIt++;
+                MCIt++;
             }
-
-            fpIt++;
+            FPIt++;
         }
-
-
-        fwIt++;
+        FWIt++;
     }
 
-    fprintf(fout, "}\n");
-    fclose(fout);
+    fprintf(FOut, "}\n");
+    fclose(FOut);
 }
 
-void DyckCallGraph::printFunctionPointersInformation(const std::string &mIdentifier) {
-    std::string dotfilename;
-    dotfilename.append(mIdentifier);
-    dotfilename.append(".fp.txt");
+void DyckCallGraph::printFunctionPointersInformation(const std::string &ModuleIdentifier) {
+    std::string Dotfilename;
+    Dotfilename.append(ModuleIdentifier);
+    Dotfilename.append(".fp.txt");
 
-    FILE *fout = fopen(dotfilename.data(), "w+");
+    FILE *FOut = fopen(Dotfilename.data(), "w+");
 
-    auto fwIt = this->begin();
-    while (fwIt != this->end()) {
-        DyckCallGraphNode *fw = fwIt->second;
+    auto FWIt = this->begin();
+    while (FWIt != this->end()) {
+        DyckCallGraphNode *FW = FWIt->second;
 
-        std::set<PointerCall *> *fpCallsMap = &(fw->getPointerCalls());
-        auto fpIt = fpCallsMap->begin();
-        while (fpIt != fpCallsMap->end()) {
+        std::set<PointerCall *> *FPCallsMap = &(FW->getPointerCalls());
+        auto FPIt = FPCallsMap->begin();
+        while (FPIt != FPCallsMap->end()) {
             /*Value * callInst = fpIt->first;
             std::string s;
             raw_string_ostream rso(s);
@@ -164,26 +159,26 @@ void DyckCallGraph::printFunctionPointersInformation(const std::string &mIdentif
             }
             fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
              */
-            std::set<Function *> *mayCalled = &((*(fpIt))->mayAliasedCallees);
-            fprintf(fout, "%zd\n", mayCalled->size()); //number of functions
+            std::set<Function *> *MayCalled = &((*(FPIt))->MayAliasedCallees);
+            fprintf(FOut, "%zd\n", MayCalled->size()); //number of functions
 
             // what functions?
-            auto mcIt = mayCalled->begin();
-            while (mcIt != mayCalled->end()) {
+            auto MCIt = MayCalled->begin();
+            while (MCIt != MayCalled->end()) {
                 // Function * mcf = *mcIt;
                 //fprintf(fout, "%s\n", mcf->getName().data());
 
-                mcIt++;
+                MCIt++;
             }
 
             //fprintf(fout, "\n");
 
-            fpIt++;
+            FPIt++;
         }
 
 
-        fwIt++;
+        FWIt++;
     }
 
-    fclose(fout);
+    fclose(FOut);
 }

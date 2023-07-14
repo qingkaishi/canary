@@ -22,23 +22,20 @@
 #include <stack>
 #include <unordered_map>
 
-#include "DyckAA/DyckVertex.h"
-
+#include "DyckAA/DyckGraphNode.h"
 
 /// This class models a dyck-cfl language as a graph, which does not contain the barred edges.
 /// See details in http://dl.acm.org/citation.cfm?id=2491956.2462159&coll=DL&dl=ACM&CFID=379446910&CFTOKEN=65130716 .
 class DyckGraph {
 private:
-    std::set<DyckVertex *> vertices;
+    std::set<DyckGraphNode *> Vertices;
 
-    std::unordered_map<void *, DyckVertex *> val_ver_map;
+    std::unordered_map<void *, DyckGraphNode *> ValVertexMap;
 public:
     DyckGraph() = default;
 
     ~DyckGraph() {
-        for (auto &v: vertices) {
-            delete v;
-        }
+        for (auto &V: Vertices) delete V;
     }
 
     /// The number of vertices in the graph.
@@ -49,22 +46,22 @@ public:
     unsigned int numEquivalentClasses();
 
     /// Get the set of vertices in the graph.
-    std::set<DyckVertex *> &getVertices();
+    std::set<DyckGraphNode *> &getVertices();
 
     /// You are not recommended to use the function when the graph is big,
     /// because it is time-consuming.
-    void printAsDot(const char *filename) const;
+    void printAsDot(const char *FileName) const;
 
     /// Combine x's rep and y's rep.
-    DyckVertex *combine(DyckVertex *x, DyckVertex *y);
+    DyckGraphNode *combine(DyckGraphNode *NodeX, DyckGraphNode *NodeY);
 
     /// if value is NULL, a new vertex will be always returned with false.
     /// if value's vertex has been initialized, it will be returned with true;
     /// otherwise, it will be initialized and returned with false;
     /// If a new vertex is initialized, it will be added into the graph.
-    std::pair<DyckVertex *, bool> retrieveDyckVertex(void *value, const char *name = nullptr);
+    std::pair<DyckGraphNode *, bool> retrieveDyckVertex(void *Val, const char *Name = nullptr);
 
-    DyckVertex *findDyckVertex(void *value);
+    DyckGraphNode *findDyckVertex(void *Val);
 
     /// The algorithm proposed by Qirun Zhang.
     /// Find the paper here: http://dl.acm.org/citation.cfm?id=2491956.2462159&coll=DL&dl=ACM&CFID=379446910&CFTOKEN=65130716 .
@@ -76,9 +73,9 @@ public:
     void validation(const char *, int);
 
 private:
-    void removeFromWorkList(std::multimap<DyckVertex *, void *> &list, DyckVertex *v, void *l);
+    void removeFromWorkList(std::multimap<DyckGraphNode *, void *> &, DyckGraphNode *, void *);
 
-    bool containsInWorkList(std::multimap<DyckVertex *, void *> &list, DyckVertex *v, void *l);
+    bool containsInWorkList(std::multimap<DyckGraphNode *, void *> &, DyckGraphNode *, void *);
 };
 
 #endif // DYCKAA_DYCKHALFGRAPH_H

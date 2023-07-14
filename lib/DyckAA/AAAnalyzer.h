@@ -28,79 +28,82 @@
 class DyckAliasAnalysis;
 
 typedef struct FunctionTypeNode {
-    FunctionType *type;
-    FunctionTypeNode *root;
-    std::set<Function *> compatibleFuncs;
+    FunctionType *FuncTy;
+    FunctionTypeNode *Root;
+    std::set<Function *> CompatibleFuncs;
 } FunctionTypeNode;
 
 class AAAnalyzer {
 private:
-    Module *module;
-    const DataLayout *dl;
-    DyckAliasAnalysis *aa;
-    DyckGraph *dgraph;
-    DyckCallGraph *callgraph;
+    Module *Mod;
+    const DataLayout *DL;
+    DyckAliasAnalysis *DAA;
+    DyckGraph *CFLGraph;
+    DyckCallGraph *DyckCG;
 
-private:
-    std::map<Type *, FunctionTypeNode *> functionTyNodeMap;
-    std::set<FunctionTypeNode *> tyroots;
+    /// For checking compatible functions of a function pointer
+    /// @{
+    std::map<Type *, FunctionTypeNode *> FunctionTyNodeMap;
+    std::set<FunctionTypeNode *> TyRoots;
+    /// @}
 
 public:
-    AAAnalyzer(Module *m, DyckAliasAnalysis *a, DyckGraph *d, DyckCallGraph *cg);
+    AAAnalyzer(Module *, DyckAliasAnalysis *, DyckGraph *, DyckCallGraph *);
 
     ~AAAnalyzer();
 
-    void intra_procedure_analysis();
+    void intraProcedureAnalysis();
 
-    void inter_procedure_analysis();
+    void interProcedureAnalysis();
 
 private:
     void printNoAliasedPointerCalls();
 
+    void handleInst(Instruction *Inst, DyckCallGraphNode *Parent);
+
+    void handleInstrinsic(Instruction *Inst);
+
+    void handleExtractInsertValueInst(Value *AggValue, Type *AggTy, ArrayRef<unsigned> &Indices,
+                                      Value *InsertedOrExtractedValue);
+
+    DyckGraphNode *handleGEP(GEPOperator *);
+
+    void handleExtractInsertElmtInst(Value *Vec, Value *Elmt);
+
+    void handleInvokeCallInst(Instruction *Ret, Value *CV, std::vector<Value *> *Args, DyckCallGraphNode *Parent);
+
+    void handleLibInvokeCallInst(Value *Ret, Function *F, std::vector<Value *> *Args, DyckCallGraphNode *Parent);
+
+    bool handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Counter);
+
+    void handleCommonFunctionCall(Call *, DyckCallGraphNode *Caller, DyckCallGraphNode *Callee);
+
 private:
-    void handle_inst(Instruction *inst, DyckCallGraphNode *parent);
+    int isCompatible(FunctionType *, FunctionType *);
 
-    void handle_instrinsic(Instruction *inst);
+    std::set<Function *> *getCompatibleFunctions(FunctionType *);
 
-    void handle_extract_insert_value_inst(Value *aggValue, Type *aggTy, ArrayRef<unsigned> &indices,
-                                          Value *insertedOrExtractedValue);
-
-    void handle_extract_insert_elmt_inst(Value *vec, Value *elmt);
-
-    void handle_invoke_call_inst(Instruction *ret, Value *cv, std::vector<Value *> *args, DyckCallGraphNode *parent);
-
-    void handle_lib_invoke_call_inst(Value *ret, Function *f, std::vector<Value *> *args, DyckCallGraphNode *parent);
-
-private:
-    bool handle_pointer_function_calls(DyckCallGraphNode *caller, int counter);
-
-    void handle_common_function_call(Call *c, DyckCallGraphNode *caller, DyckCallGraphNode *callee);
-
-private:
-    int isCompatible(FunctionType *t1, FunctionType *t2);
-
-    std::set<Function *> *getCompatibleFunctions(FunctionType *fty);
-
-    FunctionTypeNode *initFunctionGroup(FunctionType *fty);
+    FunctionTypeNode *initFunctionGroup(FunctionType *);
 
     void initFunctionGroups();
 
     void destroyFunctionGroups();
 
-    void combineFunctionGroups(FunctionType *ft1, FunctionType *ft2);
+    void combineFunctionGroups(FunctionType *, FunctionType *);
 
 private:
-    DyckVertex *addField(DyckVertex *val, long fieldIndex, DyckVertex *field);
+    /// return the structure's field vertex
+    DyckGraphNode *addField(DyckGraphNode *Val, long FieldIndex, DyckGraphNode *Field);
 
-    DyckVertex *addPtrTo(DyckVertex *address, DyckVertex *val);
+    /// if one of add and val is null, create and return it
+    /// otherwise return the ptr;
+    DyckGraphNode *addPtrTo(DyckGraphNode *Address, DyckGraphNode *Val);
 
-    DyckVertex *makeAlias(DyckVertex *x, DyckVertex *y);
+    DyckGraphNode *makeAlias(DyckGraphNode *, DyckGraphNode *);
 
-    void makeContentAlias(DyckVertex *x, DyckVertex *y);
+    void makeContentAlias(DyckGraphNode *, DyckGraphNode *);
 
-    DyckVertex *handle_gep(GEPOperator *gep);
-
-    DyckVertex *wrapValue(Value *v);
+    DyckGraphNode *wrapValue(Value *);
 };
 
 #endif // DYCKAA_AAANALYZER_H

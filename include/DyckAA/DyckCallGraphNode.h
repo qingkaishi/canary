@@ -43,54 +43,53 @@ public:
     // if it has a return value, this is the return value; 
     // it may be null, because there exists some implicit calls, like those in pthread_create
     // it may be a callinst or invoke inst, currently only call inst because all invokes are lowered to call
-    Instruction *instruction;
+    Instruction *Inst;
 
-    Value *calledValue;
-    std::vector<Value *> args;
+    Value *CalledValue;
+    std::vector<Value *> Args;
 
-    Call(Instruction *inst, Value *calledValue, std::vector<Value *> *args);
+    Call(Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args);
 };
 
 class CommonCall : public Call {
 public:
-    CommonCall(Instruction *inst, Function *function, std::vector<Value *> *args);
+    CommonCall(Instruction *Inst, Function *Func, std::vector<Value *> *Args);
 };
 
 class PointerCall : public Call {
 public:
-    std::set<Function *> mayAliasedCallees;
-    bool mustAliasedPointerCall;
+    std::set<Function *> MayAliasedCallees;
+    bool MustAliasedPointerCall;
 
-    PointerCall(Instruction *inst, Value *calledValue, std::vector<Value *> *args);
+    PointerCall(Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args);
 };
 
 class DyckCallGraphNode {
 private:
-    int idx;
+    int Idx;
 
-    Function *llvm_function;
-    std::set<Value *> rets;
+    Function *Func;
+    std::set<Value *> Rets;
 
-    std::vector<Value *> args;
-    std::vector<Value *> va_args;
+    std::vector<Value *> Args;
+    std::vector<Value *> VAArgs;
 
-    std::set<Value *> resumes;
-    std::map<Value *, Value *> lpads; // invoke <-> lpad
+    std::set<Value *> Resumes;
+    std::map<Value *, Value *> LPads; // invoke <-> lpad
 
     // call instructions in the function
-    std::set<CommonCall *> commonCalls; // common calls
-    std::set<PointerCall *> pointerCalls; // pointer calls
+    std::set<CommonCall *> CommonCalls; // common calls
+    std::set<PointerCall *> PointerCalls; // pointer calls
 
-    std::map<Instruction *, Call *> instructionCallMap;
+    std::map<Instruction *, Call *> InstructionCallMap;
 
-    std::set<CallInst *> inlineAsms; // inline asm must be a call inst
+    std::set<CallInst *> InlineAsmSet; // inline asm must be a call inst
 
 private:
-    static int global_idx;
+    static int GlobalIdx;
 
 public:
-
-    explicit DyckCallGraphNode(Function *f);
+    explicit DyckCallGraphNode(Function *);
 
     ~DyckCallGraphNode();
 
@@ -100,25 +99,25 @@ public:
 
     std::set<CommonCall *> &getCommonCalls();
 
-    void addCommonCall(CommonCall *call);
+    void addCommonCall(CommonCall *);
 
     std::set<PointerCall *> &getPointerCalls();
 
-    void addPointerCall(PointerCall *call);
+    void addPointerCall(PointerCall *);
 
-    void addResume(Value *res);
+    void addResume(Value *Res);
 
-    void addLandingPad(Value *invoke, Value *lpad);
+    void addLandingPad(Value *, Value *);
 
-    void addRet(Value *ret);
+    void addRet(Value *);
 
-    void addArg(Value *arg);
+    void addArg(Value *);
 
-    void addVAArg(Value *vaarg);
+    void addVAArg(Value *);
 
-    void addInlineAsm(CallInst *inlineAsm);
+    void addInlineAsm(CallInst *);
 
-    std::set<CallInst *> &getInlineAsms();
+    std::set<CallInst *> &getInlineAsmSet();
 
     std::vector<Value *> &getArgs();
 
@@ -128,9 +127,9 @@ public:
 
     std::set<Value *> &getResumes();
 
-    Value *getLandingPad(Value *invoke);
+    Value *getLandingPad(Value *);
 
-    Call *getCall(Instruction *inst);
+    Call *getCall(Instruction *);
 };
 
 

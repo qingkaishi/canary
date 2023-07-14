@@ -49,10 +49,10 @@ private:
 
 public:
     ~DyckCallGraph() {
-        auto it = FunctionMap.begin();
-        while (it != FunctionMap.end()) {
-            delete (it->second);
-            it++;
+        auto It = FunctionMap.begin();
+        while (It != FunctionMap.end()) {
+            delete (It->second);
+            It++;
         }
         FunctionMap.clear();
     }
@@ -71,20 +71,20 @@ public:
         return FunctionMap.size();
     }
 
-    DyckCallGraphNode *getOrInsertFunction(Function *f) {
-        DyckCallGraphNode *parent = nullptr;
-        if (!FunctionMap.count(f)) {
-            parent = new DyckCallGraphNode(f);
-            FunctionMap.insert(std::pair<Function *, DyckCallGraphNode *>(f, parent));
+    DyckCallGraphNode *getOrInsertFunction(Function *Func) {
+        DyckCallGraphNode *Parent = nullptr;
+        if (!FunctionMap.count(Func)) {
+            Parent = new DyckCallGraphNode(Func);
+            FunctionMap.insert(std::pair<Function *, DyckCallGraphNode *>(Func, Parent));
         } else {
-            parent = FunctionMap[f];
+            Parent = FunctionMap[Func];
         }
-        return parent;
+        return Parent;
     }
 
-    void dotCallGraph(const std::string &mIdentifier);
+    void dotCallGraph(const std::string &ModuleIdentifier);
 
-    void printFunctionPointersInformation(const std::string &mIdentifier);
+    void printFunctionPointersInformation(const std::string &ModuleIdentifier);
 
 };
 

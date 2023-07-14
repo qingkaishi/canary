@@ -50,36 +50,36 @@ public:
     void getAnalysisUsage(AnalysisUsage &AU) const override;
 
     /// Get the may/must alias set.
-    const std::set<Value *> *getAliasSet(Value *V) const;
+    const std::set<Value *> *getAliasSet(Value *Ptr) const;
 
     bool mayAlias(Value *V1, Value *V2) const;
 
 private:
-    DyckGraph *dyck_graph;
-    DyckCallGraph *call_graph;
-    DyckEdgeLabel *DEREF_LABEL;
-    std::map<long, DyckEdgeLabel *> OFFSET_LABEL_MAP;
-    std::map<long, DyckEdgeLabel *> INDEX_LABEL_MAP;
+    DyckGraph *CFLGraph;
+    DyckCallGraph *DyckCG;
+    DyckEdgeLabel *DerefEdgeLabel;
+    std::map<long, DyckEdgeLabel *> OffsetEdgeLabelMap;
+    std::map<long, DyckEdgeLabel *> IndexEdgeLabelMap;
     DyckVFG *VFG = nullptr;
 
 private:
-    DyckEdgeLabel *getOrInsertOffsetEdgeLabel(long offset) {
-        if (OFFSET_LABEL_MAP.count(offset)) {
-            return OFFSET_LABEL_MAP[offset];
+    DyckEdgeLabel *getOrInsertOffsetEdgeLabel(long Offset) {
+        if (OffsetEdgeLabelMap.count(Offset)) {
+            return OffsetEdgeLabelMap[Offset];
         } else {
-            DyckEdgeLabel *ret = new PointerOffsetEdgeLabel(offset);
-            OFFSET_LABEL_MAP.insert(std::pair<long, DyckEdgeLabel *>(offset, ret));
-            return ret;
+            DyckEdgeLabel *Ret = new PointerOffsetEdgeLabel(Offset);
+            OffsetEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
+            return Ret;
         }
     }
 
-    DyckEdgeLabel *getOrInsertIndexEdgeLabel(long offset) {
-        if (INDEX_LABEL_MAP.count(offset)) {
-            return INDEX_LABEL_MAP[offset];
+    DyckEdgeLabel *getOrInsertIndexEdgeLabel(long Offset) {
+        if (IndexEdgeLabelMap.count(Offset)) {
+            return IndexEdgeLabelMap[Offset];
         } else {
-            DyckEdgeLabel *ret = new FieldIndexEdgeLabel(offset);
-            INDEX_LABEL_MAP.insert(std::pair<long, DyckEdgeLabel *>(offset, ret));
-            return ret;
+            DyckEdgeLabel *Ret = new FieldIndexEdgeLabel(Offset);
+            IndexEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
+            return Ret;
         }
     }
 
@@ -92,17 +92,17 @@ private:
     void printAliasSetInformation(Module &M);
 
     /// escaped to the function Func
-    void getEscapedPointersTo(std::set<DyckVertex *> *Ret, Function *Func);
+    void getEscapedPointersTo(std::set<DyckGraphNode *> *Ret, Function *Func);
 
     /// escaped from the pointer Pointer
-    void getEscapedPointersFrom(std::set<DyckVertex *> *Ret, Value *Pointer);
+    void getEscapedPointersFrom(std::set<DyckGraphNode *> *Ret, Value *From);
 
 public:
     /// Get the vector of the may/must alias set that escape to 'func'
     void getEscapedPointersTo(std::vector<const std::set<Value *> *> *Ret, Function *Func);
 
     /// Get the vector of the may/must alias set that escape from 'from'
-    void getEscapedPointersFrom(std::vector<const std::set<Value *> *> *Ret, Value *Pointer);
+    void getEscapedPointersFrom(std::vector<const std::set<Value *> *> *Ret, Value *From);
 
     bool callGraphPreserved() const;
 
