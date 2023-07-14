@@ -23,7 +23,7 @@
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
 #include <set>
-#include "NCA/LocalNullCheckAnalysis.h"
+#include "NullPointer/LocalNullCheckAnalysis.h"
 #include "Support/API.h"
 
 LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Driver(P), NEA(P, F) {

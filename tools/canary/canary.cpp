@@ -41,7 +41,7 @@
 
 #include <memory>
 
-#include "BonaPass.h"
+#include "NullPointer/NullBoosterPass.h"
 
 using namespace llvm;
 
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
     Passes.add(createSCCPPass());
     Passes.add(createLoopSimplifyPass());
     Passes.add(new NotificationPass("Done!\n"));
-    Passes.add(new BonaPass());
+    Passes.add(new NullBoosterPass());
 
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {

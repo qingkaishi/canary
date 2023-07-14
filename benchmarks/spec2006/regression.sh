@@ -1,4 +1,4 @@
-bona_bin=$1
+executable=$1
 bc_dir=$2
 benchmarks_bin_dir=$3
 
@@ -15,7 +15,7 @@ do
   printf "Running %20s" "$proj"
 
   start_time=$(date +%s)
-  $bona_bin $bc -nworkers=5 >>$benchmarks_bin_dir/$proj.log 2>$benchmarks_bin_dir/$proj.err
+  $executable $bc -nworkers=5 >>$benchmarks_bin_dir/$proj.log 2>$benchmarks_bin_dir/$proj.err
   ret=$?
   end_time=$(date +%s)
   elapsed=$((end_time - start_time))

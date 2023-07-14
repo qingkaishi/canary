@@ -16,34 +16,35 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef NCA_NULLEQUIVALENCEANALYSIS_H
-#define NCA_NULLEQUIVALENCEANALYSIS_H
+#ifndef NULLPOINTER_NULLCHECKANALYSIS_H
+#define NULLPOINTER_NULLCHECKANALYSIS_H
 
-#include <llvm/ADT/BitVector.h>
-#include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Pass.h>
+#include <list>
 #include <set>
 #include <unordered_map>
 
-#include "Support/DisjointSet.h"
-
 using namespace llvm;
 
-/// a ptr in a group is nonnull, then all ptrs in the group are nonnull
-class NullEquivalenceAnalysis {
+class LocalNullCheckAnalysis;
+
+class NullCheckAnalysis {
 private:
     Pass *Driver;
 
-    DisjointSet<Value *> DisSet;
+    std::unordered_map<Function *, LocalNullCheckAnalysis *> AnalysisMap;
 
 public:
-    NullEquivalenceAnalysis(Pass *, Function *);
+    explicit NullCheckAnalysis(Pass *P) : Driver(P) {}
 
-    Value *get(Value *);
+    ~NullCheckAnalysis();
 
-private:
+    void run(Module &M);
 
+    /// \p Ptr must be an operand of \p Inst
+    /// return true if \p Ptr at \p Inst may be a null pointer
+    bool mayNull(Value *Ptr, Instruction *Inst);
 };
 
-#endif //NCA_NULLEQUIVALENCEANALYSIS_H
+#endif // NULLPOINTER_NULLCHECKANALYSIS_H

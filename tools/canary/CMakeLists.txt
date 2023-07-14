@@ -1,5 +1,3 @@
-
-
 set(LLVM_LINK_COMPONENTS
         LLVMAggressiveInstCombine
         LLVMAnalysis
@@ -36,18 +34,18 @@ set(LLVM_LINK_COMPONENTS
         LLVMipo
 )
 
-add_executable(bona bona.cpp BonaPass.cpp)
+add_executable(canary canary.cpp)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    target_link_libraries(bona PRIVATE
-            CanaryNCA CanaryDyckAA CanarySupport
+    target_link_libraries(canary PRIVATE
+            CanaryNullPointer CanaryDyckAA CanarySupport
             -Wl,--start-group
             ${LLVM_LINK_COMPONENTS}
             -Wl,--end-group
             z ncurses pthread dl
     )
 else()
-    target_link_libraries(bona PRIVATE
-            CanaryNCA CanaryDyckAA CanarySupport
+    target_link_libraries(canary PRIVATE
+            CanaryNullPointer CanaryDyckAA CanarySupport
             ${LLVM_LINK_COMPONENTS}
             z ncurses pthread dl
     )

@@ -1,3 +1,3 @@
 
-add_subdirectory(bona)
+add_subdirectory(canary)
 

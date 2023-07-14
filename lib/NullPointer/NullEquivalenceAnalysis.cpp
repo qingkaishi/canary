@@ -17,7 +17,7 @@
  */
 
 #include <llvm/IR/Instructions.h>
-#include "NCA/NullEquivalenceAnalysis.h"
+#include "NullPointer/NullEquivalenceAnalysis.h"
 
 NullEquivalenceAnalysis::NullEquivalenceAnalysis(Pass *P, Function *F) : Driver(P) {
     // init

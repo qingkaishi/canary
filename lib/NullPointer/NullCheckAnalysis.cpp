@@ -17,8 +17,8 @@
  */
 
 #include <llvm/IR/Module.h>
-#include "NCA/LocalNullCheckAnalysis.h"
-#include "NCA/NullCheckAnalysis.h"
+#include "NullPointer/LocalNullCheckAnalysis.h"
+#include "NullPointer/NullCheckAnalysis.h"
 #include "Support/TimeRecorder.h"
 
 

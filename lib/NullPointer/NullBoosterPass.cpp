@@ -17,26 +17,26 @@
  */
 
 #include <llvm/IR/Dominators.h>
-#include "BonaPass.h"
 #include "DyckAA/DyckAliasAnalysis.h"
-#include "NCA/LocalNullCheckAnalysis.h"
+#include "NullPointer/LocalNullCheckAnalysis.h"
+#include "NullPointer/NullBoosterPass.h"
 #include "Support/ThreadPool.h"
 #include "Support/TimeRecorder.h"
 
-char BonaPass::ID = 0;
-static RegisterPass<BonaPass> X("bona", "soundly checking if a pointer may be nullptr.");
+char NullBoosterPass::ID = 0;
+static RegisterPass<NullBoosterPass> X("bona", "soundly checking if a pointer may be nullptr.");
 
-BonaPass::BonaPass() : ModulePass(ID) {}
+NullBoosterPass::NullBoosterPass() : ModulePass(ID) {}
 
-BonaPass::~BonaPass() = default;
+NullBoosterPass::~NullBoosterPass() = default;
 
-void BonaPass::getAnalysisUsage(AnalysisUsage &AU) const {
+void NullBoosterPass::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<DyckAliasAnalysis>();
     AU.addRequired<DominatorTreeWrapperPass>();
     AU.setPreservesAll();
 }
 
-bool BonaPass::runOnModule(Module &M) {
+bool NullBoosterPass::runOnModule(Module &M) {
     TimeRecorder TR("NCA");
     for (auto &F: M)
         if (!F.empty()) {

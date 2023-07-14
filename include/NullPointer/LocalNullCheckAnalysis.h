@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef NCA_LOCALNULLCHECKANALYSIS_H
-#define NCA_LOCALNULLCHECKANALYSIS_H
+#ifndef NULLPOINTER_LOCALNULLCHECKANALYSIS_H
+#define NULLPOINTER_LOCALNULLCHECKANALYSIS_H
 
 #include <llvm/ADT/BitVector.h>
 #include <llvm/IR/Dominators.h>
@@ -26,7 +26,7 @@
 #include <set>
 #include <unordered_map>
 
-#include "NCA/NullEquivalenceAnalysis.h"
+#include "NullPointer/NullEquivalenceAnalysis.h"
 
 using namespace llvm;
 
@@ -86,4 +86,4 @@ private:
     void label(Edge);
 };
 
-#endif //NCA_LOCALNULLCHECKANALYSIS_H
+#endif //NULLPOINTER_LOCALNULLCHECKANALYSIS_H

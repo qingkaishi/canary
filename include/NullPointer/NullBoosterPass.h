@@ -16,24 +16,24 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef BONA_BONAPASS_H
-#define BONA_BONAPASS_H
+#ifndef NULLPOINTER_NULLBOOSTERPASS_H
+#define NULLPOINTER_NULLBOOSTERPASS_H
 
 #include <llvm/Pass.h>
 
 using namespace llvm;
 
-class BonaPass : public ModulePass {
+class NullBoosterPass : public ModulePass {
 public:
     static char ID;
 
-    BonaPass();
+    NullBoosterPass();
 
-    ~BonaPass() override;
+    ~NullBoosterPass() override;
 
     bool runOnModule(Module &M) override;
 
     void getAnalysisUsage(AnalysisUsage &AU) const override;
 };
 
-#endif // BONA_BONAPASS_H
+#endif // NULLPOINTER_NULLBOOSTERPASS_H
