@@ -27,8 +27,7 @@
 #include "Support/TimeRecorder.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
-                                              cl::desc(
-                                                      "Output all alias sets, their relations and the evaluation results."));
+                                              cl::desc("Output alias sets and their relations"));
 
 static cl::opt<bool> PreserveCallGraph("preserve-dyck-callgraph", cl::init(false), cl::Hidden,
                                        cl::desc("Preserve the call graph for usage in other passes."));
