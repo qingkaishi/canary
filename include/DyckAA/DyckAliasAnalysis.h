@@ -29,10 +29,10 @@
 #include <llvm/Support/Debug.h>
 #include <llvm/IR/InlineAsm.h>
 #include <set>
-
+#include "DyckAA/DyckCallGraph.h"
 #include "DyckAA/DyckEdgeLabel.h"
 #include "DyckAA/DyckGraph.h"
-#include "DyckAA/DyckCallGraph.h"
+#include "DyckAA/DyckVFG.h"
 
 using namespace llvm;
 
@@ -60,6 +60,7 @@ private:
     DyckEdgeLabel *DEREF_LABEL;
     std::map<long, DyckEdgeLabel *> OFFSET_LABEL_MAP;
     std::map<long, DyckEdgeLabel *> INDEX_LABEL_MAP;
+    DyckVFG *VFG = nullptr;
 
 private:
     DyckEdgeLabel *getOrInsertOffsetEdgeLabel(long offset) {
@@ -113,6 +114,9 @@ public:
     /// e.g. for %a = load i32* %b, {%a} will be returned for the
     /// pointer %b
     void getPointstoObjects(std::set<Value *> &Objects, Value *Pointer) const;
+
+    /// return a value flow graph created based on the alias analysis
+    DyckVFG *createValueFlowGraph(Module &M);
 };
 
 #endif // DYCKAA_DYCKALIASANALYSIS_H

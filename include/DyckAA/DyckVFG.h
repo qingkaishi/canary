@@ -19,12 +19,24 @@
 #ifndef DyckAA_DYCKVFG_H
 #define DyckAA_DYCKVFG_H
 
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Module.h>
+
+using namespace llvm;
+
+class DyckAliasAnalysis;
+
 class DyckVFGNode {
 
 };
 
 class DyckVFG {
+public:
+    DyckVFG(DyckAliasAnalysis *DAA, Module *M);
 
+    DyckVFG(DyckAliasAnalysis *DAA, Function *F);
+
+    ~DyckVFG();
 };
 
 #endif //DyckAA_DYCKVFG_H

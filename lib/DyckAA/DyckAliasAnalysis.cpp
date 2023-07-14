@@ -43,12 +43,14 @@ static RegisterPass<DyckAliasAnalysis> X("dyckaa", "a unification based alias an
 
 DyckAliasAnalysis::DyckAliasAnalysis() :
         ModulePass(ID) {
+    VFG = nullptr;
     dyck_graph = new DyckGraph;
     call_graph = new DyckCallGraph;
     DEREF_LABEL = new DerefEdgeLabel;
 }
 
 DyckAliasAnalysis::~DyckAliasAnalysis() {
+    delete VFG;
     delete call_graph;
     delete dyck_graph;
 
@@ -243,6 +245,11 @@ DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
 bool DyckAliasAnalysis::runOnModule(Module &M) {
     TimeRecorder DyckAA("Running DyckAA");
 
+    /// if the alias analysis is rerun, the vfg should be re-created
+    delete VFG;
+    VFG = nullptr;
+
+    /// prepare to analyze
     AAAnalyzer aaa(&M, this, dyck_graph, call_graph);
 
     /// step 1: intra-procedure analysis
@@ -467,3 +474,8 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
     }
 }
 
+DyckVFG *DyckAliasAnalysis::createValueFlowGraph(Module &M) {
+    if (!VFG)
+        VFG = new DyckVFG(this, &M);
+    return VFG;
+}

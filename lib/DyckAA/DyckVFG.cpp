@@ -17,3 +17,15 @@
  */
 
 #include "DyckAA/DyckVFG.h"
+
+DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
+
+}
+
+DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *M) {
+
+}
+
+DyckVFG::~DyckVFG() {
+
+}
