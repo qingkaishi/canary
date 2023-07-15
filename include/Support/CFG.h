@@ -16,46 +16,36 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DyckAA_DYCKVFG_H
-#define DyckAA_DYCKVFG_H
+#ifndef SUPPORT_CFG_H
+#define SUPPORT_CFG_H
 
+#include <llvm/ADT/BitVector.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/Module.h>
-#include <map>
-#include <set>
-#include <unordered_map>
+#include <llvm/IR/Instruction.h>
 
 using namespace llvm;
 
-class DyckAliasAnalysis;
-
-class DyckVFGNode {
+class CFG {
 private:
-    Value *V;
+    typedef BitVector ReachableVec;
+    ReachableVec AnalyzedVec;
+    ReachableVec *ReachableVecPtr;
 
-    std::set<DyckVFGNode *> Targets;
+    /// ID mapping
+    std::vector<BasicBlock *> ID2BB;
+    std::map<BasicBlock *, int> BB2ID;
 
 public:
-    explicit DyckVFGNode(Value *V) : V(V) {}
+    explicit CFG(Function *);
 
-    void addTarget(DyckVFGNode *N) { Targets.insert(N); }
-};
+    ~CFG();
 
-class DyckVFG {
-private:
-    std::unordered_map<Value *, DyckVFGNode *> ValueNodeMap;
+    bool reachable(BasicBlock *, BasicBlock *);
 
-public:
-    DyckVFG(DyckAliasAnalysis *DAA, Module *M);
-
-    DyckVFG(DyckAliasAnalysis *DAA, Function *F);
-
-    ~DyckVFG();
-
-    DyckVFGNode *getVFGNode(Value *);
+    bool reachable(Instruction *, Instruction *);
 
 private:
-    DyckVFGNode *getOrCreateVFGNode(Value *);
+    void analyze(BasicBlock *);
 };
 
-#endif //DyckAA_DYCKVFG_H
+#endif //SUPPORT_CFG_H

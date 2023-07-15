@@ -16,7 +16,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
+#include "DyckAA/DyckAliasAnalysis.h"
+#include "DyckAA/DyckGraph.h"
+#include "DyckAA/DyckGraphNode.h"
 #include "DyckAA/DyckVFG.h"
+#include "Support/CFG.h"
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
     // create a VFG for each function
@@ -26,11 +32,74 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
         LocalVFGMap[&F] = new DyckVFG(DAA, &F);
     }
 
-    // todo connect local VFGs, delete local VFGs
+    // todo connect local VFGs, delete local VFGs, maybe we can simplify the global VFG
 }
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *F) {
-    // todo
+    // direct value flow through cast, gep-0-0, select, phi
+    for (auto &I: instructions(*F)) {
+        if (isa<CastInst>(I) || isa<PHINode>(I)) {
+            auto *ToNode = getOrCreateVFGNode(&I);
+            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
+                auto *From = I.getOperand(K);
+                auto *FromNode = getOrCreateVFGNode(From);
+                FromNode->addTarget(ToNode);
+            }
+        } else if (isa<SelectInst>(I)) {
+            auto *ToNode = getOrCreateVFGNode(&I);
+            for (unsigned K = 1; K < I.getNumOperands(); ++K) {
+                auto *From = I.getOperand(K);
+                auto *FromNode = getOrCreateVFGNode(From);
+                FromNode->addTarget(ToNode);
+            }
+        } else if (auto *GEP = dyn_cast<GetElementPtrInst>(&I)) {
+            bool VF = true;
+            for (auto &Index: GEP->indices()) {
+                if (auto *CI = dyn_cast<ConstantInt>(&Index)) {
+                    if (CI->getSExtValue() != 0) {
+                        VF = false;
+                        break;
+                    }
+                }
+            }
+            if (VF) {
+                auto *ToNode = getOrCreateVFGNode(&I);
+                auto *FromNode = getOrCreateVFGNode(GEP->getPointerOperand());
+                FromNode->addTarget(ToNode);
+            }
+        }
+    }
+
+    // indirect value flow through load/store
+    auto *DG = DAA->getDyckGraph();
+    std::map<DyckGraphNode *, std::vector<LoadInst *>> LoadMap; // ptr -> load
+    std::map<DyckGraphNode *, std::vector<StoreInst *>> StoreMap; // ptr -> store
+    for (auto &I: instructions(*F)) {
+        if (auto *Load = dyn_cast<LoadInst>(&I)) {
+            auto *Ptr = Load->getPointerOperand();
+            auto *DV = DG->findDyckVertex(Ptr);
+            if (DV) LoadMap[DV].push_back(Load);
+        } else if (auto *Store = dyn_cast<StoreInst>(&I)) {
+            auto *Ptr = Store->getPointerOperand();
+            auto *DV = DG->findDyckVertex(Ptr);
+            if (DV) StoreMap[DV].push_back(Store);
+        }
+    }
+    // match load and store:
+    // if alias(load's ptr, store's ptr) and store -> load in CFG, add store's value -> load's value in VFG
+    CFG CtrlFlowG(F);
+    for (auto &LoadIt: LoadMap) {
+        auto *DyckNode = LoadIt.first;
+        auto &Loads = LoadIt.second;
+        auto StoreIt = StoreMap.find(DyckNode);
+        if (StoreIt == StoreMap.end()) continue;
+        auto &Stores = StoreIt->second;
+        for (auto *Load: Loads) {
+            auto *LdNode = getOrCreateVFGNode(Load);
+            for (auto *Store: Stores)
+                if (CtrlFlowG.reachable(Store, Load)) getOrCreateVFGNode(Store->getValueOperand())->addTarget(LdNode);
+        }
+    }
 }
 
 DyckVFG::~DyckVFG() {

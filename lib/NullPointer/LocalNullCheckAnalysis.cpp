@@ -19,6 +19,7 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Type.h>
@@ -40,14 +41,12 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Dri
         auto *Arg = F->getArg(K);
         if (Arg->getType()->isPointerTy() && MustNotNull(Arg)) InitNonNulls.insert(NEA.get(Arg));
     }
-    for (auto &B: *F) {
-        for (auto &I: B) {
-            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
-                auto Op = I.getOperand(K);
-                if (Op->getType()->isPointerTy() && MustNotNull(Op)) InitNonNulls.insert(NEA.get(Op));
-            }
-            if (I.getType()->isPointerTy() && MustNotNull(&I)) InitNonNulls.insert(NEA.get(&I));
+    for (auto &I: instructions(*F)) {
+        for (unsigned K = 0; K < I.getNumOperands(); ++K) {
+            auto Op = I.getOperand(K);
+            if (Op->getType()->isPointerTy() && MustNotNull(Op)) InitNonNulls.insert(NEA.get(Op));
         }
+        if (I.getType()->isPointerTy() && MustNotNull(&I)) InitNonNulls.insert(NEA.get(&I));
     }
 
 
@@ -60,18 +59,16 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Dri
         unsigned ID = PtrIDMap.size();
         PtrIDMap[ArgX] = ID;
     }
-    for (auto &B: *F) {
-        for (auto &I: B) {
-            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
-                auto Op = I.getOperand(K);
-                if (!Op->getType()->isPointerTy()) continue;
-                auto OpX = NEA.get(Op);
-                if (InitNonNulls.count(OpX)) continue;
-                auto It = PtrIDMap.find(OpX);
-                if (It != PtrIDMap.end()) continue;
-                unsigned ID = PtrIDMap.size();
-                PtrIDMap[NEA.get(OpX)] = ID;
-            }
+    for (auto &I: instructions(*F)) {
+        for (unsigned K = 0; K < I.getNumOperands(); ++K) {
+            auto Op = I.getOperand(K);
+            if (!Op->getType()->isPointerTy()) continue;
+            auto OpX = NEA.get(Op);
+            if (InitNonNulls.count(OpX)) continue;
+            auto It = PtrIDMap.find(OpX);
+            if (It != PtrIDMap.end()) continue;
+            unsigned ID = PtrIDMap.size();
+            PtrIDMap[NEA.get(OpX)] = ID;
         }
     }
 
@@ -140,15 +137,13 @@ void LocalNullCheckAnalysis::run() {
 }
 
 void LocalNullCheckAnalysis::init() {
-    for (auto &B: *F) {
-        for (auto &I: B) {
-            if (I.isTerminator()) {
-                for (unsigned K = 0; K < I.getNumSuccessors(); ++K) {
-                    DataflowFacts[{&I, K}] = BitVector(PtrIDMap.size());
-                }
-            } else {
-                DataflowFacts[{&I, 0}] = BitVector(PtrIDMap.size());
+    for (auto &I: instructions(*F)) {
+        if (I.isTerminator()) {
+            for (unsigned K = 0; K < I.getNumSuccessors(); ++K) {
+                DataflowFacts[{&I, K}] = BitVector(PtrIDMap.size());
             }
+        } else {
+            DataflowFacts[{&I, 0}] = BitVector(PtrIDMap.size());
         }
     }
     DataflowFacts[{nullptr, 0}] = BitVector(PtrIDMap.size());
@@ -157,39 +152,38 @@ void LocalNullCheckAnalysis::init() {
 void LocalNullCheckAnalysis::tag() {
     BitVector ResultOfMerging;
     std::vector<Edge> IncomingEdges;
-    for (auto &B: *F) {
-        for (auto &I: B) {
-            IncomingEdges.clear();
-            if (&I == &*B.begin()) {
-                for (auto PIt = pred_begin(&B), PE = pred_end(&B); PIt != PE; ++PIt) {
-                    auto Term = (*PIt)->getTerminator();
-                    for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
-                        if (Term->getSuccessor(K) == I.getParent()) {
-                            IncomingEdges.emplace_back(Term, K);
-                        }
+    for (auto &I: instructions(*F)) {
+        auto &B = *I.getParent();
+        IncomingEdges.clear();
+        if (&I == &*B.begin()) {
+            for (auto PIt = pred_begin(&B), PE = pred_end(&B); PIt != PE; ++PIt) {
+                auto Term = (*PIt)->getTerminator();
+                for (unsigned K = 0; K < Term->getNumSuccessors(); ++K) {
+                    if (Term->getSuccessor(K) == I.getParent()) {
+                        IncomingEdges.emplace_back(Term, K);
                     }
                 }
-            } else {
-                IncomingEdges.emplace_back(I.getPrevNode(), 0);
             }
-            BitVector *NonNulls;
-            if (IncomingEdges.empty()) {
-                NonNulls = &DataflowFacts.at({nullptr, 0});
-            } else if (IncomingEdges.size() == 1) {
-                NonNulls = &DataflowFacts.at(IncomingEdges[0]);
-            } else {
-                merge(IncomingEdges, ResultOfMerging);
-                NonNulls = &ResultOfMerging;
-            }
-            auto &Orig = InstNonNullMap[&I];
-            for (auto K = 0; K < I.getNumOperands(); ++K) {
-                auto OpK = I.getOperand(K);
-                auto It = PtrIDMap.find(NEA.get(OpK));
-                if (It == PtrIDMap.end()) continue;
-                auto OpKMustNonNull = NonNulls->test(It->second);
-                if (OpKMustNonNull) {
-                    Orig = Orig | (1 << K);
-                }
+        } else {
+            IncomingEdges.emplace_back(I.getPrevNode(), 0);
+        }
+        BitVector *NonNulls;
+        if (IncomingEdges.empty()) {
+            NonNulls = &DataflowFacts.at({nullptr, 0});
+        } else if (IncomingEdges.size() == 1) {
+            NonNulls = &DataflowFacts.at(IncomingEdges[0]);
+        } else {
+            merge(IncomingEdges, ResultOfMerging);
+            NonNulls = &ResultOfMerging;
+        }
+        auto &Orig = InstNonNullMap[&I];
+        for (auto K = 0; K < I.getNumOperands(); ++K) {
+            auto OpK = I.getOperand(K);
+            auto It = PtrIDMap.find(NEA.get(OpK));
+            if (It == PtrIDMap.end()) continue;
+            auto OpKMustNonNull = NonNulls->test(It->second);
+            if (OpKMustNonNull) {
+                Orig = Orig | (1 << K);
             }
         }
     }
@@ -206,7 +200,6 @@ void LocalNullCheckAnalysis::merge(std::vector<Edge> &IncomingEdges, BitVector &
 }
 
 void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Out) {
-    // fixme use nea
     // assume In, evaluate E's fact as Out
     Out = In;
 
@@ -300,15 +293,13 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
 
 void LocalNullCheckAnalysis::nca() {
     std::vector<Edge> WorkList;
-    for (auto &B: *F)
-        for (auto &I: B) {
-            if (I.isTerminator()) {
-                for (unsigned K = 0; K < I.getNumSuccessors(); ++K)
-                    WorkList.emplace_back(&I, K);
-            } else {
-                WorkList.emplace_back(&I, 0);
-            }
+    for (auto &I: instructions(*F)) {
+        if (I.isTerminator()) {
+            for (unsigned K = 0; K < I.getNumSuccessors(); ++K) WorkList.emplace_back(&I, K);
+        } else {
+            WorkList.emplace_back(&I, 0);
         }
+    }
     std::reverse(WorkList.begin(), WorkList.end());
 
     std::vector<Edge> IncomingEdges;
@@ -371,32 +362,30 @@ void LocalNullCheckAnalysis::nca() {
 void LocalNullCheckAnalysis::label() {
     if (!DT) return;
 
-    for (auto &B: *F) {
-        for (auto &I: B) {
-            auto *Br = dyn_cast<BranchInst>(&I);
-            if (!Br || !Br->isConditional()) continue;
+    for (auto &I: instructions(*F)) {
+        auto *Br = dyn_cast<BranchInst>(&I);
+        if (!Br || !Br->isConditional()) continue;
 
-            auto *ICmp = dyn_cast<ICmpInst>(Br->getCondition());
-            if (!ICmp) continue;
-            auto Predicate = ICmp->getPredicate();
-            if (Predicate != CmpInst::ICMP_EQ && Predicate != CmpInst::ICMP_NE) continue;
-            auto *Op0 = ICmp->getOperand(0);
-            auto *Op1 = ICmp->getOperand(1);
+        auto *ICmp = dyn_cast<ICmpInst>(Br->getCondition());
+        if (!ICmp) continue;
+        auto Predicate = ICmp->getPredicate();
+        if (Predicate != CmpInst::ICMP_EQ && Predicate != CmpInst::ICMP_NE) continue;
+        auto *Op0 = ICmp->getOperand(0);
+        auto *Op1 = ICmp->getOperand(1);
 
-            if (Predicate == CmpInst::ICMP_EQ) {
-                if (isa<ConstantPointerNull>(Op0)) {
-                    // null == op1
-                    if (!mayNull(Op1, ICmp)) label({Br, 0});
-                } else if (isa<ConstantPointerNull>(Op1)) {
-                    // op0 == null
-                    if (!mayNull(Op0, ICmp)) label({Br, 0});
-                }
-            } else {
-                if (isa<ConstantPointerNull>(Op0)) {
-                    if (!mayNull(Op1, ICmp)) label({Br, 1});
-                } else if (isa<ConstantPointerNull>(Op1)) {
-                    if (!mayNull(Op0, ICmp)) label({Br, 1});
-                }
+        if (Predicate == CmpInst::ICMP_EQ) {
+            if (isa<ConstantPointerNull>(Op0)) {
+                // null == op1
+                if (!mayNull(Op1, ICmp)) label({Br, 0});
+            } else if (isa<ConstantPointerNull>(Op1)) {
+                // op0 == null
+                if (!mayNull(Op0, ICmp)) label({Br, 0});
+            }
+        } else {
+            if (isa<ConstantPointerNull>(Op0)) {
+                if (!mayNull(Op1, ICmp)) label({Br, 1});
+            } else if (isa<ConstantPointerNull>(Op1)) {
+                if (!mayNull(Op0, ICmp)) label({Br, 1});
             }
         }
     }
