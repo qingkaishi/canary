@@ -19,13 +19,36 @@
 #include "DyckAA/DyckVFG.h"
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
-    // create a VFG for each function, connect them, delete local VFGs
+    // create a VFG for each function
+    std::map<Function *, DyckVFG *> LocalVFGMap;
+    for (auto &F: *M) {
+        if (F.empty()) continue;
+        LocalVFGMap[&F] = new DyckVFG(DAA, &F);
+    }
+
+    // todo connect local VFGs, delete local VFGs
 }
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *F) {
-
+    // todo
 }
 
 DyckVFG::~DyckVFG() {
+    for (auto &It: ValueNodeMap) delete It.second;
+}
 
+DyckVFGNode *DyckVFG::getVFGNode(Value *V) {
+    auto It = ValueNodeMap.find(V);
+    if (It == ValueNodeMap.end()) return nullptr;
+    return It->second;
+}
+
+DyckVFGNode *DyckVFG::getOrCreateVFGNode(Value *V) {
+    auto It = ValueNodeMap.find(V);
+    if (It == ValueNodeMap.end()) {
+        auto *Ret = new DyckVFGNode(V);
+        ValueNodeMap[V] = Ret;
+        return Ret;
+    }
+    return It->second;
 }

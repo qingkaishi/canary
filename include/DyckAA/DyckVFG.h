@@ -21,22 +21,40 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
+#include <set>
+#include <unordered_map>
 
 using namespace llvm;
 
 class DyckAliasAnalysis;
 
 class DyckVFGNode {
+private:
+    Value *V;
 
+    std::set<DyckVFGNode *> Targets;
+
+public:
+    explicit DyckVFGNode(Value *V) : V(V) {}
+
+    void addTarget(DyckVFGNode *N) { Targets.insert(N); }
 };
 
 class DyckVFG {
+private:
+    std::unordered_map<Value *, DyckVFGNode *> ValueNodeMap;
+
 public:
     DyckVFG(DyckAliasAnalysis *DAA, Module *M);
 
     DyckVFG(DyckAliasAnalysis *DAA, Function *F);
 
     ~DyckVFG();
+
+    DyckVFGNode *getVFGNode(Value *);
+
+private:
+    DyckVFGNode *getOrCreateVFGNode(Value *);
 };
 
 #endif //DyckAA_DYCKVFG_H
