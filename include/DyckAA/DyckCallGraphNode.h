@@ -40,28 +40,70 @@ using namespace llvm;
 /// The class does not model inline asm and intrinsics
 class Call {
 public:
+    enum CallKind {
+        CK_Common,
+        CK_Pointer,
+    };
+
+protected:
+    CallKind Kind;
+
     // if it has a return value, this is the return value; 
     // it may be null, because there exists some implicit calls, like those in pthread_create
     // it may be a callinst or invoke inst, currently only call inst because all invokes are lowered to call
     Instruction *Inst;
-
     Value *CalledValue;
     std::vector<Value *> Args;
 
-    Call(Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args);
+public:
+    Call(CallKind K, Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args);
+
+    CallKind getKind() const { return Kind; }
+
+    Value *getCalledValue() const { return CalledValue; }
+
+    Instruction *getInstruction() const { return Inst; }
+
+    unsigned numArgs() const { return Args.size(); }
+
+    Value *getArg(unsigned K) const { return Args[K]; }
+
+    const std::vector<Value *> &getArgs() const { return Args; }
 };
 
 class CommonCall : public Call {
 public:
     CommonCall(Instruction *Inst, Function *Func, std::vector<Value *> *Args);
+
+    Function *getCalledFunction() const { return dyn_cast_or_null<Function>(CalledValue); }
+
+public:
+    static bool classof(const Call *N) {
+        return N->getKind() == CK_Common;
+    }
 };
 
 class PointerCall : public Call {
-public:
+private:
     std::set<Function *> MayAliasedCallees;
-    bool MustAliasedPointerCall;
 
+public:
     PointerCall(Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args);
+
+    std::set<Function *>::const_iterator begin() const { return MayAliasedCallees.begin(); }
+
+    std::set<Function *>::const_iterator end() const { return MayAliasedCallees.end(); }
+
+    bool empty() const { return MayAliasedCallees.empty(); }
+
+    unsigned size() const { return MayAliasedCallees.size(); }
+
+    void addMayAliasedFunction(Function *F) { MayAliasedCallees.insert(F); }
+
+public:
+    static bool classof(const Call *N) {
+        return N->getKind() == CK_Pointer;
+    }
 };
 
 class DyckCallGraphNode {

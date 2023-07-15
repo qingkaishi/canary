@@ -43,11 +43,11 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
         auto CCIt = CommonCalls->begin();
         while (CCIt != CommonCalls->end()) {
             CommonCall *CC = *CCIt;
-            auto *Callee = (Function *) CC->CalledValue;
+            auto *Callee = CC->getCalledFunction();
 
             if (FunctionMap.count(Callee)) {
                 if (WithEdgeLabels) {
-                    Value *CI = CC->Inst;
+                    Value *CI = CC->getInstruction();
                     std::string S;
                     raw_string_ostream RSO(S);
                     if (CI != nullptr) {
@@ -71,8 +71,7 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
                     fprintf(FOut, "\tf%d->f%d\n", FW->getIndex(), FunctionMap[Callee]->getIndex());
                 }
             } else {
-                errs() << "ERROR in printCG when print common function calls.\n";
-                exit(-1);
+                llvm_unreachable("ERROR in printCG when print common function calls.");
             }
             CCIt++;
         }
@@ -81,14 +80,12 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
         auto FPIt = FPCallsMap->begin();
         while (FPIt != FPCallsMap->end()) {
             PointerCall *PC = *FPIt;
-            std::set<Function *> *MayCalled = &((*FPIt)->MayAliasedCallees);
-
             char *EdgeLabelData = nullptr;
             if (WithEdgeLabels) {
                 std::string S;
                 raw_string_ostream RSO(S);
-                if (PC->Inst != nullptr) {
-                    RSO << *(PC->Inst);
+                if (PC->getInstruction()) {
+                    RSO << *(PC->getInstruction());
                 } else {
                     RSO << "Hidden";
                 }
@@ -104,8 +101,8 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
                 }
                 EdgeLabelData = const_cast<char *> (EdgeLabelStr.data());
             }
-            auto MCIt = MayCalled->begin();
-            while (MCIt != MayCalled->end()) {
+            auto MCIt = PC->begin();
+            while (MCIt != PC->end()) {
                 Function *MCF = *MCIt;
                 if (FunctionMap.count(MCF)) {
                     if (WithEdgeLabels) {
@@ -115,8 +112,7 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
                         fprintf(FOut, "\tf%d->f%d\n", FW->getIndex(), FunctionMap[MCF]->getIndex());
                     }
                 } else {
-                    errs() << "ERROR in printCG when print fp calls.\n";
-                    exit(-1);
+                    llvm_unreachable("ERROR in printCG when print fp calls.");
                 }
                 MCIt++;
             }
@@ -159,12 +155,12 @@ void DyckCallGraph::printFunctionPointersInformation(const std::string &ModuleId
             }
             fprintf(fout, "CallInst: %s\n", edgelabel.data()); //call inst
              */
-            std::set<Function *> *MayCalled = &((*(FPIt))->MayAliasedCallees);
-            fprintf(FOut, "%zd\n", MayCalled->size()); //number of functions
+            auto *PC = *FPIt;
+            fprintf(FOut, "%d\n", PC->size()); //number of functions
 
             // what functions?
-            auto MCIt = MayCalled->begin();
-            while (MCIt != MayCalled->end()) {
+            auto MCIt = PC->begin();
+            while (MCIt != PC->end()) {
                 // Function * mcf = *mcIt;
                 //fprintf(fout, "%s\n", mcf->getName().data());
 

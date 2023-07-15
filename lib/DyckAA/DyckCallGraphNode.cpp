@@ -18,24 +18,21 @@
 
 #include "DyckAA/DyckCallGraphNode.h"
 
-Call::Call(Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args) {
+Call::Call(CallKind K, Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args) : Kind(K) {
     assert(CalledValue != nullptr && "Error when create a call: called value is null!");
     assert(Args != nullptr && "Error when create a call: args is null!");
 
     this->CalledValue = CalledValue;
     this->Inst = Inst;
-    auto ArgIt = Args->begin();
-    while (ArgIt != Args->end()) {
-        this->Args.push_back(*ArgIt);
-        ArgIt++;
-    }
+    this->Args = *Args;
 }
 
-CommonCall::CommonCall(Instruction *Inst, Function *Func, std::vector<Value *> *Args) : Call(Inst, Func, Args) {
+CommonCall::CommonCall(Instruction *Inst, Function *Func, std::vector<Value *> *Args)
+        : Call(CK_Common, Inst, Func, Args) {
 }
 
-PointerCall::PointerCall(Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args) : Call(Inst, CalledValue, Args),
-                                                                                              MustAliasedPointerCall(false) {
+PointerCall::PointerCall(Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args)
+        : Call(CK_Pointer, Inst, CalledValue, Args) {
 }
 
 int DyckCallGraphNode::GlobalIdx = 0;
@@ -60,7 +57,6 @@ DyckCallGraphNode::~DyckCallGraphNode() {
         delete *CIt;
         CIt++;
     }
-
 }
 
 int DyckCallGraphNode::getIndex() const {
@@ -72,7 +68,7 @@ std::set<PointerCall *> &DyckCallGraphNode::getPointerCalls() {
 }
 
 void DyckCallGraphNode::addPointerCall(PointerCall *PC) {
-    InstructionCallMap.insert(std::pair<Instruction *, Call *>(PC->Inst, PC));
+    InstructionCallMap.insert(std::pair<Instruction *, Call *>(PC->getInstruction(), PC));
     PointerCalls.insert(PC);
 }
 
@@ -85,7 +81,7 @@ std::set<CommonCall *> &DyckCallGraphNode::getCommonCalls() {
 }
 
 void DyckCallGraphNode::addCommonCall(CommonCall *CC) {
-    InstructionCallMap.insert(std::pair<Instruction *, Call *>(CC->Inst, CC));
+    InstructionCallMap.insert(std::pair<Instruction *, Call *>(CC->getInstruction(), CC));
     CommonCalls.insert(CC);
 }
 
@@ -141,8 +137,7 @@ std::set<CallInst *> &DyckCallGraphNode::getInlineAsmSet() {
 }
 
 Call *DyckCallGraphNode::getCall(Instruction *Inst) {
-    if (this->InstructionCallMap.count(Inst)) {
-        return InstructionCallMap[Inst];
-    }
+    auto It = InstructionCallMap.find(Inst);
+    if (It != InstructionCallMap.end()) return It->second;
     return nullptr;
 }

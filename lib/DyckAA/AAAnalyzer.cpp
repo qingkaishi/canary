@@ -120,9 +120,9 @@ void AAAnalyzer::interProcedureAnalysis() {
                     CommonCall *CC = *CIt;
                     DFHandledCommonCalls.insert(CC);
 
-                    Value *CV = CC->CalledValue;
-                    assert(isa<Function>(CV) && "Error: it is not a function in common calls!");
-                    handleCommonFunctionCall(CC, DF, DyckCG->getOrInsertFunction((Function *) CV));
+                    Function *CV = CC->getCalledFunction();
+                    assert(CV && "Error: it is not a function in common calls!");
+                    handleCommonFunctionCall(CC, DF, DyckCG->getOrInsertFunction(CV));
                     CIt++;
                 }
                 // ---------------------------------------------------
@@ -167,10 +167,10 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
         auto PCIt = NotHandled.begin();
         while (PCIt != NotHandled.end()) {
             PointerCall *PC = *PCIt;
-            if (PC->MayAliasedCallees.empty()) {
+            if (PC->empty()) {
                 Size++;
-                if (PC->Inst) {
-                    outs() << *(PC->Inst) << "\n";
+                if (PC->getInstruction()) {
+                    outs() << *(PC->getInstruction()) << "\n";
                 } else {
                     outs() << "Implicit calls in " << DF->getLLVMFunction()->getName() << "\n";
                 }
@@ -1053,23 +1053,23 @@ void AAAnalyzer::handleCommonFunctionCall(Call *C, DyckCallGraphNode *Caller, Dy
     //        }
     //    }
 
-    if (C->Inst) {
+    if (auto *CallInstruction = dyn_cast_or_null<CallInst>(C->getInstruction())) {
         //return<->call
-        Type *CalledValueTy = ((CallInst *) C->Inst)->getCalledOperand()->getType();
+        Type *CalledValueTy = CallInstruction->getCalledOperand()->getType();
         assert(CalledValueTy->isPointerTy() && "A called value is not a pointer type!");
         Type *CalledFuncTy = CalledValueTy->getPointerElementType();
         assert(CalledFuncTy->isFunctionTy() && "A called value is not a function pointer type!");
 
         std::set<Value *> &Rets = Callee->getReturns();
         if (!((FunctionType *) CalledFuncTy)->getReturnType()->isVoidTy()) {
-            Type *RetTy = C->Inst->getType();
+            Type *RetTy = CallInstruction->getType();
 
             auto RetIt = Rets.begin();
             while (RetIt != Rets.end()) {
                 auto *Val = (Value *) *RetIt;
                 if (DL->getTypeStoreSize(RetTy) >= DL->getTypeStoreSize(Val->getType())) {
-                    wrapValue(C->Inst);
-                    makeAlias(wrapValue(Val), wrapValue(C->Inst));
+                    wrapValue(CallInstruction);
+                    makeAlias(wrapValue(Val), wrapValue(CallInstruction));
                 }
                 RetIt++;
             }
@@ -1080,13 +1080,13 @@ void AAAnalyzer::handleCommonFunctionCall(Call *C, DyckCallGraphNode *Caller, Dy
     Function *Func = Callee->getLLVMFunction();
     if (!Func->isIntrinsic()) {
         unsigned NumPars = Func->arg_size();
-        unsigned NumArgs = C->Args.size();
+        unsigned NumArgs = C->numArgs();
 
         unsigned IterationNum = NumPars < NumArgs ? NumPars : NumArgs;
 
         for (unsigned K = 0; K < IterationNum; K++) {
             auto *Par = Func->getArg(K);
-            Value *Arg = C->Args[K];
+            Value *Arg = C->getArg(K);
 
             wrapValue(Arg);
             makeAlias(wrapValue(Par), wrapValue(Arg));
@@ -1103,7 +1103,7 @@ void AAAnalyzer::handleCommonFunctionCall(Call *C, DyckCallGraphNode *Caller, Dy
             unsigned NumVarPars = VarParameters.size();
 
             for (unsigned int K = NumPars; K < NumArgs; K++) {
-                Value *ArgK = C->Args[K];
+                Value *ArgK = C->getArg(K);
                 DyckGraphNode *ArgKNode = wrapValue(ArgK);
 
                 for (unsigned J = 0; J < NumVarPars; J++) {
@@ -1137,26 +1137,25 @@ bool AAAnalyzer::handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Count
 //		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, \r";
 
         PointerCall *PCall = *PCIt;
-        Type *FTy = PCall->CalledValue->getType()->getPointerElementType();
+        auto *PCalledValue = PCall->getCalledValue();
+        Type *FTy = PCalledValue->getType()->getPointerElementType();
         assert(FTy->isFunctionTy() && "Error in AAAnalyzer::handlePointerFunctionCalls!");
 
         // handle each unhandled, possible function
         std::set<Value *> EquivAndTypeCompSet;
-        const std::set<Value *> *EquivSet = DAA->getAliasSet(PCall->CalledValue);
+        const std::set<Value *> *EquivSet = DAA->getAliasSet(PCalledValue);
         std::set<Function *> *Cands = this->getCompatibleFunctions((FunctionType *) FTy);
         set_intersection(Cands->begin(), Cands->end(), EquivSet->begin(), EquivSet->end(),
                          inserter(EquivAndTypeCompSet, EquivAndTypeCompSet.begin()));
 
         std::set<Value *> UnhandledFunction;
-        std::set<Function *> *MayCallFuncs = &(PCall->MayAliasedCallees);
-        set_difference(EquivAndTypeCompSet.begin(), EquivAndTypeCompSet.end(), MayCallFuncs->begin(),
-                       MayCallFuncs->end(),
+        set_difference(EquivAndTypeCompSet.begin(), EquivAndTypeCompSet.end(), PCall->begin(), PCall->end(),
                        inserter(UnhandledFunction, UnhandledFunction.begin()));
 
         // print in console
         unsigned CandTotal = UnhandledFunction.size();
         unsigned CandCount = 0;
-        if (CandTotal == 0 || PCall->MustAliasedPointerCall) {
+        if (CandTotal == 0) {
 //			outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
             PCIt++;
             continue;
@@ -1173,12 +1172,12 @@ bool AAAnalyzer::handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Count
 //				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << RATE << "%         \r";
             }
 
-            if (DAA->mayAlias(MayAliasedFunctioin, PCall->CalledValue)) {
+            if (DAA->mayAlias(MayAliasedFunctioin, PCalledValue)) {
                 Ret = true;
-                MayCallFuncs->insert(MayAliasedFunctioin);
+                PCall->addMayAliasedFunction(MayAliasedFunctioin);
 
                 handleCommonFunctionCall(PCall, Caller, DyckCG->getOrInsertFunction(MayAliasedFunctioin));
-                handleLibInvokeCallInst(PCall->Inst, MayAliasedFunctioin, &(PCall->Args), Caller);
+                handleLibInvokeCallInst(PCall->getInstruction(), MayAliasedFunctioin, &(PCall->getArgs()), Caller);
             }
             PFIt++;
         }
@@ -1189,7 +1188,7 @@ bool AAAnalyzer::handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Count
     return Ret;
 }
 
-void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, std::vector<Value *> *Args,
+void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vector<Value *> *Args,
                                          DyckCallGraphNode *Parent) {
     // args must be the real arguments, not the parameters.
     if (!F->empty() || F->isIntrinsic())

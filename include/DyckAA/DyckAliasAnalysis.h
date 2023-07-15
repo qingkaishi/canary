@@ -49,7 +49,6 @@ public:
 
     void getAnalysisUsage(AnalysisUsage &AU) const override;
 
-    /// Get the may/must alias set.
     const std::set<Value *> *getAliasSet(Value *Ptr) const;
 
     bool mayAlias(Value *V1, Value *V2) const;
@@ -103,8 +102,6 @@ public:
 
     /// Get the vector of the may/must alias set that escape from 'from'
     void getEscapedPointersFrom(std::vector<const std::set<Value *> *> *Ret, Value *From);
-
-    bool callGraphPreserved() const;
 
     DyckCallGraph *getCallGraph() const;
 

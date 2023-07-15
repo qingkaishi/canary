@@ -39,6 +39,10 @@ public:
     explicit DyckVFGNode(Value *V) : V(V) {}
 
     void addTarget(DyckVFGNode *N) { Targets.insert(N); }
+
+    std::set<DyckVFGNode *>::const_iterator begin() const { return Targets.begin(); }
+
+    std::set<DyckVFGNode *>::const_iterator end() const { return Targets.end(); }
 };
 
 class DyckVFG {
@@ -56,6 +60,12 @@ public:
 
 private:
     DyckVFGNode *getOrCreateVFGNode(Value *);
+
+    void simplify();
+
+    void connect(DyckAliasAnalysis *, Call*, DyckVFG *);
+
+    void mergeAndDelete(DyckVFG *);
 };
 
 #endif //DyckAA_DYCKVFG_H

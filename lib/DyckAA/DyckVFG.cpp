@@ -32,12 +32,60 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
         LocalVFGMap[&F] = new DyckVFG(DAA, &F);
     }
 
-    // todo connect local VFGs, delete local VFGs, maybe we can simplify the global VFG
+    // connect local VFGs
+    auto *DyckCG = DAA->getCallGraph();
+    for (auto &It: LocalVFGMap) {
+        auto *F = It.first;
+        auto *G = It.second;
+        auto *CGNode = DyckCG->getFunction(F);
+        if (!CGNode) continue;
+        for (auto &I: instructions(F)) {
+            auto *CI = dyn_cast<CallInst>(&I);
+            if (!CI) continue;
+            auto *TheCall = CGNode->getCall(CI);
+            if (auto *CC = dyn_cast<CommonCall>(TheCall)) {
+                auto *Callee = dyn_cast<Function>(CC->getCalledFunction());
+                assert(Callee);
+                auto *&CalleeVFG = LocalVFGMap.at(Callee);
+                G->connect(DAA, TheCall, CalleeVFG);
+                if (G == CalleeVFG) continue;
+                G->mergeAndDelete(CalleeVFG);
+                CalleeVFG = G; // update the graph G
+            } else if (auto *PC = dyn_cast<PointerCall>(TheCall)) {
+                for (Function *Callee: *PC) {
+                    auto *&CalleeVFG = LocalVFGMap.at(Callee);
+                    G->connect(DAA, TheCall, CalleeVFG);
+                    if (G == CalleeVFG) continue;
+                    G->mergeAndDelete(CalleeVFG);
+                    CalleeVFG = G; // update the graph G
+                }
+            } else {
+                errs() << I << "\n";
+                llvm_unreachable("unknown call type");
+            }
+        }
+    }
+
+    // finalize VFG (merge all VFGs to one), delete useless ones
+    //  (a constant may have multi vfg nodes across diff functions)
+    auto It = LocalVFGMap.begin();
+    if (It == LocalVFGMap.end()) return;
+    auto *G = LocalVFGMap.begin()->second;
+    while (++It != LocalVFGMap.end()) {
+        auto *&VFG = It->second;
+        if (G != VFG) {
+            G->mergeAndDelete(VFG);
+            VFG = G;
+        }
+    }
+    this->ValueNodeMap.swap(G->ValueNodeMap);
+    assert(G->ValueNodeMap.empty());
+    delete G;
 }
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *F) {
     // direct value flow through cast, gep-0-0, select, phi
-    for (auto &I: instructions(*F)) {
+    for (auto &I: instructions(F)) {
         if (isa<CastInst>(I) || isa<PHINode>(I)) {
             auto *ToNode = getOrCreateVFGNode(&I);
             for (unsigned K = 0; K < I.getNumOperands(); ++K) {
@@ -74,7 +122,7 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *F) {
     auto *DG = DAA->getDyckGraph();
     std::map<DyckGraphNode *, std::vector<LoadInst *>> LoadMap; // ptr -> load
     std::map<DyckGraphNode *, std::vector<StoreInst *>> StoreMap; // ptr -> store
-    for (auto &I: instructions(*F)) {
+    for (auto &I: instructions(F)) {
         if (auto *Load = dyn_cast<LoadInst>(&I)) {
             auto *Ptr = Load->getPointerOperand();
             auto *DV = DG->findDyckVertex(Ptr);
@@ -120,4 +168,39 @@ DyckVFGNode *DyckVFG::getOrCreateVFGNode(Value *V) {
         return Ret;
     }
     return It->second;
+}
+
+void DyckVFG::simplify() {
+    // todo we may call this function on demand to
+    //  simplify the VFG by merging SCC, transitive reduction, etc.
+}
+
+void DyckVFG::mergeAndDelete(DyckVFG *G) {
+    // move all vertices in the input VFG to this one (note: a constant may have multiple nodes)
+    // G is released and invalid after this function
+    for (auto &It: G->ValueNodeMap) {
+        auto *Val = It.first;
+        auto *Node = It.second;
+
+        if (isa<Constant>(Val)) {
+            auto ThisIt = ValueNodeMap.find(Val);
+            if (ThisIt == ValueNodeMap.end()) {
+                ValueNodeMap.emplace(Val, Node);
+            } else {
+                auto *ThisNode = ThisIt->second;
+                for (auto *Tar: *Node) ThisNode->addTarget(Tar);
+                delete Node;
+                It.second = ThisNode;
+            }
+        } else {
+            ValueNodeMap.emplace(Val, Node);
+        }
+    }
+    G->ValueNodeMap.clear(); // to prevent the next delete from deleting nodes in G
+    delete G;
+}
+
+void DyckVFG::connect(DyckAliasAnalysis *, Call *, DyckVFG *) {
+    // todo connect direct inputs/outputs
+    // todo connect indirect inputs/outputs
 }

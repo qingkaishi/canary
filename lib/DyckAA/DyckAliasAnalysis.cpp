@@ -29,9 +29,6 @@
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc("Output alias sets and their relations"));
 
-static cl::opt<bool> PreserveCallGraph("preserve-dyck-callgraph", cl::init(false), cl::Hidden,
-                                       cl::desc("Preserve the call graph for usage in other passes."));
-
 static cl::opt<bool> DotCallGraph("dot-dyck-callgraph", cl::init(false), cl::Hidden,
                                   cl::desc("Calculate the program's call graph and output into a \"dot\" file."));
 
@@ -225,12 +222,7 @@ void DyckAliasAnalysis::getPointstoObjects(std::set<Value *> &Objects, Value *Po
     }
 }
 
-bool DyckAliasAnalysis::callGraphPreserved() const {
-    return PreserveCallGraph;
-}
-
 DyckCallGraph *DyckAliasAnalysis::getCallGraph() const {
-    assert(this->callGraphPreserved() && "Please add -preserve-dyck-callgraph option when using opt or canary.\n");
     return DyckCG;
 }
 
@@ -240,10 +232,6 @@ DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
 
 bool DyckAliasAnalysis::runOnModule(Module &M) {
     TimeRecorder DyckAA("Running DyckAA");
-
-    /// if the alias analysis is rerun, the vfg should be re-created
-    delete VFG;
-    VFG = nullptr;
 
     /// prepare to analyze
     AAAnalyzer AA(&M, this, CFLGraph, DyckCG);
@@ -265,11 +253,6 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
         outs() << "Printing function pointer information...\n";
         DyckCG->printFunctionPointersInformation(M.getModuleIdentifier());
         outs() << "Done!\n\n";
-    }
-
-    if (!this->callGraphPreserved()) {
-        delete this->DyckCG;
-        this->DyckCG = nullptr;
     }
 
     if (PrintAliasSetInformation) {

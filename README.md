@@ -33,7 +33,7 @@ relations (dot style).
 
 Count how many functions that a function pointer may point to.
 
-* -no-function-FuncTy-check
+* -no-function-type-check
 
 If the option is set, we do not check the function FuncTy when resolving pointer
 calls, otherwise, only FuncTy compatible function can be aliased with a function
@@ -49,13 +49,9 @@ pointer. We say f1 and f2 are two FuncTy-compatible functions iff.
 
     - There is an explicit cast operation between FuncTy(f1) and FuncTy(f2) (it works with option -with-function-cast-comb).
 
-* -dot-dyck-DyckCG
+* -dot-dyck-callgraph
 
 This option is used to print a call graph based on the alias analysis.
 You can use it with -with-labels option, which will add lables (call insts)
 to the edges in call graphs.
 
-* -preserve-dyck-DyckCG
-
-Preserve the call graph for later usage. Only using  -dot-dyck-DyckCG
-will not preserve the call graph.

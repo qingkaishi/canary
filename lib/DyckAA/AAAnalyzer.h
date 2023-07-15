@@ -72,7 +72,7 @@ private:
 
     void handleInvokeCallInst(Instruction *Ret, Value *CV, std::vector<Value *> *Args, DyckCallGraphNode *Parent);
 
-    void handleLibInvokeCallInst(Value *Ret, Function *F, std::vector<Value *> *Args, DyckCallGraphNode *Parent);
+    void handleLibInvokeCallInst(Value *Ret, Function *F, const std::vector<Value *> *Args, DyckCallGraphNode *Parent);
 
     bool handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Counter);
 

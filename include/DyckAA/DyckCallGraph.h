@@ -72,14 +72,19 @@ public:
     }
 
     DyckCallGraphNode *getOrInsertFunction(Function *Func) {
-        DyckCallGraphNode *Parent = nullptr;
-        if (!FunctionMap.count(Func)) {
-            Parent = new DyckCallGraphNode(Func);
-            FunctionMap.insert(std::pair<Function *, DyckCallGraphNode *>(Func, Parent));
-        } else {
-            Parent = FunctionMap[Func];
+        auto It = FunctionMap.find(Func);
+        if (It == FunctionMap.end()) {
+            auto *Ret = new DyckCallGraphNode(Func);
+            FunctionMap.insert(std::pair<Function *, DyckCallGraphNode *>(Func, Ret));
+            return Ret;
         }
-        return Parent;
+        return It->second;
+    }
+
+    DyckCallGraphNode *getFunction(Function *Func) {
+        auto It = FunctionMap.find(Func);
+        if (It == FunctionMap.end()) return nullptr;
+        return It->second;
     }
 
     void dotCallGraph(const std::string &ModuleIdentifier);
