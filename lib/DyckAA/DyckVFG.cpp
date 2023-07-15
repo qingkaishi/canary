@@ -171,8 +171,7 @@ DyckVFGNode *DyckVFG::getOrCreateVFGNode(Value *V) {
 }
 
 void DyckVFG::simplify() {
-    // todo we may call this function on demand to
-    //  simplify the VFG by merging SCC, transitive reduction, etc.
+    // todo we may call this function on demand to simplify the VFG by merging SCC, transitive reduction, etc.
 }
 
 void DyckVFG::mergeAndDelete(DyckVFG *G) {
@@ -200,7 +199,16 @@ void DyckVFG::mergeAndDelete(DyckVFG *G) {
     delete G;
 }
 
-void DyckVFG::connect(DyckAliasAnalysis *, Call *, DyckVFG *) {
-    // todo connect direct inputs/outputs
+void DyckVFG::connect(DyckAliasAnalysis *DAA, Call *C, Function* Callee, DyckVFG *CalleeVFG) {
+    // connect direct inputs/outputs
+    for (unsigned K = 0; K < C->numArgs(); ++K) {
+        if (K >= Callee->arg_size()) continue; // ignore var args
+        auto *Actual = C->getArg(K);
+        auto *ActualNode = getOrCreateVFGNode(Actual);
+        auto *Formal = Callee->getArg(K);
+        auto *FormalNode = CalleeVFG->getOrCreateVFGNode(Formal);
+        ActualNode->addTarget(FormalNode);
+    }
+
     // todo connect indirect inputs/outputs
 }

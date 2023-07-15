@@ -63,7 +63,7 @@ private:
 
     void simplify();
 
-    void connect(DyckAliasAnalysis *, Call*, DyckVFG *);
+    void connect(DyckAliasAnalysis *, Call*, Function*, DyckVFG *);
 
     void mergeAndDelete(DyckVFG *);
 };
