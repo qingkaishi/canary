@@ -442,8 +442,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
     }
 }
 
-DyckVFG *DyckAliasAnalysis::createValueFlowGraph(Module &M) {
-    if (!VFG)
-        VFG = new DyckVFG(this, &M);
+DyckVFG *DyckAliasAnalysis::getOrCreateValueFlowGraph(Module &M) {
+    if (!VFG) VFG = new DyckVFG(this, &M);
     return VFG;
 }

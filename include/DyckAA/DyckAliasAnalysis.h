@@ -88,7 +88,7 @@ public:
     void getPointstoObjects(std::set<Value *> &Objects, Value *Pointer) const;
 
     /// return a value flow graph created based on the alias analysis
-    DyckVFG *createValueFlowGraph(Module &M);
+    DyckVFG *getOrCreateValueFlowGraph(Module &M);
 };
 
 #endif // DYCKAA_DYCKALIASANALYSIS_H
