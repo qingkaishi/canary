@@ -47,14 +47,14 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
                 auto *Callee = dyn_cast<Function>(CC->getCalledFunction());
                 assert(Callee);
                 auto *&CalleeVFG = LocalVFGMap.at(Callee);
-                G->connect(DAA, TheCall, CalleeVFG);
+                G->connect(DAA, TheCall, Callee, CalleeVFG);
                 if (G == CalleeVFG) continue;
                 G->mergeAndDelete(CalleeVFG);
                 CalleeVFG = G; // update the graph G
             } else if (auto *PC = dyn_cast<PointerCall>(TheCall)) {
                 for (Function *Callee: *PC) {
                     auto *&CalleeVFG = LocalVFGMap.at(Callee);
-                    G->connect(DAA, TheCall, CalleeVFG);
+                    G->connect(DAA, TheCall, Callee, CalleeVFG);
                     if (G == CalleeVFG) continue;
                     G->mergeAndDelete(CalleeVFG);
                     CalleeVFG = G; // update the graph G

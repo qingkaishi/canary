@@ -701,11 +701,6 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
             }
         }
             break;
-        case Instruction::Resume: {
-            Value *Resume = ((ResumeInst *) Inst)->getOperand(0);
-            Parent->addResume(Resume);
-        }
-            break;
         case Instruction::Switch:
         case Instruction::Br:
         case Instruction::IndirectBr:
@@ -768,43 +763,12 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
 
             // memory accessing and addressing operations
         case Instruction::Alloca:
+            break;
         case Instruction::Fence:
-            break;
-        case Instruction::AtomicCmpXchg: {
-            Value *RetXchg = Inst;
-            Value *PtrXchg = Inst->getOperand(0);
-            Value *NewXchg = Inst->getOperand(2);
-            addPtrTo(wrapValue(PtrXchg), wrapValue(RetXchg));
-            wrapValue(NewXchg);
-            addPtrTo(wrapValue(PtrXchg), wrapValue(NewXchg));
-
-            // 0b101
-            Mask |= 5;
-        }
-            break;
-        case Instruction::AtomicRMW: {
-            Value *RetRmw = Inst;
-            Value *PtrRmw = ((AtomicRMWInst *) Inst)->getPointerOperand();
-            addPtrTo(wrapValue(PtrRmw), wrapValue(RetRmw));
-
-            Value *NewRmw = ((AtomicRMWInst *) Inst)->getValOperand();
-            wrapValue(NewRmw);
-
-            switch (((AtomicRMWInst *) Inst)->getOperation()) {
-                case AtomicRMWInst::Max:
-                case AtomicRMWInst::Min:
-                case AtomicRMWInst::UMax:
-                case AtomicRMWInst::UMin:
-                case AtomicRMWInst::Xchg: {
-                    addPtrTo(wrapValue(PtrRmw), wrapValue(NewRmw));
-                }
-                    break;
-                default:
-                    //others are binary ops like add/sub/...
-                    break;
-            }
-        }
-            break;
+        case Instruction::AtomicRMW:
+        case Instruction::AtomicCmpXchg:
+            llvm_unreachable("please use -lower-atomic!");
+            exit(1);
         case Instruction::Load: {
             Value *LVal = Inst;
             Value *LAddress = Inst->getOperand(0);
@@ -862,25 +826,12 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
             break;
 
             // other operations
-        case Instruction::Invoke: // invoke is a terminal operation
-        {
-            errs() << "Error during alias analysis. Please add -lowerinvoke -simplifycfg before -dyckaa!\n";
-            exit(-1);
-
-            // for later use
-            //            InvokeInst * invoke = (InvokeInst*) inst;
-            //            LandingPadInst* lpd = invoke->getLandingPadInst();
-            //            parent_func->addLandingPad(invoke, lpd);
-            //
-            //            Value * cv = invoke->getCalledValue();
-            //            vector<Value*> args;
-            //            for (unsigned i = 0; i < invoke->getNumArgOperands(); i++) {
-            //                args.push_back(invoke->getArgOperand(i));
-            //            }
-            //
-            //            this->handle_invoke_call_inst(invoke, cv, &args, parent_func);
-        }
-            break;
+        case Instruction::CallBr:
+        case Instruction::Resume:
+        case Instruction::LandingPad:
+        case Instruction::Invoke:
+            llvm_unreachable("please use -lower-invoke");
+            exit(1);
         case Instruction::Call: {
             auto *CallI = (CallInst *) Inst;
 
@@ -939,7 +890,6 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
             Mask |= (~0);
         }
             break;
-        case Instruction::LandingPad: // handled with invoke inst
         case Instruction::ICmp:
         case Instruction::FCmp:
         default:
@@ -997,7 +947,6 @@ void AAAnalyzer::handleInvokeCallInst(Instruction *Ret, Value *CV, std::vector<V
     } else {
         wrapValue(CV);
         if (isa<ConstantExpr>(CV)) {
-
             Value *CVCopy = CV;
             while (isa<ConstantExpr>(CVCopy) && ((ConstantExpr *) CVCopy)->isCast()) {
                 CVCopy = ((ConstantExpr *) CVCopy)->getOperand(0);
@@ -1036,22 +985,6 @@ void AAAnalyzer::handleCommonFunctionCall(Call *C, DyckCallGraphNode *Caller, Dy
     if (Callee->getLLVMFunction()->empty()) {
         return;
     }
-
-    // since invoke has been lowered to call, no landingpads
-    // and resumes. The following codes are for later use.
-    // landingpad<->resume
-    //    if (c->instruction) {
-    //        Value* lpd = caller->getLandingPad(c->instruction);
-    //        if (lpd) {
-    //            DyckVertex* lpdVertex = wrapValue(lpd);
-    //            set<Value*>& res = callee->getResumes();
-    //            set<Value*>::iterator resIt = res.begin();
-    //            while (resIt != res.end()) {
-    //                makeAlias(wrapValue(*resIt), lpdVertex);
-    //                resIt++;
-    //            }
-    //        }
-    //    }
 
     if (auto *CallInstruction = dyn_cast_or_null<CallInst>(C->getInstruction())) {
         //return<->call

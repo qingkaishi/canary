@@ -85,14 +85,6 @@ void DyckCallGraphNode::addCommonCall(CommonCall *CC) {
     CommonCalls.insert(CC);
 }
 
-void DyckCallGraphNode::addResume(Value *Res) {
-    Resumes.insert(Res);
-}
-
-void DyckCallGraphNode::addLandingPad(Value *Invoke, Value *LPad) {
-    LPads.insert(std::pair<Value *, Value *>(Invoke, LPad));
-}
-
 void DyckCallGraphNode::addRet(Value *Ret) {
     Rets.insert(Ret);
 }
@@ -115,17 +107,6 @@ std::vector<Value *> &DyckCallGraphNode::getVAArgs() {
 
 std::set<Value *> &DyckCallGraphNode::getReturns() {
     return Rets;
-}
-
-std::set<Value *> &DyckCallGraphNode::getResumes() {
-    return Resumes;
-}
-
-Value *DyckCallGraphNode::getLandingPad(Value *Invoke) {
-    if (LPads.count(Invoke)) {
-        return LPads[Invoke];
-    }
-    return nullptr;
 }
 
 void DyckCallGraphNode::addInlineAsm(CallInst *InlineAsm) {

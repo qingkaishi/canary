@@ -116,9 +116,6 @@ private:
     std::vector<Value *> Args;
     std::vector<Value *> VAArgs;
 
-    std::set<Value *> Resumes;
-    std::map<Value *, Value *> LPads; // invoke <-> lpad
-
     // call instructions in the function
     std::set<CommonCall *> CommonCalls; // common calls
     std::set<PointerCall *> PointerCalls; // pointer calls
@@ -166,10 +163,6 @@ public:
     std::vector<Value *> &getVAArgs();
 
     std::set<Value *> &getReturns();
-
-    std::set<Value *> &getResumes();
-
-    Value *getLandingPad(Value *);
 
     Call *getCall(Instruction *);
 };
