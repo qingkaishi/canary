@@ -24,6 +24,7 @@
 #include "AAAnalyzer.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckCallGraph.h"
+#include "MRAnalyzer.h"
 #include "Support/TimeRecorder.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
@@ -42,25 +43,12 @@ DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
     VFG = nullptr;
     CFLGraph = new DyckGraph;
     DyckCG = new DyckCallGraph;
-    DerefEdgeLabel = new DereferenceEdgeLabel;
 }
 
 DyckAliasAnalysis::~DyckAliasAnalysis() {
     delete VFG;
     delete DyckCG;
     delete CFLGraph;
-
-    delete DerefEdgeLabel;
-    auto OIt = OffsetEdgeLabelMap.begin();
-    while (OIt != OffsetEdgeLabelMap.end()) {
-        delete OIt->second;
-        OIt++;
-    }
-    auto IIt = IndexEdgeLabelMap.begin();
-    while (IIt != IndexEdgeLabelMap.end()) {
-        delete IIt->second;
-        IIt++;
-    }
 }
 
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
@@ -210,7 +198,7 @@ void DyckAliasAnalysis::getPointstoObjects(std::set<Value *> &Objects, Value *Po
     assert(Pointer != nullptr);
 
     DyckGraphNode *Rt = CFLGraph->retrieveDyckVertex(Pointer).first;
-    auto Tars = Rt->getOutVertices(DerefEdgeLabel);
+    auto Tars = Rt->getOutVertices(CFLGraph->getDereferenceEdgeLabel());
     if (Tars != nullptr && !Tars->empty()) {
         assert(Tars->size() == 1);
         auto TIt = Tars->begin();
@@ -233,14 +221,15 @@ DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
 bool DyckAliasAnalysis::runOnModule(Module &M) {
     TimeRecorder DyckAA("Running DyckAA");
 
-    /// prepare to analyze
-    AAAnalyzer AA(&M, this, CFLGraph, DyckCG);
-
-    /// step 1: intra-procedure analysis
+    // alias analysis
+    AAAnalyzer AA(&M, CFLGraph, DyckCG);
     AA.intraProcedureAnalysis();
-
-    /// step 2: inter-procedure analysis
     AA.interProcedureAnalysis();
+
+    // mod/ref analysis
+    MRAnalyzer MR(&M, CFLGraph, DyckCG);
+    MR.intraProcedureAnalysis();
+    MR.interProcedureAnalysis();
 
     /* call graph */
     if (DotCallGraph) {

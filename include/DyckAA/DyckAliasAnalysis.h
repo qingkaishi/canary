@@ -37,7 +37,6 @@
 using namespace llvm;
 
 class DyckAliasAnalysis : public ModulePass {
-    friend class AAAnalyzer;
 public:
     static char ID;
 
@@ -56,31 +55,7 @@ public:
 private:
     DyckGraph *CFLGraph;
     DyckCallGraph *DyckCG;
-    DyckEdgeLabel *DerefEdgeLabel;
-    std::map<long, DyckEdgeLabel *> OffsetEdgeLabelMap;
-    std::map<long, DyckEdgeLabel *> IndexEdgeLabelMap;
-    DyckVFG *VFG = nullptr;
-
-private:
-    DyckEdgeLabel *getOrInsertOffsetEdgeLabel(long Offset) {
-        if (OffsetEdgeLabelMap.count(Offset)) {
-            return OffsetEdgeLabelMap[Offset];
-        } else {
-            DyckEdgeLabel *Ret = new PointerOffsetEdgeLabel(Offset);
-            OffsetEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
-            return Ret;
-        }
-    }
-
-    DyckEdgeLabel *getOrInsertIndexEdgeLabel(long Offset) {
-        if (IndexEdgeLabelMap.count(Offset)) {
-            return IndexEdgeLabelMap[Offset];
-        } else {
-            DyckEdgeLabel *Ret = new FieldIndexEdgeLabel(Offset);
-            IndexEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
-            return Ret;
-        }
-    }
+    DyckVFG *VFG;
 
 private:
     /// Three kinds of information will be printed.

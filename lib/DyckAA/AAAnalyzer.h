@@ -19,13 +19,23 @@
 #ifndef DYCKAA_AAANALYZER_H
 #define DYCKAA_AAANALYZER_H
 
+#include <llvm/Pass.h>
+#include <llvm/ADT/SmallPtrSet.h>
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/Support/ErrorHandling.h>
+#include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/Debug.h>
+#include <llvm/IR/InlineAsm.h>
 #include <map>
+#include <set>
 #include <unordered_map>
 
-#include "DyckAA/DyckAliasAnalysis.h"
-#include "DyckAA/DyckEdgeLabel.h"
+#include "DyckAA/DyckCallGraph.h"
+#include "DyckAA/DyckGraph.h"
 
-class DyckAliasAnalysis;
+using namespace llvm;
 
 typedef struct FunctionTypeNode {
     FunctionType *FuncTy;
@@ -37,7 +47,6 @@ class AAAnalyzer {
 private:
     Module *Mod;
     const DataLayout *DL;
-    DyckAliasAnalysis *DAA;
     DyckGraph *CFLGraph;
     DyckCallGraph *DyckCG;
 
@@ -48,7 +57,7 @@ private:
     /// @}
 
 public:
-    AAAnalyzer(Module *, DyckAliasAnalysis *, DyckGraph *, DyckCallGraph *);
+    AAAnalyzer(Module *, DyckGraph *, DyckCallGraph *);
 
     ~AAAnalyzer();
 

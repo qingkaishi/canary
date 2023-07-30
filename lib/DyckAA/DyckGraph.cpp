@@ -18,7 +18,48 @@
 
 #include <cassert>
 #include <cstdio>
+#include "DyckAA/DyckEdgeLabel.h"
 #include "DyckAA/DyckGraph.h"
+
+DyckGraph::DyckGraph() {
+    DerefEdgeLabel = new DereferenceEdgeLabel;
+}
+
+DyckGraph::~DyckGraph() {
+    for (auto &V: Vertices) delete V;
+
+    delete DerefEdgeLabel;
+    auto OIt = OffsetEdgeLabelMap.begin();
+    while (OIt != OffsetEdgeLabelMap.end()) {
+        delete OIt->second;
+        OIt++;
+    }
+    auto IIt = IndexEdgeLabelMap.begin();
+    while (IIt != IndexEdgeLabelMap.end()) {
+        delete IIt->second;
+        IIt++;
+    }
+}
+
+DyckEdgeLabel *DyckGraph::getOrInsertOffsetEdgeLabel(long Offset) {
+    if (OffsetEdgeLabelMap.count(Offset)) {
+        return OffsetEdgeLabelMap[Offset];
+    } else {
+        DyckEdgeLabel *Ret = new PointerOffsetEdgeLabel(Offset);
+        OffsetEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
+        return Ret;
+    }
+}
+
+DyckEdgeLabel *DyckGraph::getOrInsertIndexEdgeLabel(long Offset) {
+    if (IndexEdgeLabelMap.count(Offset)) {
+        return IndexEdgeLabelMap[Offset];
+    } else {
+        DyckEdgeLabel *Ret = new FieldIndexEdgeLabel(Offset);
+        IndexEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
+        return Ret;
+    }
+}
 
 void DyckGraph::printAsDot(const char *FileName) const {
     FILE *FileDesc = fopen(FileName, "w+");

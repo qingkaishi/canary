@@ -7,4 +7,5 @@ add_library(CanaryDyckAA STATIC
         DyckGraph.cpp
         DyckGraphNode.cpp
         DyckVFG.cpp
+        MRAnalyzer.cpp
 )

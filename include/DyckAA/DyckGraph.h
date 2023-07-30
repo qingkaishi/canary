@@ -24,6 +24,8 @@
 
 #include "DyckAA/DyckGraphNode.h"
 
+class DyckEdgeLabel;
+
 /// This class models a dyck-cfl language as a graph, which does not contain the barred edges.
 /// See details in http://dl.acm.org/citation.cfm?id=2491956.2462159&coll=DL&dl=ACM&CFID=379446910&CFTOKEN=65130716 .
 class DyckGraph {
@@ -31,12 +33,18 @@ private:
     std::set<DyckGraphNode *> Vertices;
 
     std::unordered_map<void *, DyckGraphNode *> ValVertexMap;
-public:
-    DyckGraph() = default;
 
-    ~DyckGraph() {
-        for (auto &V: Vertices) delete V;
-    }
+    /// edge labels
+    /// @{
+    DyckEdgeLabel *DerefEdgeLabel;
+    std::map<long, DyckEdgeLabel *> OffsetEdgeLabelMap;
+    std::map<long, DyckEdgeLabel *> IndexEdgeLabelMap;
+    /// @}
+
+public:
+    DyckGraph();
+
+    ~DyckGraph();
 
     /// The number of vertices in the graph.
     unsigned int numVertices();
@@ -71,6 +79,12 @@ public:
 
     /// validation
     void validation(const char *, int);
+
+    DyckEdgeLabel *getOrInsertOffsetEdgeLabel(long Offset);
+
+    DyckEdgeLabel *getOrInsertIndexEdgeLabel(long Offset);
+
+    DyckEdgeLabel *getDereferenceEdgeLabel() const { return DerefEdgeLabel; }
 
 private:
     void removeFromWorkList(std::multimap<DyckGraphNode *, void *> &, DyckGraphNode *, void *);

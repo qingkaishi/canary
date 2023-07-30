@@ -43,9 +43,8 @@ static void OnSegmentFalut(int) {
     abort();
 }
 
-AAAnalyzer::AAAnalyzer(Module *M, DyckAliasAnalysis *AA, DyckGraph *DG, DyckCallGraph *CG) {
+AAAnalyzer::AAAnalyzer(Module *M, DyckGraph *DG, DyckCallGraph *CG) {
     Mod = M;
-    DAA = AA;
     CFLGraph = DG;
     DyckCG = CG;
     DL = &M->getDataLayout();
@@ -331,15 +330,15 @@ void AAAnalyzer::combineFunctionGroups(FunctionType *FTyX, FunctionType *FTyY) {
 
 DyckGraphNode *AAAnalyzer::addField(DyckGraphNode *Val, long FieldIndex, DyckGraphNode *Field) {
     if (!Field) {
-        auto *ValRepSet = Val->getOutVertices((void *) (DAA->getOrInsertIndexEdgeLabel(FieldIndex)));
+        auto *ValRepSet = Val->getOutVertices((void *) (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
         if (ValRepSet && !ValRepSet->empty()) {
             Field = *(ValRepSet->begin());
         } else {
             Field = CFLGraph->retrieveDyckVertex(nullptr).first;
-            Val->addTarget(Field, (void *) (DAA->getOrInsertIndexEdgeLabel(FieldIndex)));
+            Val->addTarget(Field, (void *) (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
         }
     } else {
-        Val->addTarget(Field, (void *) (DAA->getOrInsertIndexEdgeLabel(FieldIndex)));
+        Val->addTarget(Field, (void *) (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
     }
     return Field;
 }
@@ -347,21 +346,22 @@ DyckGraphNode *AAAnalyzer::addField(DyckGraphNode *Val, long FieldIndex, DyckGra
 DyckGraphNode *AAAnalyzer::addPtrTo(DyckGraphNode *Address, DyckGraphNode *Val) {
     assert((Address || Val) && "ERROR in addPtrTo\n");
 
+    auto *DLabel = CFLGraph->getDereferenceEdgeLabel();
     if (!Address) {
         Address = CFLGraph->retrieveDyckVertex(nullptr).first;
-        Address->addTarget(Val, (void *) DAA->DerefEdgeLabel);
+        Address->addTarget(Val, DLabel);
         return Address;
     } else if (!Val) {
-        std::set<DyckGraphNode *> *DerefSet = Address->getOutVertices((void *) DAA->DerefEdgeLabel);
+        std::set<DyckGraphNode *> *DerefSet = Address->getOutVertices(DLabel);
         if (DerefSet && !DerefSet->empty()) {
             Val = *(DerefSet->begin());
         } else {
             Val = CFLGraph->retrieveDyckVertex(nullptr).first;
-            Address->addTarget(Val, (void *) DAA->DerefEdgeLabel);
+            Address->addTarget(Val, DLabel);
         }
         return Val;
     } else {
-        Address->addTarget(Val, (void *) DAA->DerefEdgeLabel);
+        Address->addTarget(Val, DLabel);
         return Address;
     }
 }
@@ -401,7 +401,7 @@ DyckGraphNode *AAAnalyzer::handleGEP(GEPOperator *GEP) {
 
             // the label representation and feature impl is temporal.
             // s3: y--(fieldIdx offLabel)-->?3
-            Current->addTarget(FieldPtr, (void *) (DAA->getOrInsertOffsetEdgeLabel(FieldIdx)));
+            Current->addTarget(FieldPtr, (void *) (CFLGraph->getOrInsertOffsetEdgeLabel(FieldIdx)));
 
             // update current
             Current = FieldPtr;
@@ -1070,13 +1070,13 @@ bool AAAnalyzer::handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Count
 //		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, \r";
 
         PointerCall *PCall = *PCIt;
-        auto *PCalledValue = PCall->getCalledValue();
-        Type *FTy = PCalledValue->getType()->getPointerElementType();
+        auto *PCalledVal = PCall->getCalledValue();
+        Type *FTy = PCalledVal->getType()->getPointerElementType();
         assert(FTy->isFunctionTy() && "Error in AAAnalyzer::handlePointerFunctionCalls!");
 
         // handle each unhandled, possible function
         std::set<Value *> EquivAndTypeCompSet;
-        const std::set<Value *> *EquivSet = DAA->getAliasSet(PCalledValue);
+        auto *EquivSet = (const std::set<Value *> *) CFLGraph->retrieveDyckVertex(PCalledVal).first->getEquivalentSet();
         std::set<Function *> *Cands = this->getCompatibleFunctions((FunctionType *) FTy);
         set_intersection(Cands->begin(), Cands->end(), EquivSet->begin(), EquivSet->end(),
                          inserter(EquivAndTypeCompSet, EquivAndTypeCompSet.begin()));
@@ -1105,13 +1105,10 @@ bool AAAnalyzer::handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Count
 //				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << RATE << "%         \r";
             }
 
-            if (DAA->mayAlias(MayAliasedFunctioin, PCalledValue)) {
-                Ret = true;
-                PCall->addMayAliasedFunction(MayAliasedFunctioin);
-
-                handleCommonFunctionCall(PCall, Caller, DyckCG->getOrInsertFunction(MayAliasedFunctioin));
-                handleLibInvokeCallInst(PCall->getInstruction(), MayAliasedFunctioin, &(PCall->getArgs()), Caller);
-            }
+            if (!Ret) Ret = true;
+            PCall->addMayAliasedFunction(MayAliasedFunctioin);
+            handleCommonFunctionCall(PCall, Caller, DyckCG->getOrInsertFunction(MayAliasedFunctioin));
+            handleLibInvokeCallInst(PCall->getInstruction(), MayAliasedFunctioin, &(PCall->getArgs()), Caller);
             PFIt++;
         }
 
@@ -1137,7 +1134,7 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
                 DyckGraphNode *KeyRep = wrapValue(Args->at(0));
                 DyckGraphNode *ValRep = wrapValue(Ret);
                 // we use label -1 to indicate that it is a key:value pair
-                KeyRep->addTarget(ValRep, DAA->getOrInsertIndexEdgeLabel(-1));
+                KeyRep->addTarget(ValRep, CFLGraph->getOrInsertIndexEdgeLabel(-1));
             }
         }
             break;
@@ -1172,7 +1169,7 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
                 DyckGraphNode *KeyRep = wrapValue(Args->at(0));
                 DyckGraphNode *ValRep = wrapValue(Args->at(1));
                 // we use label -1 to indicate that it is a key:value pair
-                KeyRep->addTarget(ValRep, DAA->getOrInsertIndexEdgeLabel(-1));
+                KeyRep->addTarget(ValRep, CFLGraph->getOrInsertIndexEdgeLabel(-1));
             }
         }
             break;
