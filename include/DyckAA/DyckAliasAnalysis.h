@@ -30,7 +30,7 @@
 #include <llvm/IR/InlineAsm.h>
 #include <set>
 #include "DyckAA/DyckCallGraph.h"
-#include "DyckAA/DyckEdgeLabel.h"
+#include "DyckAA/DyckGraphEdgeLabel.h"
 #include "DyckAA/DyckGraph.h"
 #include "DyckAA/DyckVFG.h"
 

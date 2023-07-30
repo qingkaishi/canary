@@ -16,44 +16,47 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKAA_DYCKEDGELABEL_H
-#define DYCKAA_DYCKEDGELABEL_H
+#ifndef DYCKAA_DYCKGRAPHEDGELABEL_H
+#define DYCKAA_DYCKGRAPHEDGELABEL_H
 
 #include <string>
 #include <map>
 
-class DyckEdgeLabel {
+class DyckGraphEdgeLabel {
 public:
     enum LabelType {
         LT_Dereference, LT_Offset, LT_Index
     };
+
 private:
     std::string Desc;
+
 public:
     virtual std::string &getEdgeLabelDescription() { return Desc; }
 
     virtual bool isLabelTy(LabelType type) { return false; }
 
-    virtual ~DyckEdgeLabel() = default;
+    virtual ~DyckGraphEdgeLabel() = default;
 };
 
-class DereferenceEdgeLabel : public DyckEdgeLabel {
+class DereferenceEdgeLabel : public DyckGraphEdgeLabel {
 public:
     DereferenceEdgeLabel() {
-        std::string &Desc = DyckEdgeLabel::getEdgeLabelDescription();
+        std::string &Desc = DyckGraphEdgeLabel::getEdgeLabelDescription();
         Desc.clear();
         Desc.append("D");
     }
 
-    bool isLabelTy(LabelType Ty) override { return Ty == DyckEdgeLabel::LT_Dereference; }
+    bool isLabelTy(LabelType Ty) override { return Ty == DyckGraphEdgeLabel::LT_Dereference; }
 };
 
-class PointerOffsetEdgeLabel : public DyckEdgeLabel {
+class PointerOffsetEdgeLabel : public DyckGraphEdgeLabel {
 private:
     long OffsetBytes;
+
 public:
     explicit PointerOffsetEdgeLabel(long Bytes) : OffsetBytes(Bytes) {
-        std::string &Desc = DyckEdgeLabel::getEdgeLabelDescription();
+        std::string &Desc = DyckGraphEdgeLabel::getEdgeLabelDescription();
         Desc.clear();
         Desc.append("@");
 
@@ -64,15 +67,16 @@ public:
 
     long getOffsetBytes() const { return OffsetBytes; }
 
-    bool isLabelTy(LabelType Ty) override { return Ty == DyckEdgeLabel::LT_Offset; }
+    bool isLabelTy(LabelType Ty) override { return Ty == DyckGraphEdgeLabel::LT_Offset; }
 };
 
-class FieldIndexEdgeLabel : public DyckEdgeLabel {
+class FieldIndexEdgeLabel : public DyckGraphEdgeLabel {
 private:
     long FieldIndex;
+
 public:
     explicit FieldIndexEdgeLabel(long Idx) : FieldIndex(Idx) {
-        std::string &Desc = DyckEdgeLabel::getEdgeLabelDescription();
+        std::string &Desc = DyckGraphEdgeLabel::getEdgeLabelDescription();
         Desc.clear();
         Desc.append("#");
 
@@ -83,8 +87,8 @@ public:
 
     long getFieldIndex() const { return FieldIndex; }
 
-    bool isLabelTy(LabelType Ty) override { return Ty == DyckEdgeLabel::LT_Index; }
+    bool isLabelTy(LabelType Ty) override { return Ty == DyckGraphEdgeLabel::LT_Index; }
 };
 
-#endif // DYCKAA_DYCKEDGELABEL_H
+#endif // DYCKAA_DYCKGRAPHEDGELABEL_H
 

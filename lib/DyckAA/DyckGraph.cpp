@@ -18,7 +18,7 @@
 
 #include <cassert>
 #include <cstdio>
-#include "DyckAA/DyckEdgeLabel.h"
+#include "DyckAA/DyckGraphEdgeLabel.h"
 #include "DyckAA/DyckGraph.h"
 
 DyckGraph::DyckGraph() {
@@ -41,22 +41,22 @@ DyckGraph::~DyckGraph() {
     }
 }
 
-DyckEdgeLabel *DyckGraph::getOrInsertOffsetEdgeLabel(long Offset) {
+DyckGraphEdgeLabel *DyckGraph::getOrInsertOffsetEdgeLabel(long Offset) {
     if (OffsetEdgeLabelMap.count(Offset)) {
         return OffsetEdgeLabelMap[Offset];
     } else {
-        DyckEdgeLabel *Ret = new PointerOffsetEdgeLabel(Offset);
-        OffsetEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
+        DyckGraphEdgeLabel *Ret = new PointerOffsetEdgeLabel(Offset);
+        OffsetEdgeLabelMap.insert(std::pair<long, DyckGraphEdgeLabel *>(Offset, Ret));
         return Ret;
     }
 }
 
-DyckEdgeLabel *DyckGraph::getOrInsertIndexEdgeLabel(long Offset) {
+DyckGraphEdgeLabel *DyckGraph::getOrInsertIndexEdgeLabel(long Offset) {
     if (IndexEdgeLabelMap.count(Offset)) {
         return IndexEdgeLabelMap[Offset];
     } else {
-        DyckEdgeLabel *Ret = new FieldIndexEdgeLabel(Offset);
-        IndexEdgeLabelMap.insert(std::pair<long, DyckEdgeLabel *>(Offset, Ret));
+        DyckGraphEdgeLabel *Ret = new FieldIndexEdgeLabel(Offset);
+        IndexEdgeLabelMap.insert(std::pair<long, DyckGraphEdgeLabel *>(Offset, Ret));
         return Ret;
     }
 }

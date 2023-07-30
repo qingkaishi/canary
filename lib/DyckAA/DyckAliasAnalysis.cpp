@@ -348,7 +348,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
 
             auto OvIt = OutVs.begin();
             while (OvIt != OutVs.end()) {
-                auto *Label = (DyckEdgeLabel *) OvIt->first;
+                auto *Label = (DyckGraphEdgeLabel *) OvIt->first;
                 std::set<DyckGraphNode *> *oVs = &OvIt->second;
 
                 auto OIt = oVs->begin();

@@ -24,7 +24,7 @@
 
 #include "DyckAA/DyckGraphNode.h"
 
-class DyckEdgeLabel;
+class DyckGraphEdgeLabel;
 
 /// This class models a dyck-cfl language as a graph, which does not contain the barred edges.
 /// See details in http://dl.acm.org/citation.cfm?id=2491956.2462159&coll=DL&dl=ACM&CFID=379446910&CFTOKEN=65130716 .
@@ -36,9 +36,9 @@ private:
 
     /// edge labels
     /// @{
-    DyckEdgeLabel *DerefEdgeLabel;
-    std::map<long, DyckEdgeLabel *> OffsetEdgeLabelMap;
-    std::map<long, DyckEdgeLabel *> IndexEdgeLabelMap;
+    DyckGraphEdgeLabel *DerefEdgeLabel;
+    std::map<long, DyckGraphEdgeLabel *> OffsetEdgeLabelMap;
+    std::map<long, DyckGraphEdgeLabel *> IndexEdgeLabelMap;
     /// @}
 
 public:
@@ -80,11 +80,11 @@ public:
     /// validation
     void validation(const char *, int);
 
-    DyckEdgeLabel *getOrInsertOffsetEdgeLabel(long Offset);
+    DyckGraphEdgeLabel *getOrInsertOffsetEdgeLabel(long Offset);
 
-    DyckEdgeLabel *getOrInsertIndexEdgeLabel(long Offset);
+    DyckGraphEdgeLabel *getOrInsertIndexEdgeLabel(long Offset);
 
-    DyckEdgeLabel *getDereferenceEdgeLabel() const { return DerefEdgeLabel; }
+    DyckGraphEdgeLabel *getDereferenceEdgeLabel() const { return DerefEdgeLabel; }
 
 private:
     void removeFromWorkList(std::multimap<DyckGraphNode *, void *> &, DyckGraphNode *, void *);
