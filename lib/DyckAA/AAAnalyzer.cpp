@@ -105,11 +105,10 @@ void AAAnalyzer::interProcedureAnalysis() {
             while (DFIt != DyckCG->end()) {
                 DyckCallGraphNode *DF = DFIt->second;
                 std::set<CommonCall *> &DFHandledCommonCalls = HandledCommonCalls[DF];
-                std::set<CommonCall *> &DFCommonCalls = DF->getCommonCalls();
 
                 // df_unHandledCommonCalls = df_commonCalls - df_handledCommonCalls
                 std::set<CommonCall *> DFNotHandledCommonCalls;
-                set_difference(DFCommonCalls.begin(), DFCommonCalls.end(), DFHandledCommonCalls.begin(),
+                set_difference(DF->common_call_begin(), DF->common_call_end(), DFHandledCommonCalls.begin(),
                                DFHandledCommonCalls.end(),
                                inserter(DFNotHandledCommonCalls, DFNotHandledCommonCalls.begin()));
 
@@ -146,8 +145,25 @@ void AAAnalyzer::interProcedureAnalysis() {
             outs() << "Done!\n";
         }
 
-        if (Finished) {
-            break;
+        if (Finished) break;
+    }
+
+    // finalize the call graph
+    for (auto &F: *Mod) {
+        auto *FN = DyckCG->getOrInsertFunction(&F);
+        for (auto It = FN->common_call_begin(), E = FN->common_call_end(); It != E; ++It) {
+            auto *CC = *It;
+            auto Callee = CC->getCalledFunction();
+            auto CalleeN = DyckCG->getOrInsertFunction(Callee);
+            FN->addCalledFunction(CC, CalleeN);
+        }
+
+        for (auto It = FN->pointer_call_begin(), E = FN->pointer_call_end(); It != E; ++It) {
+            auto *PC = *It;
+            for (auto *Callee: *PC) {
+                auto CalleeN = DyckCG->getOrInsertFunction(Callee);
+                FN->addCalledFunction(PC, CalleeN);
+            }
         }
     }
 
@@ -161,10 +177,8 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
     auto DFIt = DyckCG->begin();
     while (DFIt != DyckCG->end()) {
         DyckCallGraphNode *DF = DFIt->second;
-        std::set<PointerCall *> &NotHandled = DF->getPointerCalls();
-
-        auto PCIt = NotHandled.begin();
-        while (PCIt != NotHandled.end()) {
+        auto PCIt = DF->pointer_call_begin();
+        while (PCIt != DF->pointer_call_end()) {
             PointerCall *PC = *PCIt;
             if (PC->empty()) {
                 Size++;
@@ -834,11 +848,7 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
             exit(1);
         case Instruction::Call: {
             auto *CallI = (CallInst *) Inst;
-
-            if (CallI->isInlineAsm()) {
-                Parent->addInlineAsm(CallI);
-                break;
-            }
+            if (CallI->isInlineAsm()) break;
 
             Value *CV = CallI->getCalledOperand();
             std::vector<Value *> Args;
@@ -1055,16 +1065,15 @@ void AAAnalyzer::handleCommonFunctionCall(Call *C, DyckCallGraphNode *Caller, Dy
 bool AAAnalyzer::handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Counter) {
     bool Ret = false;
 
-    std::set<PointerCall *> &PointerCalls = Caller->getPointerCalls();
-    auto PCIt = PointerCalls.begin();
+    auto PCIt = Caller->pointer_call_begin();
 
     // print in console
-    unsigned PCTotal = PointerCalls.size();
+    unsigned PCTotal = Caller->pointer_call_size();
     unsigned PCCount = 0;
 //	if (PTCALL_TOTAL == 0)
 //		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... 100%, 100%. Done!\r";
 
-    while (PCIt != PointerCalls.end()) {
+    while (PCIt != Caller->pointer_call_end()) {
         // print in console
         unsigned Percentage = ((++PCCount) * 100 / PCTotal);
 //		outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, \r";

@@ -21,6 +21,41 @@
 static cl::opt<bool> WithEdgeLabels("with-labels", cl::init(false), cl::Hidden,
                                     cl::desc("Determine whether there are edge lables in the cg."));
 
+DyckCallGraph::DyckCallGraph() : ExternalCallingNode(getOrInsertFunction(nullptr)) {
+}
+
+DyckCallGraph::~DyckCallGraph() {
+    auto It = FunctionMap.begin();
+    while (It != FunctionMap.end()) {
+        delete (It->second);
+        It++;
+    }
+    FunctionMapTy().swap(FunctionMap);
+}
+
+DyckCallGraphNode *DyckCallGraph::getOrInsertFunction(Function *Func) {
+    auto It = FunctionMap.find(Func);
+    if (It == FunctionMap.end()) {
+        auto *Ret = new DyckCallGraphNode(Func);
+
+        // The following if-statement is copied from llvm's call graph implementation
+        // If this function has external linkage or has its address taken and
+        // it is not a callback, then anything could call it.
+        if (Func && (!Func->hasLocalLinkage() || Func->hasAddressTaken(nullptr, /*IgnoreCallbackUses=*/true)))
+            ExternalCallingNode->addCalledFunction(nullptr, Ret);
+
+        FunctionMap.emplace(Func, Ret);
+        return Ret;
+    }
+    return It->second;
+}
+
+DyckCallGraphNode *DyckCallGraph::getFunction(Function *Func) const {
+    auto It = FunctionMap.find(Func);
+    if (It == FunctionMap.end()) return nullptr;
+    return It->second;
+}
+
 void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
     std::string DotFileName;
     DotFileName.append(ModuleIdentifier);
@@ -32,16 +67,15 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
     auto FWIt = FunctionMap.begin();
     while (FWIt != FunctionMap.end()) {
         DyckCallGraphNode *FW = FWIt->second;
-        fprintf(FOut, "\tf%d[label=\"%s\"]\n", FW->getIndex(), FW->getLLVMFunction()->getName().data());
+        fprintf(FOut, "\tf%p[label=\"%s\"]\n", FW, FW->getLLVMFunction()->getName().data());
         FWIt++;
     }
 
     FWIt = FunctionMap.begin();
     while (FWIt != FunctionMap.end()) {
         DyckCallGraphNode *FW = FWIt->second;
-        std::set<CommonCall *> *CommonCalls = &(FW->getCommonCalls());
-        auto CCIt = CommonCalls->begin();
-        while (CCIt != CommonCalls->end()) {
+        auto CCIt = FW->common_call_begin();
+        while (CCIt != FW->common_call_end()) {
             CommonCall *CC = *CCIt;
             auto *Callee = CC->getCalledFunction();
 
@@ -65,10 +99,10 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
                             C = ' ';
                         }
                     }
-                    fprintf(FOut, "\tf%d->f%d[label=\"%s\"]\n", FW->getIndex(), FunctionMap[Callee]->getIndex(),
+                    fprintf(FOut, "\tf%p->f%p[label=\"%s\"]\n", FW, FunctionMap[Callee],
                             EdgeLabelStr.data());
                 } else {
-                    fprintf(FOut, "\tf%d->f%d\n", FW->getIndex(), FunctionMap[Callee]->getIndex());
+                    fprintf(FOut, "\tf%p->f%p\n", FW, FunctionMap[Callee]);
                 }
             } else {
                 llvm_unreachable("ERROR in printCG when print common function calls.");
@@ -76,9 +110,8 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
             CCIt++;
         }
 
-        std::set<PointerCall *> *FPCallsMap = &(FW->getPointerCalls());
-        auto FPIt = FPCallsMap->begin();
-        while (FPIt != FPCallsMap->end()) {
+        auto FPIt = FW->pointer_call_begin();
+        while (FPIt != FW->pointer_call_end()) {
             PointerCall *PC = *FPIt;
             char *EdgeLabelData = nullptr;
             if (WithEdgeLabels) {
@@ -106,10 +139,9 @@ void DyckCallGraph::dotCallGraph(const std::string &ModuleIdentifier) {
                 Function *MCF = *MCIt;
                 if (FunctionMap.count(MCF)) {
                     if (WithEdgeLabels) {
-                        fprintf(FOut, "\tf%d->f%d[label=\"%s\"]\n", FW->getIndex(), FunctionMap[MCF]->getIndex(),
-                                EdgeLabelData);
+                        fprintf(FOut, "\tf%p->f%p[label=\"%s\"]\n", FW, FunctionMap[MCF], EdgeLabelData);
                     } else {
-                        fprintf(FOut, "\tf%d->f%d\n", FW->getIndex(), FunctionMap[MCF]->getIndex());
+                        fprintf(FOut, "\tf%p->f%p\n", FW, FunctionMap[MCF]);
                     }
                 } else {
                     llvm_unreachable("ERROR in printCG when print fp calls.");
@@ -136,9 +168,8 @@ void DyckCallGraph::printFunctionPointersInformation(const std::string &ModuleId
     while (FWIt != this->end()) {
         DyckCallGraphNode *FW = FWIt->second;
 
-        std::set<PointerCall *> *FPCallsMap = &(FW->getPointerCalls());
-        auto FPIt = FPCallsMap->begin();
-        while (FPIt != FPCallsMap->end()) {
+        auto FPIt = FW->pointer_call_begin();
+        while (FPIt != FW->pointer_call_end()) {
             /*Value * callInst = fpIt->first;
             std::string s;
             raw_string_ostream rso(s);

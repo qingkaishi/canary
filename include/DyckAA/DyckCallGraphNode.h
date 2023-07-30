@@ -35,6 +35,8 @@
 #include <set>
 #include <map>
 
+#include "Support/MapIterators.h"
+
 using namespace llvm;
 
 /// The class does not model inline asm and intrinsics
@@ -106,57 +108,43 @@ public:
     }
 };
 
+class DyckCallGraphNode;
+
+typedef std::pair<Call *, DyckCallGraphNode *> CallRecordTy;
+typedef std::vector<CallRecordTy> CallRecordVecTy;
+
 class DyckCallGraphNode {
 private:
-    int Idx;
-
     Function *Func;
     std::set<Value *> Rets;
 
     std::vector<Value *> Args;
     std::vector<Value *> VAArgs;
 
-    // call instructions in the function
-    std::set<CommonCall *> CommonCalls; // common calls
-    std::set<PointerCall *> PointerCalls; // pointer calls
-
+    /// call instructions in the function
+    /// @{
+    std::set<CommonCall *> CommonCalls;
+    std::set<PointerCall *> PointerCalls;
     std::map<Instruction *, Call *> InstructionCallMap;
-
-    std::set<CallInst *> InlineAsmSet; // inline asm must be a call inst
-
-private:
-    static int GlobalIdx;
+    CallRecordVecTy CallRecords;
+    /// @}
 
 public:
     explicit DyckCallGraphNode(Function *);
 
     ~DyckCallGraphNode();
 
-    int getIndex() const;
-
     Function *getLLVMFunction();
-
-    std::set<CommonCall *> &getCommonCalls();
 
     void addCommonCall(CommonCall *);
 
-    std::set<PointerCall *> &getPointerCalls();
-
     void addPointerCall(PointerCall *);
-
-    void addResume(Value *Res);
-
-    void addLandingPad(Value *, Value *);
 
     void addRet(Value *);
 
     void addArg(Value *);
 
     void addVAArg(Value *);
-
-    void addInlineAsm(CallInst *);
-
-    std::set<CallInst *> &getInlineAsmSet();
 
     std::vector<Value *> &getArgs();
 
@@ -165,8 +153,36 @@ public:
     std::set<Value *> &getReturns();
 
     Call *getCall(Instruction *);
+
+    void addCalledFunction(Call *C, DyckCallGraphNode *N) { CallRecords.emplace_back(C, N); }
+
+    std::set<CommonCall *>::const_iterator common_call_begin() const { return CommonCalls.begin(); }
+
+    std::set<CommonCall *>::const_iterator common_call_end() const { return CommonCalls.end(); }
+
+    unsigned common_call_size() const { return CommonCalls.size(); }
+
+    std::set<PointerCall *>::const_iterator pointer_call_begin() const { return PointerCalls.begin(); }
+
+    std::set<PointerCall *>::const_iterator pointer_call_end() const { return PointerCalls.end(); }
+
+    unsigned pointer_call_size() const { return PointerCalls.size(); }
+
+    pair_value_iterator<CallRecordVecTy::iterator, DyckCallGraphNode *> child_begin() { return {CallRecords.begin()}; }
+
+    pair_value_iterator<CallRecordVecTy::iterator, DyckCallGraphNode *> child_end() { return {CallRecords.end()}; }
+
+    pair_value_iterator<CallRecordVecTy::const_iterator, DyckCallGraphNode *> child_begin() const { return {CallRecords.begin()}; }
+
+    pair_value_iterator<CallRecordVecTy::const_iterator, DyckCallGraphNode *> child_end() const { return {CallRecords.end()}; }
+
+    CallRecordVecTy::iterator child_edge_begin() { return CallRecords.begin(); }
+
+    CallRecordVecTy::iterator child_edge_end() { return CallRecords.end(); }
+
+    CallRecordVecTy::const_iterator child_edge_begin() const { return CallRecords.begin(); }
+
+    CallRecordVecTy::const_iterator child_edge_end() const { return CallRecords.end(); }
 };
 
-
 #endif // DYCKAA_DYCKCALLGRAPHNODE_H
-

@@ -16,6 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <llvm/ADT/SCCIterator.h>
 #include "MRAnalyzer.h"
 
 MRAnalyzer::MRAnalyzer(Module *M, DyckGraph *DG, DyckCallGraph *DCG) : M(M), DG(DG), DCG(DCG) {
@@ -28,5 +29,12 @@ void MRAnalyzer::intraProcedureAnalysis() {
 }
 
 void MRAnalyzer::interProcedureAnalysis() {
+    // todo
+    // step 1, find scc in call graph & bottom-up analysis, considering each scc as a single node
+    // scc iterator: Enumerate the SCCs of a directed graph in reverse topological order
+    for (auto It = scc_begin(DCG), E = scc_end(DCG); It != E; ++It) {
+        const auto &SCC = *It; // a vector of nodes in the same scc
+    }
 
+    // step 2, record the dyck vertices each function (cg node) references and modifies
 }

@@ -19,18 +19,8 @@
 #ifndef DYCKAA_MRANALYZER_H
 #define DYCKAA_MRANALYZER_H
 
-#include <llvm/Pass.h>
-#include <llvm/ADT/SmallPtrSet.h>
-#include <llvm/ADT/SmallVector.h>
-#include <llvm/Support/ErrorHandling.h>
-#include <llvm/IR/GetElementPtrTypeIterator.h>
-#include <llvm/Support/raw_ostream.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/CommandLine.h>
-#include <llvm/Support/Debug.h>
-#include <llvm/IR/InlineAsm.h>
-#include <map>
-#include <set>
-#include <unordered_map>
 
 #include "DyckAA/DyckCallGraph.h"
 #include "DyckAA/DyckGraph.h"

@@ -35,7 +35,7 @@ struct add_const_if<true, T> {
 };
 
 template<class IteratorTy>
-class key_iterator: public IteratorTy {
+class key_iterator : public IteratorTy {
 public:
     typedef typename add_const_if<
             std::is_const<
@@ -51,19 +51,19 @@ public:
             IteratorTy(It) {
     }
 
-    value_type& operator*() const {
-        const IteratorTy& It = *this;
+    value_type &operator*() const {
+        const IteratorTy &It = *this;
         return It->first;
     }
 
-    value_type* operator->() const {
-        const IteratorTy& It = *this;
+    value_type *operator->() const {
+        const IteratorTy &It = *this;
         return &It->first;
     }
 };
 
 template<class IteratorTy>
-class value_iterator: public IteratorTy {
+class value_iterator : public IteratorTy {
 public:
     typedef typename add_const_if<
             std::is_const<
@@ -79,13 +79,13 @@ public:
             IteratorTy(It) {
     }
 
-    value_type& operator*() const {
-        const IteratorTy& It = *this;
+    value_type &operator*() const {
+        const IteratorTy &It = *this;
         return It->second;
     }
 
-    value_type* operator->() const {
-        const IteratorTy& It = *this;
+    value_type *operator->() const {
+        const IteratorTy &It = *this;
         return &It->second;
     }
 };
@@ -137,13 +137,57 @@ public:
 };
 
 template<class MapTy>
-auto keys(MapTy&& Map) -> KeyRange<decltype(Map.begin())> {
+auto keys(MapTy &&Map) -> KeyRange<decltype(Map.begin())> {
     return KeyRange<decltype(Map.begin())>(Map.begin(), Map.end());
 }
 
 template<class MapTy>
-auto values(MapTy&& Map) -> ValueRange<decltype(Map.begin())> {
+auto values(MapTy &&Map) -> ValueRange<decltype(Map.begin())> {
     return ValueRange<decltype(Map.begin())>(Map.begin(), Map.end());
 }
+
+//------------------------
+
+
+// different from value_iterator that only works for map
+// this iterator works for any container of pairs
+template<class IteratorTy, class ValueTy>
+class pair_value_iterator {
+private:
+    IteratorTy It;
+
+public:
+    pair_value_iterator(IteratorTy It) : It(It) {
+    }
+
+    pair_value_iterator(const pair_value_iterator &It) = default;
+
+    pair_value_iterator &operator++() {
+        It++;
+        return *this;
+    }
+
+    pair_value_iterator operator++(int) {
+        pair_value_iterator Old(*this);
+        ++(*this);
+        return Old;
+    }
+
+    ValueTy &operator*() const {
+        return It->second;
+    }
+
+    ValueTy *operator->() const {
+        return &It->second;
+    }
+
+    bool operator==(const pair_value_iterator &PIt) const {
+        return It == PIt.It;
+    }
+
+    bool operator!=(const pair_value_iterator &PIt) const {
+        return It != PIt.It;
+    }
+};
 
 #endif
