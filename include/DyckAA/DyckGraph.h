@@ -71,6 +71,13 @@ public:
 
     DyckGraphNode *findDyckVertex(void *Val);
 
+    /// Get reachable nodes
+    /// @{
+    void getReachableVertices(const std::set<DyckGraphNode *> &Sources, std::set<DyckGraphNode *> &Reachable);
+
+    void getReachableVertices(DyckGraphNode *Source, std::set<DyckGraphNode *> &Reachable);
+    /// @}
+
     /// The algorithm proposed by Qirun Zhang.
     /// Find the paper here: http://dl.acm.org/citation.cfm?id=2491956.2462159&coll=DL&dl=ACM&CFID=379446910&CFTOKEN=65130716 .
     /// Note that if there are two edges with the same label: a->b and a->c, b and c will be put into the same equivelant class.

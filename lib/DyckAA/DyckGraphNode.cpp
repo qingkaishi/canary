@@ -129,6 +129,18 @@ std::set<DyckGraphNode *> *DyckGraphNode::getOutVertices(void *Label) {
     return nullptr;
 }
 
+DyckGraphNode *DyckGraphNode::getInVertex(void *Label) {
+    auto *Set = getInVertices(Label);
+    if (Set && Set->size() == 1) return *Set->begin();
+    return nullptr;
+}
+
+DyckGraphNode *DyckGraphNode::getOutVertex(void *Label) {
+    auto *Set = getOutVertices(Label);
+    if (Set && Set->size() == 1) return *Set->begin();
+    return nullptr;
+}
+
 // the followings are private functions
 
 void DyckGraphNode::addSource(DyckGraphNode *Node, void *Label) {

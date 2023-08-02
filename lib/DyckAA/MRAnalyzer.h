@@ -41,6 +41,9 @@ public:
     void intraProcedureAnalysis();
 
     void interProcedureAnalysis();
+
+private:
+    void runOnSCC(const std::vector<DyckCallGraphNode *> &);
 };
 
 #endif //DYCKAA_MRANALYZER_H

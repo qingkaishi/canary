@@ -18,6 +18,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <stack>
 #include "DyckAA/DyckGraphEdgeLabel.h"
 #include "DyckAA/DyckGraph.h"
 
@@ -345,10 +346,37 @@ void DyckGraph::validation(const char *File, int Line) {
     while (RepsIt != Reps.end()) {
         DyckGraphNode *Rep = *RepsIt;
         auto RepVal = Rep->getEquivalentSet();
-        for (auto Val: *RepVal) {
+        for (auto Val: *RepVal)
             assert(ValVertexMap[Val] == Rep);
-        }
         RepsIt++;
     }
     printf("Done!\n\n");
+}
+
+void DyckGraph::getReachableVertices(const std::set<DyckGraphNode *> &Sources, std::set<DyckGraphNode *> &Reachable) {
+    std::stack<DyckGraphNode *> WorkStack;
+    for (auto *N: Sources) WorkStack.push(N);
+    std::set<DyckGraphNode *> Visited;
+    while (!WorkStack.empty()) {
+        DyckGraphNode *Top = WorkStack.top();
+        WorkStack.pop();
+        if (Visited.count(Top)) continue;
+        Visited.insert(Top);
+
+        std::set<DyckGraphNode *> Tars;
+        Top->getOutVertices(&Tars);
+        auto TIt = Tars.begin();
+        while (TIt != Tars.end()) {
+            DyckGraphNode *DGN = (*TIt);
+            if (Visited.find(DGN) == Visited.end())
+                WorkStack.push(DGN);
+            TIt++;
+        }
+    }
+}
+
+void DyckGraph::getReachableVertices(DyckGraphNode *Source, std::set<DyckGraphNode *> &Reachable) {
+    std::set<DyckGraphNode *> Srcs;
+    Srcs.insert(Source);
+    getReachableVertices(Srcs, Reachable);
 }

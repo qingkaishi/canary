@@ -48,6 +48,7 @@ typedef std::map<Function *, DyckCallGraphNode *> FunctionMapTy;
 
 class DyckCallGraph {
 private:
+    /// function -> call graph node
     FunctionMapTy FunctionMap;
 
     /// This node has edges to all external functions and those internal

@@ -61,6 +61,14 @@ public:
     /// Get the target vertices corresponding the label
     std::set<DyckGraphNode *> *getOutVertices(void *Label);
 
+    /// Get a single source vertex corresponding the label
+    /// if there are multiple such vertices or zero, return null
+    DyckGraphNode *getInVertex(void *Label);
+
+    /// Get a single target vertex corresponding the label
+    /// if there are multiple such vertices or zero, return null
+    DyckGraphNode *getOutVertex(void *Label);
+
     /// Get the number of vertices that are the targets of this vertex, and have the edge label: label.
     unsigned int outNumVertices(void *Label);
 

@@ -17,6 +17,9 @@
  */
 
 #include <llvm/ADT/SCCIterator.h>
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
 #include "MRAnalyzer.h"
 
 MRAnalyzer::MRAnalyzer(Module *M, DyckGraph *DG, DyckCallGraph *DCG) : M(M), DG(DG), DCG(DCG) {
@@ -29,12 +32,50 @@ void MRAnalyzer::intraProcedureAnalysis() {
 }
 
 void MRAnalyzer::interProcedureAnalysis() {
-    // todo
     // step 1, find scc in call graph & bottom-up analysis, considering each scc as a single node
+    // step 2, record the dyck vertices each function (cg node) references and modifies
     // scc iterator: Enumerate the SCCs of a directed graph in reverse topological order
     for (auto It = scc_begin(DCG), E = scc_end(DCG); It != E; ++It) {
         const auto &SCC = *It; // a vector of nodes in the same scc
+        runOnSCC(SCC);
+    }
+}
+
+void MRAnalyzer::runOnSCC(const std::vector<DyckCallGraphNode *> &SCC) {
+    std::set<DyckGraphNode *> Refs;
+    std::set<DyckGraphNode *> Mods;
+
+    // todo compute a set of dyck nodes reachable from parameters (and returns)
+    //  for a scc with multiple functions, we should find the interfaces to the external world
+    std::set<DyckGraphNode *> ParReachableNodes;
+    std::set<DyckGraphNode *> RetReachableNodes;
+
+    for (auto *CGNode: SCC) {
+        // for each instruction,
+        // if it refs a node that is reachable from parameters add it to refs
+        // if it mods a node that is reachable from parameters add it to mods
+        auto *F = CGNode->getLLVMFunction();
+        for (auto &I : instructions(F)) {
+            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
+                auto *Ref = I.getOperand(K);
+                auto *RefNode = DG->findDyckVertex(Ref);
+                if (!RefNode) continue;
+                // check if reachable from parameters
+                if (ParReachableNodes.count(RefNode)) Refs.insert(RefNode);
+            }
+            if (F->onlyReadsMemory()) continue; // a read only function
+            if (auto *SI = dyn_cast<StoreInst>(&I)) {
+                auto *Ptr = SI->getPointerOperand();
+                auto *PtrNode = DG->findDyckVertex(Ptr);
+                if (!PtrNode) continue;
+                auto *ModNode = PtrNode->getOutVertex(DG->getDereferenceEdgeLabel());
+                // check if reachable from parameters and returns
+                if (ParReachableNodes.count(ModNode) || RetReachableNodes.count(ModNode)) Mods.insert(ModNode);
+            } else {
+                // todo other instructions that may revise a memory
+            }
+        }
     }
 
-    // step 2, record the dyck vertices each function (cg node) references and modifies
+    // todo attach Refs and Mods to the functions
 }

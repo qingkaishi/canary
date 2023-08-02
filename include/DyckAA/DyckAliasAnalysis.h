@@ -37,6 +37,11 @@
 using namespace llvm;
 
 class DyckAliasAnalysis : public ModulePass {
+private:
+    DyckGraph *CFLGraph;
+    DyckCallGraph *DyckCG;
+    DyckVFG *VFG;
+
 public:
     static char ID;
 
@@ -52,10 +57,14 @@ public:
 
     bool mayAlias(Value *V1, Value *V2) const;
 
-private:
-    DyckGraph *CFLGraph;
-    DyckCallGraph *DyckCG;
-    DyckVFG *VFG;
+    /// get the call graph
+    DyckCallGraph *getCallGraph() const;
+
+    /// get the dyck-cfl graph
+    DyckGraph *getDyckGraph() const;
+
+    /// return a value flow graph created based on the alias analysis
+    DyckVFG *getOrCreateValueFlowGraph(Module &M);
 
 private:
     /// Three kinds of information will be printed.
@@ -64,31 +73,6 @@ private:
     /// 3. The evaluation results will be output into "distribution.log"
     ///     The summary of the evaluation will be printed to the console
     void printAliasSetInformation(Module &M);
-
-    /// escaped to the function Func
-    void getEscapedPointersTo(std::set<DyckGraphNode *> *Ret, Function *Func);
-
-    /// escaped from the pointer Pointer
-    void getEscapedPointersFrom(std::set<DyckGraphNode *> *Ret, Value *From);
-
-public:
-    /// Get the vector of the may/must alias set that escape to 'func'
-    void getEscapedPointersTo(std::vector<const std::set<Value *> *> *Ret, Function *Func);
-
-    /// Get the vector of the may/must alias set that escape from 'from'
-    void getEscapedPointersFrom(std::vector<const std::set<Value *> *> *Ret, Value *From);
-
-    DyckCallGraph *getCallGraph() const;
-
-    DyckGraph *getDyckGraph() const;
-
-    /// Get the set of objects that a pointer may point to,
-    /// e.g. for %a = load i32* %b, {%a} will be returned for the
-    /// pointer %b
-    void getPointstoObjects(std::set<Value *> &Objects, Value *Pointer) const;
-
-    /// return a value flow graph created based on the alias analysis
-    DyckVFG *getOrCreateValueFlowGraph(Module &M);
 };
 
 #endif // DYCKAA_DYCKALIASANALYSIS_H

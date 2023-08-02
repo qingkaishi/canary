@@ -64,152 +64,6 @@ bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
     return getAliasSet(V1)->count(V2);
 }
 
-void DyckAliasAnalysis::getEscapedPointersFrom(std::vector<const std::set<Value *> *> *Ret, Value *From) {
-    assert(Ret != nullptr);
-
-    std::set<DyckGraphNode *> Temp;
-    getEscapedPointersFrom(&Temp, From);
-
-    auto TempIt = Temp.begin();
-    while (TempIt != Temp.end()) {
-        DyckGraphNode *t = *TempIt;
-        Ret->push_back((const std::set<Value *> *) t->getEquivalentSet());
-        TempIt++;
-    }
-}
-
-void DyckAliasAnalysis::getEscapedPointersFrom(std::set<DyckGraphNode *> *Ret, Value *From) {
-    assert(Ret != nullptr);
-    assert(From != nullptr);
-    if (isa<Argument>(From)) {
-        assert(!((Argument *) From)->getParent()->empty());
-    }
-
-    std::set<DyckGraphNode *> &Visited = *Ret;
-    std::stack<DyckGraphNode *> WorkStack;
-
-    WorkStack.push(CFLGraph->retrieveDyckVertex(From).first);
-
-    while (!WorkStack.empty()) {
-        DyckGraphNode *Top = WorkStack.top();
-        WorkStack.pop();
-
-        // have visited
-        if (Visited.find(Top) != Visited.end()) {
-            continue;
-        }
-
-        Visited.insert(Top);
-
-        std::set<DyckGraphNode *> Tars;
-        Top->getOutVertices(&Tars);
-        auto TIt = Tars.begin();
-        while (TIt != Tars.end()) {
-            // if it has not been visited
-            if (Visited.find(*TIt) == Visited.end()) {
-                WorkStack.push(*TIt);
-            }
-            TIt++;
-        }
-    }
-}
-
-void DyckAliasAnalysis::getEscapedPointersTo(std::vector<const std::set<Value *> *> *Ret, Function *Func) {
-    assert(Ret != nullptr);
-
-    std::set<DyckGraphNode *> Temp;
-    getEscapedPointersTo(&Temp, Func);
-
-    auto TempIt = Temp.begin();
-    while (TempIt != Temp.end()) {
-        DyckGraphNode *T = *TempIt;
-        Ret->push_back((const std::set<Value *> *) T->getEquivalentSet());
-        TempIt++;
-    }
-}
-
-void DyckAliasAnalysis::getEscapedPointersTo(std::set<DyckGraphNode *> *Ret, Function *Func) {
-    assert(Ret != nullptr);
-    assert(Func != nullptr);
-
-    Module *M = Func->getParent();
-
-    std::set<DyckGraphNode *> &Visited = *Ret;
-    std::stack<DyckGraphNode *> WorkStack;
-
-    for (auto &GV: M->getGlobalList()) {
-        if (!GV.hasPrivateLinkage() && !GV.getName().startswith("llvm.") && GV.getName().str() != "stderr"
-            && GV.getName().str() != "stdout") { // in fact, no such symbols in src codes.
-            DyckGraphNode *Rt = CFLGraph->retrieveDyckVertex(&GV).first;
-            WorkStack.push(Rt);
-        }
-    }
-
-    for (auto &F: *M) {
-        for (auto &B: F) {
-            for (auto &Inst: B) {
-                Instruction *RawInst = &Inst;
-                if (isa<CallInst>(RawInst)) {
-                    auto *CI = (CallInst *) RawInst; // all invokes are lowered to call
-                    bool Alias = mayAlias(Func, CI->getCalledOperand());
-                    if (Alias) {
-                        if (Func->hasName() && Func->getName() == "pthread_create") {
-                            DyckGraphNode *rt = CFLGraph->retrieveDyckVertex(CI->getArgOperand(3)).first;
-                            WorkStack.push(rt);
-                        } else {
-                            unsigned NumArgs = CI->getNumArgOperands();
-                            for (unsigned K = 0; K < NumArgs; K++) {
-                                DyckGraphNode *Rt = CFLGraph->retrieveDyckVertex(CI->getArgOperand(K)).first;
-                                WorkStack.push(Rt);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    while (!WorkStack.empty()) {
-        DyckGraphNode *Top = WorkStack.top();
-        WorkStack.pop();
-
-        // have visited
-        if (Visited.find(Top) != Visited.end()) {
-            continue;
-        }
-
-        Visited.insert(Top);
-
-        std::set<DyckGraphNode *> Tars;
-        Top->getOutVertices(&Tars);
-        auto TIt = Tars.begin();
-        while (TIt != Tars.end()) {
-            // if it has not been visited
-            DyckGraphNode *DGN = (*TIt);
-            if (Visited.find(DGN) == Visited.end()) {
-                WorkStack.push(DGN);
-            }
-            TIt++;
-        }
-    }
-}
-
-void DyckAliasAnalysis::getPointstoObjects(std::set<Value *> &Objects, Value *Pointer) const {
-    assert(Pointer != nullptr);
-
-    DyckGraphNode *Rt = CFLGraph->retrieveDyckVertex(Pointer).first;
-    auto Tars = Rt->getOutVertices(CFLGraph->getDereferenceEdgeLabel());
-    if (Tars != nullptr && !Tars->empty()) {
-        assert(Tars->size() == 1);
-        auto TIt = Tars->begin();
-        DyckGraphNode *Tar = (*TIt);
-        auto Vals = Tar->getEquivalentSet();
-        for (auto &Val: *Vals) {
-            Objects.insert((Value *) Val);
-        }
-    }
-}
-
 DyckCallGraph *DyckAliasAnalysis::getCallGraph() const {
     return DyckCG;
 }
@@ -320,23 +174,13 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         FILE *AliasRel = fopen("alias_rel.dot", "w");
         fprintf(AliasRel, "digraph rel{\n");
 
-        std::set<DyckGraphNode *> SVS;
-        Function *PThreadCreate = M.getFunction("pthread_create");
-        if (PThreadCreate != nullptr) {
-            this->getEscapedPointersTo(&SVS, PThreadCreate);
-        }
-
         std::map<DyckGraphNode *, int> TheMap;
         int Idx = 0;
         std::set<DyckGraphNode *> &Reps = CFLGraph->getVertices();
         auto RepIt = Reps.begin();
         while (RepIt != Reps.end()) {
             Idx++;
-            if (SVS.count(*RepIt)) {
-                fprintf(AliasRel, "a%d[label=%d color=red];\n", Idx, Idx);
-            } else {
-                fprintf(AliasRel, "a%d[label=%d];\n", Idx, Idx);
-            }
+            fprintf(AliasRel, "a%d[label=%d];\n", Idx, Idx);
             TheMap.insert(std::pair<DyckGraphNode *, int>(*RepIt, Idx));
             RepIt++;
         }
@@ -361,14 +205,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
 
                     int Idx1 = TheMap[Rep1];
                     int Idx2 = TheMap[Rep2];
-
-                    if (SVS.count(Rep1) && SVS.count(Rep2)) {
-                        fprintf(AliasRel, "a%d->a%d[label=\"%s\" color=red];\n", Idx1, Idx2,
-                                Label->getEdgeLabelDescription().data());
-                    } else {
-                        fprintf(AliasRel, "a%d->a%d[label=\"%s\"];\n", Idx1, Idx2,
-                                Label->getEdgeLabelDescription().data());
-                    }
+                    fprintf(AliasRel, "a%d->a%d[label=\"%s\"];\n", Idx1, Idx2, Label->getEdgeLabelDescription().data());
 
                     OIt++;
                 }
@@ -393,12 +230,6 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         std::error_code EC;
         raw_fd_ostream Log("alias_sets.log", EC);
 
-        std::set<DyckGraphNode *> svs;
-        Function *PThreadCreate = M.getFunction("pthread_create");
-        if (PThreadCreate != nullptr) {
-            this->getEscapedPointersTo(&svs, PThreadCreate);
-        }
-
         Log << "================= Alias Sets ==================\n";
         Log << "===== {.} means pthread escaped alias set =====\n";
 
@@ -409,21 +240,12 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
             Idx++;
             DyckGraphNode *Rep = *RepsIt;
 
-            bool PthreadEscaped = false;
-            if (svs.count(Rep)) {
-                PthreadEscaped = true;
-            }
-
             std::set<void *> *ESet = Rep->getEquivalentSet();
             auto EIt = ESet->begin();
             while (EIt != ESet->end()) {
                 auto *Val = (Value *) ((*EIt));
                 assert(Val != nullptr && "Error: val is null in an equiv set!");
-                if (PthreadEscaped) {
-                    Log << "{" << Idx << "}";
-                } else {
-                    Log << "[" << Idx << "]";
-                }
+                Log << "[" << Idx << "]";
 
                 if (isa<Function>(Val)) {
                     Log << ((Function *) Val)->getName() << "\n";
