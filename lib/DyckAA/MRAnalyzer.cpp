@@ -32,18 +32,21 @@ void MRAnalyzer::intraProcedureAnalysis() {
 }
 
 void MRAnalyzer::interProcedureAnalysis() {
+    unsigned SCCID = 0;
+
     // step 1, find scc in call graph & bottom-up analysis, considering each scc as a single node
     // step 2, record the dyck vertices each function (cg node) references and modifies
     // scc iterator: Enumerate the SCCs of a directed graph in reverse topological order
     for (auto It = scc_begin(DCG), E = scc_end(DCG); It != E; ++It) {
         const auto &SCC = *It; // a vector of nodes in the same scc
-        runOnSCC(SCC);
+        runOnSCC(SCCID++, SCC);
     }
 }
 
-void MRAnalyzer::runOnSCC(const std::vector<DyckCallGraphNode *> &SCC) {
-    std::set<DyckGraphNode *> Refs;
-    std::set<DyckGraphNode *> Mods;
+void MRAnalyzer::runOnSCC(unsigned ID, const std::vector<DyckCallGraphNode *> &SCC) {
+    auto &MR = SCC2MR[ID];
+    std::set<DyckGraphNode *> &Refs = MR.Mods;
+    std::set<DyckGraphNode *> &Mods = MR.Refs;
 
     // todo compute a set of dyck nodes reachable from parameters (and returns)
     //  for a scc with multiple functions, we should find the interfaces to the external world
@@ -51,10 +54,13 @@ void MRAnalyzer::runOnSCC(const std::vector<DyckCallGraphNode *> &SCC) {
     std::set<DyckGraphNode *> RetReachableNodes;
 
     for (auto *CGNode: SCC) {
+        CGNode->setSCCID(ID);
+
         // for each instruction,
         // if it refs a node that is reachable from parameters add it to refs
         // if it mods a node that is reachable from parameters add it to mods
         auto *F = CGNode->getLLVMFunction();
+        if (!F) continue;
         for (auto &I : instructions(F)) {
             for (unsigned K = 0; K < I.getNumOperands(); ++K) {
                 auto *Ref = I.getOperand(K);
@@ -76,6 +82,4 @@ void MRAnalyzer::runOnSCC(const std::vector<DyckCallGraphNode *> &SCC) {
             }
         }
     }
-
-    // todo attach Refs and Mods to the functions
 }

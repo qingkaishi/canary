@@ -40,15 +40,13 @@ char DyckAliasAnalysis::ID = 0;
 static RegisterPass<DyckAliasAnalysis> X("dyckaa", "a unification based alias analysis");
 
 DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
-    VFG = nullptr;
-    CFLGraph = new DyckGraph;
+    DyckPTG = new DyckGraph;
     DyckCG = new DyckCallGraph;
 }
 
 DyckAliasAnalysis::~DyckAliasAnalysis() {
-    delete VFG;
     delete DyckCG;
-    delete CFLGraph;
+    delete DyckPTG;
 }
 
 void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
@@ -56,7 +54,7 @@ void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
 const std::set<Value *> *DyckAliasAnalysis::getAliasSet(Value *Ptr) const {
-    DyckGraphNode *V = CFLGraph->retrieveDyckVertex(Ptr).first;
+    DyckGraphNode *V = DyckPTG->retrieveDyckVertex(Ptr).first;
     return (const std::set<Value *> *) V->getEquivalentSet();
 }
 
@@ -64,26 +62,27 @@ bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
     return getAliasSet(V1)->count(V2);
 }
 
-DyckCallGraph *DyckAliasAnalysis::getCallGraph() const {
+DyckCallGraph *DyckAliasAnalysis::getDyckCallGraph() const {
     return DyckCG;
 }
 
 DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
-    return CFLGraph;
+    return DyckPTG;
 }
 
 bool DyckAliasAnalysis::runOnModule(Module &M) {
     TimeRecorder DyckAA("Running DyckAA");
 
     // alias analysis
-    AAAnalyzer AA(&M, CFLGraph, DyckCG);
+    AAAnalyzer AA(&M, DyckPTG, DyckCG);
     AA.intraProcedureAnalysis();
     AA.interProcedureAnalysis();
 
     // mod/ref analysis
-    MRAnalyzer MR(&M, CFLGraph, DyckCG);
+    MRAnalyzer MR(&M, DyckPTG, DyckCG);
     MR.intraProcedureAnalysis();
     MR.interProcedureAnalysis();
+    MR.swap(SCC2MR); // get the result
 
     /* call graph */
     if (DotCallGraph) {
@@ -100,19 +99,19 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
 
     if (PrintAliasSetInformation) {
         outs() << "Printing alias set information...\n";
-        this->printAliasSetInformation(M);
+        this->printAliasSetInformation();
         outs() << "Done!\n\n";
     }
 
-    DEBUG_WITH_TYPE("validate-dyckgraph", CFLGraph->validation(__FILE__, __LINE__));
+    DEBUG_WITH_TYPE("validate-dyckgraph", DyckPTG->validation(__FILE__, __LINE__));
 
     return false;
 }
 
-void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
+void DyckAliasAnalysis::printAliasSetInformation() {
     /*if (InterAAEval)*/
     {
-        std::set<DyckGraphNode *> &Allreps = CFLGraph->getVertices();
+        std::set<DyckGraphNode *> &AllReps = DyckPTG->getVertices();
 
         outs() << "Printing distribution.log... ";
         outs().flush();
@@ -120,19 +119,17 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
 
         std::vector<unsigned long> AliasSetSizes;
         unsigned TotalSize = 0;
-        auto It = Allreps.begin();
-        while (It != Allreps.end()) {
-            std::set<void *> *Aliasset = (*It)->getEquivalentSet();
+        auto It = AllReps.begin();
+        while (It != AllReps.end()) {
+            std::set<void *> *AliasSet = (*It)->getEquivalentSet();
 
             unsigned long Size = 0;
 
-            auto AsIt = Aliasset->begin();
-            while (AsIt != Aliasset->end()) {
-                Value *Val = ((Value *) (*AsIt));
-                if (Val->getType()->isPointerTy()) {
+            auto AsIt = AliasSet->begin();
+            while (AsIt != AliasSet->end()) {
+                auto *Val = (Value *) (*AsIt);
+                if (Val->getType()->isPointerTy())
                     Size++;
-                }
-
                 AsIt++;
             }
 
@@ -176,7 +173,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
 
         std::map<DyckGraphNode *, int> TheMap;
         int Idx = 0;
-        std::set<DyckGraphNode *> &Reps = CFLGraph->getVertices();
+        std::set<DyckGraphNode *> &Reps = DyckPTG->getVertices();
         auto RepIt = Reps.begin();
         while (RepIt != Reps.end()) {
             Idx++;
@@ -234,7 +231,7 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         Log << "===== {.} means pthread escaped alias set =====\n";
 
         int Idx = 0;
-        std::set<DyckGraphNode *> &Reps = CFLGraph->getVertices();
+        std::set<DyckGraphNode *> &Reps = DyckPTG->getVertices();
         auto RepsIt = Reps.begin();
         while (RepsIt != Reps.end()) {
             Idx++;
@@ -262,9 +259,4 @@ void DyckAliasAnalysis::printAliasSetInformation(Module &M) {
         Log.close();
         outs() << "Done! \n";
     }
-}
-
-DyckVFG *DyckAliasAnalysis::getOrCreateValueFlowGraph(Module &M) {
-    if (!VFG) VFG = new DyckVFG(this, &M);
-    return VFG;
 }

@@ -33,7 +33,7 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
     }
 
     // connect local VFGs
-    auto *DyckCG = DAA->getCallGraph();
+    auto *DyckCG = DAA->getDyckCallGraph();
     for (auto &It: LocalVFGMap) {
         auto *F = It.first;
         auto *G = It.second;

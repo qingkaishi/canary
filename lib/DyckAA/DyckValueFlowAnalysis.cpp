@@ -16,38 +16,33 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKAA_MRANALYZER_H
-#define DYCKAA_MRANALYZER_H
-
-#include <llvm/IR/Module.h>
-#include <llvm/Support/CommandLine.h>
-
-#include "DyckAA/DyckCallGraph.h"
-#include "DyckAA/DyckGraph.h"
 #include "DyckAA/DyckAliasAnalysis.h"
+#include "DyckAA/DyckValueFlowAnalysis.h"
+#include "Support/TimeRecorder.h"
 
-using namespace llvm;
+char DyckValueFlowAnalysis::ID = 0;
+static RegisterPass<DyckValueFlowAnalysis> X("dyckvfa", "vfa based on the unification based alias analysis");
 
-class MRAnalyzer {
-private:
-    Module *M;
-    DyckGraph *DG;
-    DyckCallGraph *DCG;
-    std::map<unsigned, ModRef> SCC2MR;
+DyckValueFlowAnalysis::DyckValueFlowAnalysis() : ModulePass(ID) {
+    VFG = nullptr;
+}
 
-public:
-    MRAnalyzer(Module *, DyckGraph *, DyckCallGraph *);
+DyckValueFlowAnalysis::~DyckValueFlowAnalysis() {
+    delete VFG;
+}
 
-    ~MRAnalyzer();
+void DyckValueFlowAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
+    AU.setPreservesAll();
+    AU.addRequired<DyckAliasAnalysis>();
+}
 
-    void intraProcedureAnalysis();
+DyckVFG *DyckValueFlowAnalysis::getDyckVFGraph() const {
+    return VFG;
+}
 
-    void interProcedureAnalysis();
-
-    void swap(std::map<unsigned, ModRef> &Result) { Result.swap(SCC2MR); }
-
-private:
-    void runOnSCC(unsigned ID, const std::vector<DyckCallGraphNode *> &);
-};
-
-#endif //DYCKAA_MRANALYZER_H
+bool DyckValueFlowAnalysis::runOnModule(Module &M) {
+    TimeRecorder DyckVFA("Running DyckVFA");
+    auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
+    VFG = new DyckVFG(DyckAA, &M);
+    return false;
+}

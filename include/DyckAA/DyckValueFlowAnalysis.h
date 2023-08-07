@@ -16,38 +16,33 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKAA_MRANALYZER_H
-#define DYCKAA_MRANALYZER_H
+#ifndef DYCKAA_DYCKVALUEFLOWANALYSIS_H
+#define DYCKAA_DYCKVALUEFLOWANALYSIS_H
 
-#include <llvm/IR/Module.h>
+#include <llvm/Pass.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/CommandLine.h>
-
-#include "DyckAA/DyckCallGraph.h"
-#include "DyckAA/DyckGraph.h"
-#include "DyckAA/DyckAliasAnalysis.h"
+#include <llvm/Support/Debug.h>
+#include "DyckAA/DyckVFG.h"
 
 using namespace llvm;
 
-class MRAnalyzer {
+class DyckValueFlowAnalysis : public ModulePass {
 private:
-    Module *M;
-    DyckGraph *DG;
-    DyckCallGraph *DCG;
-    std::map<unsigned, ModRef> SCC2MR;
+    DyckVFG *VFG;
 
 public:
-    MRAnalyzer(Module *, DyckGraph *, DyckCallGraph *);
+    static char ID;
 
-    ~MRAnalyzer();
+    DyckValueFlowAnalysis();
 
-    void intraProcedureAnalysis();
+    ~DyckValueFlowAnalysis() override;
 
-    void interProcedureAnalysis();
+    bool runOnModule(Module &M) override;
 
-    void swap(std::map<unsigned, ModRef> &Result) { Result.swap(SCC2MR); }
+    void getAnalysisUsage(AnalysisUsage &AU) const override;
 
-private:
-    void runOnSCC(unsigned ID, const std::vector<DyckCallGraphNode *> &);
+    DyckVFG *getDyckVFGraph() const;
 };
 
-#endif //DYCKAA_MRANALYZER_H
+#endif // DYCKAA_DYCKVALUEFLOWANALYSIS_H

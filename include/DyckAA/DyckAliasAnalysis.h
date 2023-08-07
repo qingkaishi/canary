@@ -28,19 +28,22 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
 #include <llvm/IR/InlineAsm.h>
-#include <set>
 #include "DyckAA/DyckCallGraph.h"
 #include "DyckAA/DyckGraphEdgeLabel.h"
 #include "DyckAA/DyckGraph.h"
-#include "DyckAA/DyckVFG.h"
 
 using namespace llvm;
 
+typedef struct ModRef {
+    std::set<DyckGraphNode *> Mods;
+    std::set<DyckGraphNode *> Refs;
+} ModRef;
+
 class DyckAliasAnalysis : public ModulePass {
 private:
-    DyckGraph *CFLGraph;
+    DyckGraph *DyckPTG;
     DyckCallGraph *DyckCG;
-    DyckVFG *VFG;
+    std::map<unsigned, ModRef> SCC2MR;
 
 public:
     static char ID;
@@ -53,18 +56,17 @@ public:
 
     void getAnalysisUsage(AnalysisUsage &AU) const override;
 
+    /// get alias set of a pointer \p Ptr
     const std::set<Value *> *getAliasSet(Value *Ptr) const;
 
+    /// return true if \p V1 is an alias of \p V2
     bool mayAlias(Value *V1, Value *V2) const;
 
-    /// get the call graph
-    DyckCallGraph *getCallGraph() const;
+    /// get the call graph based on dyck-aa
+    DyckCallGraph *getDyckCallGraph() const;
 
     /// get the dyck-cfl graph
     DyckGraph *getDyckGraph() const;
-
-    /// return a value flow graph created based on the alias analysis
-    DyckVFG *getOrCreateValueFlowGraph(Module &M);
 
 private:
     /// Three kinds of information will be printed.
@@ -72,7 +74,7 @@ private:
     /// 2. The relation of Alias Sets will be output into "alias_rel.dot"
     /// 3. The evaluation results will be output into "distribution.log"
     ///     The summary of the evaluation will be printed to the console
-    void printAliasSetInformation(Module &M);
+    void printAliasSetInformation();
 };
 
 #endif // DYCKAA_DYCKALIASANALYSIS_H
