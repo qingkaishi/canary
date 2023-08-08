@@ -78,12 +78,6 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
     AA.intraProcedureAnalysis();
     AA.interProcedureAnalysis();
 
-    // mod/ref analysis
-    MRAnalyzer MR(&M, DyckPTG, DyckCG);
-    MR.intraProcedureAnalysis();
-    MR.interProcedureAnalysis();
-    MR.swap(SCC2MR); // get the result
-
     /* call graph */
     if (DotCallGraph) {
         outs() << "Printing call graph...\n";

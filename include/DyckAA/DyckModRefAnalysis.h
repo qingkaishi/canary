@@ -16,38 +16,37 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DYCKAA_MRANALYZER_H
-#define DYCKAA_MRANALYZER_H
+#ifndef DYCKAA_DYCKMODREFANALYSIS_H
+#define DYCKAA_DYCKMODREFANALYSIS_H
 
-#include <llvm/IR/Module.h>
+#include <llvm/Pass.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/CommandLine.h>
-
-#include "DyckAA/DyckCallGraph.h"
-#include "DyckAA/DyckGraph.h"
-#include "DyckAA/DyckModRefAnalysis.h"
+#include <llvm/Support/Debug.h>
+#include <set>
+#include "DyckAA/DyckGraphNode.h"
 
 using namespace llvm;
 
-class MRAnalyzer {
+typedef struct ModRef {
+    std::set<DyckGraphNode *> Mods;
+    std::set<DyckGraphNode *> Refs;
+} ModRef;
+
+class DyckModRefAnalysis : public ModulePass {
 private:
-    Module *M;
-    DyckGraph *DG;
-    DyckCallGraph *DCG;
     std::map<Function *, ModRef> Func2MR;
 
 public:
-    MRAnalyzer(Module *, DyckGraph *, DyckCallGraph *);
+    static char ID;
 
-    ~MRAnalyzer();
+    DyckModRefAnalysis();
 
-    void intraProcedureAnalysis();
+    ~DyckModRefAnalysis() override;
 
-    void interProcedureAnalysis();
+    bool runOnModule(Module &M) override;
 
-    void swap(std::map<Function *, ModRef> &Result) { Result.swap(Func2MR); }
-
-private:
-    void runOnFunction(DyckCallGraphNode *);
+    void getAnalysisUsage(AnalysisUsage &AU) const override;
 };
 
-#endif //DYCKAA_MRANALYZER_H
+#endif // DYCKAA_DYCKMODREFANALYSIS_H

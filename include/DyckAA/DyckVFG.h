@@ -28,6 +28,7 @@
 using namespace llvm;
 
 class DyckAliasAnalysis;
+class DyckModRefAnalysis;
 
 class DyckVFGNode {
 private:
@@ -40,6 +41,8 @@ public:
 
     void addTarget(DyckVFGNode *N) { Targets.insert(N); }
 
+    Value *getValue() const { return V; }
+
     std::set<DyckVFGNode *>::const_iterator begin() const { return Targets.begin(); }
 
     std::set<DyckVFGNode *>::const_iterator end() const { return Targets.end(); }
@@ -50,9 +53,9 @@ private:
     std::unordered_map<Value *, DyckVFGNode *> ValueNodeMap;
 
 public:
-    DyckVFG(DyckAliasAnalysis *DAA, Module *M);
+    DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M);
 
-    DyckVFG(DyckAliasAnalysis *DAA, Function *F);
+    DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Function *F);
 
     ~DyckVFG();
 
@@ -61,9 +64,7 @@ public:
 private:
     DyckVFGNode *getOrCreateVFGNode(Value *);
 
-    void simplify();
-
-    void connect(DyckAliasAnalysis *, Call*, Function*, DyckVFG *);
+    void connect(DyckAliasAnalysis *, DyckModRefAnalysis *, Call*, Function*, DyckVFG *);
 
     void mergeAndDelete(DyckVFG *);
 };

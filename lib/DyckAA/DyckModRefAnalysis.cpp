@@ -18,34 +18,28 @@
 
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckModRefAnalysis.h"
-#include "DyckAA/DyckValueFlowAnalysis.h"
+#include "MRAnalyzer.h"
 #include "Support/TimeRecorder.h"
 
-char DyckValueFlowAnalysis::ID = 0;
-static RegisterPass<DyckValueFlowAnalysis> X("dyckvfa", "vfa based on the unification based alias analysis");
+char DyckModRefAnalysis::ID = 0;
+static RegisterPass<DyckModRefAnalysis> X("dyckmr", "m/r based on the unification based alias analysis");
 
-DyckValueFlowAnalysis::DyckValueFlowAnalysis() : ModulePass(ID) {
-    VFG = nullptr;
+DyckModRefAnalysis::DyckModRefAnalysis() : ModulePass(ID) {
 }
 
-DyckValueFlowAnalysis::~DyckValueFlowAnalysis() {
-    delete VFG;
-}
+DyckModRefAnalysis::~DyckModRefAnalysis() = default;
 
-void DyckValueFlowAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
+void DyckModRefAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.setPreservesAll();
     AU.addRequired<DyckAliasAnalysis>();
-    AU.addRequired<DyckModRefAnalysis>();
 }
 
-DyckVFG *DyckValueFlowAnalysis::getDyckVFGraph() const {
-    return VFG;
-}
-
-bool DyckValueFlowAnalysis::runOnModule(Module &M) {
-    TimeRecorder DyckVFA("Running DyckVFA");
+bool DyckModRefAnalysis::runOnModule(Module &M) {
+    TimeRecorder DyckMRA("Running DyckMRA");
     auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
-    auto *DyckMRA = &getAnalysis<DyckModRefAnalysis>();
-    VFG = new DyckVFG(DyckAA, DyckMRA, &M);
+    MRAnalyzer MR(&M, DyckAA->getDyckGraph(), DyckAA->getDyckCallGraph());
+    MR.intraProcedureAnalysis();
+    MR.interProcedureAnalysis();
+    MR.swap(Func2MR); // get the result
     return false;
 }

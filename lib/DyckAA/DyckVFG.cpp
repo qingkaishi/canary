@@ -24,12 +24,12 @@
 #include "DyckAA/DyckVFG.h"
 #include "Support/CFG.h"
 
-DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
+DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M) {
     // create a VFG for each function
     std::map<Function *, DyckVFG *> LocalVFGMap;
     for (auto &F: *M) {
         if (F.empty()) continue;
-        LocalVFGMap[&F] = new DyckVFG(DAA, &F);
+        LocalVFGMap[&F] = new DyckVFG(DAA, DMRA, &F);
     }
 
     // connect local VFGs
@@ -47,14 +47,14 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
                 auto *Callee = dyn_cast<Function>(CC->getCalledFunction());
                 assert(Callee);
                 auto *&CalleeVFG = LocalVFGMap.at(Callee);
-                G->connect(DAA, TheCall, Callee, CalleeVFG);
+                G->connect(DAA, DMRA, TheCall, Callee, CalleeVFG);
                 if (G == CalleeVFG) continue;
                 G->mergeAndDelete(CalleeVFG);
                 CalleeVFG = G; // update the graph G
             } else if (auto *PC = dyn_cast<PointerCall>(TheCall)) {
                 for (Function *Callee: *PC) {
                     auto *&CalleeVFG = LocalVFGMap.at(Callee);
-                    G->connect(DAA, TheCall, Callee, CalleeVFG);
+                    G->connect(DAA, DMRA, TheCall, Callee, CalleeVFG);
                     if (G == CalleeVFG) continue;
                     G->mergeAndDelete(CalleeVFG);
                     CalleeVFG = G; // update the graph G
@@ -83,7 +83,7 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Module *M) {
     delete G;
 }
 
-DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, Function *F) {
+DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Function *F) {
     // direct value flow through cast, gep-0-0, select, phi
     for (auto &I: instructions(F)) {
         if (isa<CastInst>(I) || isa<PHINode>(I)) {
@@ -170,10 +170,6 @@ DyckVFGNode *DyckVFG::getOrCreateVFGNode(Value *V) {
     return It->second;
 }
 
-void DyckVFG::simplify() {
-    // todo we may call this function on demand to simplify the VFG by merging SCC, transitive reduction, etc.
-}
-
 void DyckVFG::mergeAndDelete(DyckVFG *G) {
     // move all vertices in the input VFG to this one (note: a constant may have multiple nodes)
     // G is released and invalid after this function
@@ -199,7 +195,7 @@ void DyckVFG::mergeAndDelete(DyckVFG *G) {
     delete G;
 }
 
-void DyckVFG::connect(DyckAliasAnalysis *DAA, Call *C, Function* Callee, DyckVFG *CalleeVFG) {
+void DyckVFG::connect(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Call *C, Function* Callee, DyckVFG *CalleeVFG) {
     // connect direct inputs/outputs
     for (unsigned K = 0; K < C->numArgs(); ++K) {
         if (K >= Callee->arg_size()) continue; // ignore var args

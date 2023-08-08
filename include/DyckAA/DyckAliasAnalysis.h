@@ -34,16 +34,10 @@
 
 using namespace llvm;
 
-typedef struct ModRef {
-    std::set<DyckGraphNode *> Mods;
-    std::set<DyckGraphNode *> Refs;
-} ModRef;
-
 class DyckAliasAnalysis : public ModulePass {
 private:
     DyckGraph *DyckPTG;
     DyckCallGraph *DyckCG;
-    std::map<unsigned, ModRef> SCC2MR;
 
 public:
     static char ID;

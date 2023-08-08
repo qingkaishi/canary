@@ -17,31 +17,24 @@
  */
 
 #include <llvm/IR/GetElementPtrTypeIterator.h>
-#include <csignal>
 #include "AAAnalyzer.h"
 
-static cl::opt<bool> NoFunctionTypeCheck("no-function-type-check", cl::init(false), cl::Hidden,
-                                         cl::desc("Do not check function type when resolving pointer calls."));
+static cl::opt<unsigned> FunctionTypeCheckLevel("function-type-check-level", cl::init(4), cl::Hidden,
+                                                cl::desc("The level of checking the compatability of function types"
+                                                         "4: equivalent function types"
+                                                         "3: same # parameters and same store size of each param"
+                                                         "2: same # parameters and consider only ptr/int type of params"
+                                                         "1: same # parameters"
+                                                         "0: completely not compatible function types"));
 
 static cl::opt<bool> WithFunctionCastComb("with-function-cast-comb", cl::init(false), cl::Hidden,
-                                          cl::desc(
-                                                  "Combine compatible functions if there is a cast between the two types."));
+                                          cl::desc("Two func types are compatible if there's a cast between them."));
+
+static cl::opt<bool> PrintUnknownPointerCall("print-unknown-ptr-call", cl::init(false), cl::Hidden,
+                                             cl::desc("print unknown ptr call"));
 
 static cl::opt<unsigned> NumInterIteration("dyckaa-inter-iteration", cl::init(UINT_MAX), cl::Hidden,
-                                           cl::desc(
-                                                   "The max number of iterators for fix-pointer computation during interprocedure analysis."));
-
-static Instruction *RunningInst = nullptr;
-
-static void OnSegmentFalut(int) {
-    if (RunningInst) {
-        errs() << "[Canary] Error happens when analyzing the instruction:\n "
-               << *RunningInst << "\n";
-        errs() << "[Canary] Error happens when analyzing the function:\n "
-               << RunningInst->getParent()->getParent()->getName() << "\n";
-    }
-    abort();
-}
+                                           cl::desc("The max # iterators for fixed-point inter-proc computation."));
 
 AAAnalyzer::AAAnalyzer(Module *M, DyckGraph *DG, DyckCallGraph *CG) {
     Mod = M;
@@ -56,8 +49,6 @@ AAAnalyzer::~AAAnalyzer() {
 }
 
 void AAAnalyzer::intraProcedureAnalysis() {
-    signal(SIGSEGV, OnSegmentFalut);
-
     outs() << "Start intra-procedural analysis ... ";
     long InstNum = 0;
     long IntrinsicsNum = 0;
@@ -70,19 +61,14 @@ void AAAnalyzer::intraProcedureAnalysis() {
         DyckCallGraphNode *DF = DyckCG->getOrInsertFunction(&F);
         for (auto &B: F) {
             for (auto &I: B) {
-                RunningInst = &I;
                 InstNum++;
-
-                DEBUG_WITH_TYPE("inst", errs() << *RunningInst << "\n");
-                handleInst(RunningInst, DF);
+                handleInst(&I, DF);
             }
         }
     }
     DEBUG_WITH_TYPE("dyckaa-stats", errs() << "\n# Instructions: " << InstNum << "\n");
     DEBUG_WITH_TYPE("dyckaa-stats", errs() << "# Functions: " << Mod->size() - IntrinsicsNum << "\n");
-
     outs() << "Done!\n";
-    signal(SIGSEGV, SIG_DFL);
 }
 
 void AAAnalyzer::interProcedureAnalysis() {
@@ -168,6 +154,8 @@ void AAAnalyzer::interProcedureAnalysis() {
     }
 
     outs() << "Done!\n";
+
+    if (PrintUnknownPointerCall) printNoAliasedPointerCalls();
 }
 
 void AAAnalyzer::printNoAliasedPointerCalls() {
@@ -200,51 +188,24 @@ void AAAnalyzer::printNoAliasedPointerCalls() {
 //// The followings are private functions
 
 int AAAnalyzer::isCompatible(FunctionType *X, FunctionType *Y) {
-    if (NoFunctionTypeCheck) {
-        return 1;
-    }
+    if (X == Y)
+        return 4;
 
-    if (X == Y) {
-        return 1;
-    }
-
-    if (X->isVarArg() != Y->isVarArg()) {
+    if (X->isVarArg() != Y->isVarArg())
         return 0;
-    }
 
     Type *XRet = X->getReturnType();
     Type *YRet = Y->getReturnType();
 
-    if (XRet->isVoidTy() != YRet->isVoidTy()) {
+    if (XRet->isVoidTy() != YRet->isVoidTy())
         return 0;
-    }
 
     unsigned XNumParam = X->getNumParams();
     unsigned YNumParam = Y->getNumParams();
-
     if (XNumParam == YNumParam) {
-        bool Level2 = true;
-        for (unsigned K = 0; K < XNumParam; K++) {
-            if (DL->getTypeStoreSize(X->getParamType(K)) != DL->getTypeStoreSize(Y->getParamType(K))) {
-                Level2 = false;
-                break;
-            }
-        }
-
-        if (Level2)
-            return 2;
-
         bool Level3 = true;
         for (unsigned K = 0; K < XNumParam; K++) {
-            Type *XParamKTy = X->getParamType(K);
-            Type *YParamKTy = Y->getParamType(K);
-
-            if (XParamKTy->isIntegerTy() != YParamKTy->isIntegerTy()) {
-                Level3 = false;
-                break;
-            }
-
-            if (XParamKTy->isPointerTy() != YParamKTy->isPointerTy()) {
+            if (DL->getTypeStoreSize(X->getParamType(K)) != DL->getTypeStoreSize(Y->getParamType(K))) {
                 Level3 = false;
                 break;
             }
@@ -253,7 +214,26 @@ int AAAnalyzer::isCompatible(FunctionType *X, FunctionType *Y) {
         if (Level3)
             return 3;
 
-        return 4;
+        bool Level2 = true;
+        for (unsigned K = 0; K < XNumParam; K++) {
+            Type *XParamKTy = X->getParamType(K);
+            Type *YParamKTy = Y->getParamType(K);
+
+            if (XParamKTy->isIntegerTy() != YParamKTy->isIntegerTy()) {
+                Level2 = false;
+                break;
+            }
+
+            if (XParamKTy->isPointerTy() != YParamKTy->isPointerTy()) {
+                Level2 = false;
+                break;
+            }
+        }
+
+        if (Level2)
+            return 2;
+
+        return 1;
     } else {
         return 0;
     }
@@ -269,7 +249,7 @@ FunctionTypeNode *AAAnalyzer::initFunctionGroup(FunctionType *Ty) {
     // otherwise, new a root
     auto RIt = TyRoots.begin();
     while (RIt != TyRoots.end()) {
-        if (isCompatible((*RIt)->FuncTy, Ty)) {
+        if (isCompatible((*RIt)->FuncTy, Ty) == FunctionTypeCheckLevel.getValue()) {
             auto *TyNode = new FunctionTypeNode;
             TyNode->FuncTy = Ty;
             TyNode->Root = (*RIt);
@@ -1107,12 +1087,12 @@ bool AAAnalyzer::handlePointerFunctionCalls(DyckCallGraphNode *Caller, int Count
         while (PFIt != UnhandledFunction.end()) {
             auto *MayAliasedFunctioin = (Function *) (*PFIt);
             // print in console
-            unsigned Rate = ((100 * (++CandCount)) / CandTotal);
-            if (Percentage == 100 && Rate == 100) {
+//            unsigned Rate = ((100 * (++CandCount)) / CandTotal);
+//            if (Percentage == 100 && Rate == 100) {
 //				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << "100%, 100%. Done!\r";
-            } else {
+//            } else {
 //				outs() << "Handling indirect calls in Function #" << FUNCTION_COUNT << "... " << percentage << "%, " << RATE << "%         \r";
-            }
+//            }
 
             if (!Ret) Ret = true;
             PCall->addMayAliasedFunction(MayAliasedFunctioin);
@@ -1133,13 +1113,13 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
     if (!F->empty() || F->isIntrinsic())
         return;
 
-    const std::string &FunctionName = F->getName().str();
+    auto FName = F->getName();
     switch (Args->size()) {
         case 1: {
-            if (FunctionName == "strdup" || FunctionName == "__strdup" || FunctionName == "strdupa") {
+            if (FName == "strdup" || FName == "__strdup" || FName == "strdupa") {
                 // content alias r/1st
                 this->makeContentAlias(wrapValue(Args->at(0)), wrapValue(Ret));
-            } else if (FunctionName == "pthread_getspecific" && Ret) {
+            } else if (FName == "pthread_getspecific" && Ret) {
                 DyckGraphNode *KeyRep = wrapValue(Args->at(0));
                 DyckGraphNode *ValRep = wrapValue(Ret);
                 // we use label -1 to indicate that it is a key:value pair
@@ -1148,7 +1128,7 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
         }
             break;
         case 2: {
-            if (FunctionName == "strcat" || FunctionName == "strcpy") {
+            if (FName == "strcat" || FName == "strcpy") {
                 if (Ret) {
                     DyckGraphNode *DstPtr = wrapValue(Args->at(0));
                     DyckGraphNode *SrcPtr = wrapValue(Args->at(1));
@@ -1159,22 +1139,18 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
                     errs() << "ERROR strcat/cpy does not return.\n";
                     exit(1);
                 }
-            } else if (FunctionName == "strndup" || FunctionName == "strndupa") {
+            } else if (FName == "strndup" || FName == "strndupa" || FName == "strtok") {
                 // content alias r/1st
                 this->makeContentAlias(wrapValue(Args->at(0)), wrapValue(Ret));
-            } else if (FunctionName == "strstr" || FunctionName == "strcasestr") {
+            } else if (FName == "strstr" || FName == "strcasestr") {
                 // content alias r/2nd
                 this->makeContentAlias(wrapValue(Args->at(1)), wrapValue(Ret));
                 // alias r/1st
                 this->makeAlias(wrapValue(Ret), wrapValue(Args->at(0)));
-            } else if (FunctionName == "strchr" || FunctionName == "strrchr" || FunctionName == "strchrnul" ||
-                       FunctionName == "rawmemchr") {
+            } else if (FName == "strchr" || FName == "strrchr" || FName == "strchrnul" || FName == "rawmemchr") {
                 // alias r/1st
                 this->makeAlias(wrapValue(Ret), wrapValue(Args->at(0)));
-            } else if (FunctionName == "strtok") {
-                // content alias r/1st
-                this->makeContentAlias(wrapValue(Args->at(0)), wrapValue(Ret));
-            } else if (FunctionName == "pthread_setspecific") {
+            } else if (FName == "pthread_setspecific") {
                 DyckGraphNode *KeyRep = wrapValue(Args->at(0));
                 DyckGraphNode *ValRep = wrapValue(Args->at(1));
                 // we use label -1 to indicate that it is a key:value pair
@@ -1183,8 +1159,7 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
         }
             break;
         case 3: {
-            if (FunctionName == "strncat" || FunctionName == "strncpy" || FunctionName == "memcpy" ||
-                FunctionName == "memmove") {
+            if (FName == "strncat" || FName == "strncpy" || FName == "memcpy" || FName == "memmove") {
                 if (Ret) {
                     DyckGraphNode *DstPtr = wrapValue(Args->at(0));
                     DyckGraphNode *SrcPtr = wrapValue(Args->at(1));
@@ -1195,17 +1170,17 @@ void AAAnalyzer::handleLibInvokeCallInst(Value *Ret, Function *F, const std::vec
                     errs() << "ERROR strncat/cpy does not return.\n";
                     exit(1);
                 }
-            } else if (FunctionName == "memchr" || FunctionName == "memrchr" || FunctionName == "memset") {
+            } else if (FName == "memchr" || FName == "memrchr" || FName == "memset") {
                 // alias r/1st
                 this->makeAlias(wrapValue(Ret), wrapValue(Args->at(0)));
-            } else if (FunctionName == "strtok_r" || FunctionName == "__strtok_r") {
+            } else if (FName == "strtok_r" || FName == "__strtok_r") {
                 // content alias r/1st
                 this->makeContentAlias(wrapValue(Args->at(0)), wrapValue(Ret));
             }
         }
             break;
         case 4: {
-            if (FunctionName == "pthread_create") {
+            if (FName == "pthread_create") {
                 std::vector<Value *> XArgs;
                 XArgs.push_back(Args->at(3));
                 handleInvokeCallInst(nullptr, Args->at(2), &XArgs, DyckCG->getOrInsertFunction(F));

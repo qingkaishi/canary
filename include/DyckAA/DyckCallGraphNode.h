@@ -129,15 +129,10 @@ private:
     CallRecordVecTy CallRecords;
     /// @}
 
-    /// record the scc where this function locate in the call graph
-    unsigned SCCID = 0;
-
 public:
     explicit DyckCallGraphNode(Function *);
 
     ~DyckCallGraphNode();
-
-    void setSCCID(unsigned ID) { SCCID = ID; }
 
     Function *getLLVMFunction();
 
