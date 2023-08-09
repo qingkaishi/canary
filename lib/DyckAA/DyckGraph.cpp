@@ -355,7 +355,7 @@ void DyckGraph::validation(const char *File, int Line) {
 
 void DyckGraph::getReachableVertices(const std::set<DyckGraphNode *> &Sources, std::set<DyckGraphNode *> &Reachable) {
     std::stack<DyckGraphNode *> WorkStack;
-    for (auto *N: Sources) WorkStack.push(N);
+    for (auto *N: Sources) if (N) WorkStack.push(N);
     std::set<DyckGraphNode *> Visited;
     while (!WorkStack.empty()) {
         DyckGraphNode *Top = WorkStack.top();
@@ -376,6 +376,7 @@ void DyckGraph::getReachableVertices(const std::set<DyckGraphNode *> &Sources, s
 }
 
 void DyckGraph::getReachableVertices(DyckGraphNode *Source, std::set<DyckGraphNode *> &Reachable) {
+    if (!Source) return;
     std::set<DyckGraphNode *> Srcs;
     Srcs.insert(Source);
     getReachableVertices(Srcs, Reachable);

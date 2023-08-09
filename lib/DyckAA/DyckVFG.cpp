@@ -21,6 +21,7 @@
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckGraph.h"
 #include "DyckAA/DyckGraphNode.h"
+#include "DyckAA/DyckModRefAnalysis.h"
 #include "DyckAA/DyckVFG.h"
 #include "Support/CFG.h"
 
@@ -196,7 +197,7 @@ void DyckVFG::mergeAndDelete(DyckVFG *G) {
 }
 
 void DyckVFG::connect(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Call *C, Function* Callee, DyckVFG *CalleeVFG) {
-    // connect direct inputs/outputs
+    // connect direct inputs
     for (unsigned K = 0; K < C->numArgs(); ++K) {
         if (K >= Callee->arg_size()) continue; // ignore var args
         auto *Actual = C->getArg(K);
@@ -205,6 +206,25 @@ void DyckVFG::connect(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Call *C,
         auto *FormalNode = CalleeVFG->getOrCreateVFGNode(Formal);
         ActualNode->addTarget(FormalNode);
     }
+    // connect direct outputs
+    if (!C->getInstruction()->getType()->isVoidTy()) {
+        auto *ActualRet = getOrCreateVFGNode(C->getInstruction());
+        for (auto &Inst: instructions(Callee)) {
+            auto *RetInst = dyn_cast<ReturnInst>(&Inst);
+            if (!RetInst) continue;
+            if (RetInst->getNumOperands() != 1) continue;
+            auto *FormalRet = CalleeVFG->getOrCreateVFGNode(Inst.getOperand(0));
+            FormalRet->addTarget(ActualRet);
+        }
+    }
 
-    // todo connect indirect inputs/outputs
+    if (!DMRA->count(Callee)) return; // this callee does not contain mod/refs except for formal parameters/rets
+
+    // todo connect indirect inputs
+    //  1. get refs, get ref values (in caller and callee)
+    //  2. connect ref values (caller) -> ref values (callee)
+
+    // todo connect indirect outputs
+    //  1. get mods, get mod values (in caller and callee)
+    //  2. connect ref values (callee) -> ref values (caller)
 }

@@ -48,10 +48,14 @@ void MRAnalyzer::runOnFunction(DyckCallGraphNode *CGNode) {
     std::set<DyckGraphNode *> ParReachableNodes;
     std::set<DyckGraphNode *> RetReachableNodes;
     for (unsigned K = 0; K < F->arg_size(); ++K) {
-        auto *Arg = F->getArg(K);
-        auto *DGNode = DG->findDyckVertex(Arg);
+        auto *DGNode = DG->findDyckVertex(F->getArg(K));
         if (!DGNode) continue;
         DG->getReachableVertices(DGNode, ParReachableNodes);
+    }
+    for (unsigned K = 0; K < F->arg_size(); ++K) {
+        auto *DGNode = DG->findDyckVertex(F->getArg(K));
+        if (!DGNode) continue;
+        ParReachableNodes.erase(DGNode); // let us exclude explicit parameters
     }
 
     // for each instruction,
