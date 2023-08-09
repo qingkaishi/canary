@@ -25,19 +25,21 @@
 #include "DyckAA/DyckVFG.h"
 #include "Support/CFG.h"
 
-DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M) {
+DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
     // create a VFG for each function
-    std::map<Function *, DyckVFG *> LocalVFGMap;
+    std::map<Function *, std::pair<DyckVFG *, CFG *>> LocalVFGMap;
     for (auto &F: *M) {
         if (F.empty()) continue;
-        LocalVFGMap[&F] = new DyckVFG(DAA, DMRA, &F);
+        auto *NewCFG = new CFG(&F);
+        LocalVFGMap[&F] = {new DyckVFG(DAA, NewCFG, &F), NewCFG};
     }
 
     // connect local VFGs
     auto *DyckCG = DAA->getDyckCallGraph();
     for (auto &It: LocalVFGMap) {
         auto *F = It.first;
-        auto *G = It.second;
+        auto *G = It.second.first;
+        auto *CtrlFlow = It.second.second;
         auto *CGNode = DyckCG->getFunction(F);
         if (!CGNode) continue;
         for (auto &I: instructions(F)) {
@@ -47,15 +49,15 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M) {
             if (auto *CC = dyn_cast<CommonCall>(TheCall)) {
                 auto *Callee = dyn_cast<Function>(CC->getCalledFunction());
                 assert(Callee);
-                auto *&CalleeVFG = LocalVFGMap.at(Callee);
-                G->connect(DAA, DMRA, TheCall, Callee, CalleeVFG);
+                auto *&CalleeVFG = LocalVFGMap.at(Callee).first;
+                G->connect(DMRA, TheCall, Callee, CalleeVFG, CtrlFlow);
                 if (G == CalleeVFG) continue;
                 G->mergeAndDelete(CalleeVFG);
                 CalleeVFG = G; // update the graph G
             } else if (auto *PC = dyn_cast<PointerCall>(TheCall)) {
                 for (Function *Callee: *PC) {
-                    auto *&CalleeVFG = LocalVFGMap.at(Callee);
-                    G->connect(DAA, DMRA, TheCall, Callee, CalleeVFG);
+                    auto *&CalleeVFG = LocalVFGMap.at(Callee).first;
+                    G->connect(DMRA, TheCall, Callee, CalleeVFG, CtrlFlow);
                     if (G == CalleeVFG) continue;
                     G->mergeAndDelete(CalleeVFG);
                     CalleeVFG = G; // update the graph G
@@ -69,11 +71,12 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M) {
 
     // finalize VFG (merge all VFGs to one), delete useless ones
     //  (a constant may have multi vfg nodes across diff functions)
+    for (auto &It: LocalVFGMap) delete It.second.second;
     auto It = LocalVFGMap.begin();
     if (It == LocalVFGMap.end()) return;
-    auto *G = LocalVFGMap.begin()->second;
+    auto *G = LocalVFGMap.begin()->second.first;
     while (++It != LocalVFGMap.end()) {
-        auto *&VFG = It->second;
+        auto *&VFG = It->second.first;
         if (G != VFG) {
             G->mergeAndDelete(VFG);
             VFG = G;
@@ -84,7 +87,7 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M) {
     delete G;
 }
 
-DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Function *F) {
+DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, CFG *CtrlFlow, Function *F) {
     // direct value flow through cast, gep-0-0, select, phi
     for (auto &I: instructions(F)) {
         if (isa<CastInst>(I) || isa<PHINode>(I)) {
@@ -136,7 +139,6 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Function *F) 
     }
     // match load and store:
     // if alias(load's ptr, store's ptr) and store -> load in CFG, add store's value -> load's value in VFG
-    CFG CtrlFlowG(F);
     for (auto &LoadIt: LoadMap) {
         auto *DyckNode = LoadIt.first;
         auto &Loads = LoadIt.second;
@@ -146,7 +148,7 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Function *F) 
         for (auto *Load: Loads) {
             auto *LdNode = getOrCreateVFGNode(Load);
             for (auto *Store: Stores)
-                if (CtrlFlowG.reachable(Store, Load)) getOrCreateVFGNode(Store->getValueOperand())->addTarget(LdNode);
+                if (CtrlFlow->reachable(Store, Load)) getOrCreateVFGNode(Store->getValueOperand())->addTarget(LdNode);
         }
     }
 }
@@ -155,7 +157,7 @@ DyckVFG::~DyckVFG() {
     for (auto &It: ValueNodeMap) delete It.second;
 }
 
-DyckVFGNode *DyckVFG::getVFGNode(Value *V) {
+DyckVFGNode *DyckVFG::getVFGNode(Value *V) const {
     auto It = ValueNodeMap.find(V);
     if (It == ValueNodeMap.end()) return nullptr;
     return It->second;
@@ -196,7 +198,27 @@ void DyckVFG::mergeAndDelete(DyckVFG *G) {
     delete G;
 }
 
-void DyckVFG::connect(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Call *C, Function* Callee, DyckVFG *CalleeVFG) {
+static void collectValues(std::set<DyckGraphNode *>::iterator Begin, std::set<DyckGraphNode *>::iterator End,
+                          std::set<Value *> &CallerVals, std::set<Value *> &CalleeVals, Call *C, Function *Callee,
+                          CFG *Ctrl) {
+    auto *Caller = C->getInstruction()->getFunction();
+    for (auto It = Begin; It != End; ++It) {
+        auto *N = *It;
+        auto *ValSet = (std::set<Value *> *) N->getEquivalentSet();
+        for (auto *V: *ValSet) {
+            if (auto *Arg = dyn_cast<Argument>(V)) {
+                if (Arg->getParent() == Callee) CalleeVals.insert(Arg);
+                else if (Arg->getParent() == Caller) CallerVals.insert(Arg);
+            } else if (auto *Inst = dyn_cast<Instruction>(V)) {
+                if (Inst->getFunction() == Callee) CalleeVals.insert(Inst);
+                else if (Inst->getFunction() == Caller && Ctrl->reachable(Inst, C->getInstruction()))
+                    CallerVals.insert(Inst);
+            }
+        }
+    }
+}
+
+void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, DyckVFG *CalleeVFG, CFG *Ctrl) {
     // connect direct inputs
     for (unsigned K = 0; K < C->numArgs(); ++K) {
         if (K >= Callee->arg_size()) continue; // ignore var args
@@ -218,13 +240,24 @@ void DyckVFG::connect(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Call *C,
         }
     }
 
-    if (!DMRA->count(Callee)) return; // this callee does not contain mod/refs except for formal parameters/rets
+    // this callee does not contain mod/refs except for formal parameters/rets
+    if (!DMRA->count(Callee)) return;
 
-    // todo connect indirect inputs
-    //  1. get refs, get ref values (in caller and callee)
+    // connect indirect inputs
+    //  1. get refs, get ref values (in caller, C is reachable from these values, and callee)
     //  2. connect ref values (caller) -> ref values (callee)
+    std::set<Value *> RefCallerValues, RefCalleeValues;
+    collectValues(DMRA->ref_begin(Callee), DMRA->ref_end(Callee), RefCallerValues, RefCalleeValues, C, Callee, Ctrl);
+    for (auto *CallerVal: RefCallerValues)
+        for (auto *CalleeVal: RefCalleeValues)
+            getOrCreateVFGNode(CallerVal)->addTarget(getOrCreateVFGNode(CalleeVal));
 
-    // todo connect indirect outputs
+    // connect indirect outputs
     //  1. get mods, get mod values (in caller and callee)
     //  2. connect ref values (callee) -> ref values (caller)
+    std::set<Value *> ModCallerValues, ModCalleeValues;
+    collectValues(DMRA->mod_begin(Callee), DMRA->mod_end(Callee), ModCallerValues, ModCalleeValues, C, Callee, Ctrl);
+    for (auto *CalleeVal: ModCalleeValues)
+        for (auto *CallerVal: ModCallerValues)
+            getOrCreateVFGNode(CalleeVal)->addTarget(getOrCreateVFGNode(CallerVal));
 }

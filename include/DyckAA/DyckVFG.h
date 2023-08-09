@@ -24,6 +24,7 @@
 #include <map>
 #include <set>
 #include <unordered_map>
+#include "Support/CFG.h"
 
 using namespace llvm;
 
@@ -55,16 +56,16 @@ private:
 public:
     DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M);
 
-    DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Function *F);
+    DyckVFG(DyckAliasAnalysis *DAA, CFG* DMRA, Function *F);
 
     ~DyckVFG();
 
-    DyckVFGNode *getVFGNode(Value *);
+    DyckVFGNode *getVFGNode(Value *) const;
 
 private:
     DyckVFGNode *getOrCreateVFGNode(Value *);
 
-    void connect(DyckAliasAnalysis *, DyckModRefAnalysis *, Call*, Function*, DyckVFG *);
+    void connect(DyckModRefAnalysis *, Call*, Function*, DyckVFG *, CFG *);
 
     void mergeAndDelete(DyckVFG *);
 };
