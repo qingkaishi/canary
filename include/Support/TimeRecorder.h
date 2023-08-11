@@ -32,20 +32,15 @@ private:
     std::string Prefix;
 
 public:
-    /// the prefix should be in a style of "Doing sth"
-    explicit TimeRecorder(const char *Prefix) : Begin(std::chrono::steady_clock::now()), Prefix(Prefix) {
-        outs() << Prefix << "...\n";
-    }
+    /// the prefix should be in a style of "Doing sth" or "Sth"
+    /// @{
+    explicit TimeRecorder(const char *Prefix);
 
-    ~TimeRecorder() {
-        std::chrono::steady_clock::time_point End = std::chrono::steady_clock::now();
-        auto Mili = std::chrono::duration_cast<std::chrono::milliseconds>(End - Begin);
-        if (Mili.count() > 1000) {
-            outs() << (Prefix + " takes " + std::to_string(Mili.count() / 1000) + "s!\n");
-        } else {
-            outs() << (Prefix + " takes " + std::to_string(Mili.count()) + "ms!\n");
-        }
-    }
+    explicit TimeRecorder(const std::string &Prefix);
+    /// @}
+
+    /// end of the recorder
+    ~TimeRecorder();
 };
 
 #endif //SUPPORT_TIMERECORDER_H

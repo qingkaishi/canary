@@ -18,6 +18,7 @@
 
 #include <llvm/IR/GetElementPtrTypeIterator.h>
 #include "AAAnalyzer.h"
+#include "Support/TimeRecorder.h"
 
 static cl::opt<unsigned> FunctionTypeCheckLevel("function-type-check-level", cl::init(4), cl::Hidden,
                                                 cl::desc("The level of checking the compatability of function types"
@@ -49,7 +50,7 @@ AAAnalyzer::~AAAnalyzer() {
 }
 
 void AAAnalyzer::intraProcedureAnalysis() {
-    outs() << "Start intra-procedural analysis ... ";
+    TimeRecorder IntraAA("Running intra-procedural analysis");
     long InstNum = 0;
     long IntrinsicsNum = 0;
     for (auto &F: *Mod) {
@@ -68,55 +69,40 @@ void AAAnalyzer::intraProcedureAnalysis() {
     }
     DEBUG_WITH_TYPE("dyckaa-stats", errs() << "\n# Instructions: " << InstNum << "\n");
     DEBUG_WITH_TYPE("dyckaa-stats", errs() << "# Functions: " << Mod->size() - IntrinsicsNum << "\n");
-    outs() << "Done!\n";
 }
 
 void AAAnalyzer::interProcedureAnalysis() {
-    outs() << "Start inter-procedural analysis ... \n";
+    TimeRecorder IntraAA("Running inter-procedural analysis");
 
     unsigned IterationCounter = 0;
-    std::map<DyckCallGraphNode *, std::set<CommonCall *>> HandledCommonCalls;
     while (true) {
-        if (IterationCounter++ >= NumInterIteration.getValue()) {
+        if (IterationCounter++ >= NumInterIteration.getValue())
             break;
-        }
-        outs() << "\t Iteration " << IterationCounter << "\n";
+        TimeRecorder IterationTimer("Iteration " + std::to_string(IterationCounter));
 
         bool Finished = true;
         CFLGraph->qirunAlgorithm();
 
-        { // direct calls
-            outs() << "\t\t Handling direct calls...";
-            auto DFIt = DyckCG->begin();
-            while (DFIt != DyckCG->end()) {
-                DyckCallGraphNode *DF = DFIt->second;
-                std::set<CommonCall *> &DFHandledCommonCalls = HandledCommonCalls[DF];
-
-                // df_unHandledCommonCalls = df_commonCalls - df_handledCommonCalls
-                std::set<CommonCall *> DFNotHandledCommonCalls;
-                set_difference(DF->common_call_begin(), DF->common_call_end(), DFHandledCommonCalls.begin(),
-                               DFHandledCommonCalls.end(),
-                               inserter(DFNotHandledCommonCalls, DFNotHandledCommonCalls.begin()));
-
-                auto CIt = DFNotHandledCommonCalls.begin();
-                while (CIt != DFNotHandledCommonCalls.end()) {
+        if (IterationCounter == 1) { // direct calls
+            TimeRecorder DirectCallTimer("Handling direct calls");
+            auto CGNodeIt = DyckCG->nodes_begin();
+            while (CGNodeIt != DyckCG->nodes_end()) {
+                DyckCallGraphNode *CGNode = *CGNodeIt;
+                auto CIt = CGNode->common_call_begin();
+                while (CIt != CGNode->common_call_end()) {
                     Finished = false;
                     CommonCall *CC = *CIt;
-                    DFHandledCommonCalls.insert(CC);
-
                     Function *CV = CC->getCalledFunction();
                     assert(CV && "Error: it is not a function in common calls!");
-                    handleCommonFunctionCall(CC, DF, DyckCG->getOrInsertFunction(CV));
-                    CIt++;
+                    handleCommonFunctionCall(CC, CGNode, DyckCG->getOrInsertFunction(CV));
+                    ++CIt;
                 }
-                // ---------------------------------------------------
-                ++DFIt;
+                ++CGNodeIt;
             }
-            outs() << "Done!\n";
         }
 
         { // indirect call
-            outs() << "\t\t Handling indirect calls...";
+            TimeRecorder DirectCallTimer("Handling indirect calls");
             int NumProcessedFunctions = 0;
             auto DFIt = DyckCG->begin();
             while (DFIt != DyckCG->end()) {
@@ -128,7 +114,6 @@ void AAAnalyzer::interProcedureAnalysis() {
 
                 ++DFIt;
             }
-            outs() << "Done!\n";
         }
 
         if (Finished) break;
@@ -152,8 +137,6 @@ void AAAnalyzer::interProcedureAnalysis() {
             }
         }
     }
-
-    outs() << "Done!\n";
 
     if (PrintUnknownPointerCall) printNoAliasedPointerCalls();
 }

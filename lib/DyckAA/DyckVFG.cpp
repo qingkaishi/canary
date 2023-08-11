@@ -28,10 +28,13 @@
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
     // create a VFG for each function
     std::map<Function *, std::pair<DyckVFG *, CFG *>> LocalVFGMap;
+    std::map<DyckVFG *, std::set<Function *>> VFGFuncMap;
     for (auto &F: *M) {
         if (F.empty()) continue;
         auto *NewCFG = new CFG(&F);
-        LocalVFGMap[&F] = {new DyckVFG(DAA, NewCFG, &F), NewCFG};
+        auto *NewVFG = new DyckVFG(DAA, NewCFG, &F);
+        LocalVFGMap[&F] = {NewVFG, NewCFG};
+        VFGFuncMap[NewVFG].insert(&F);
     }
 
     // connect local VFGs
@@ -46,25 +49,33 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
             auto *CI = dyn_cast<CallInst>(&I);
             if (!CI) continue;
             auto *TheCall = CGNode->getCall(CI);
-            if (auto *CC = dyn_cast<CommonCall>(TheCall)) {
+            if (auto *CC = dyn_cast_or_null<CommonCall>(TheCall)) {
                 auto *Callee = dyn_cast<Function>(CC->getCalledFunction());
                 assert(Callee);
-                auto *&CalleeVFG = LocalVFGMap.at(Callee).first;
+                if (Callee->empty()) continue;
+                auto *CalleeVFG = LocalVFGMap.at(Callee).first;
                 G->connect(DMRA, TheCall, Callee, CalleeVFG, CtrlFlow);
                 if (G == CalleeVFG) continue;
                 G->mergeAndDelete(CalleeVFG);
-                CalleeVFG = G; // update the graph G
-            } else if (auto *PC = dyn_cast<PointerCall>(TheCall)) {
+                // errs() << "delete " << CalleeVFG << "\n";
+                // update: for each func FF in VFGFuncMap[CalleeVFG], VFGFuncMap[G].insert(FF) and LocalVFGMap[FF] = G
+                for (auto *FF : VFGFuncMap.at(CalleeVFG)) {
+                    VFGFuncMap.at(G).insert(FF);
+                    LocalVFGMap.at(FF).first = G;
+                }
+            } else if (auto *PC = dyn_cast_or_null<PointerCall>(TheCall)) {
                 for (Function *Callee: *PC) {
-                    auto *&CalleeVFG = LocalVFGMap.at(Callee).first;
+                    if (Callee->empty()) continue;
+                    auto *CalleeVFG = LocalVFGMap.at(Callee).first;
                     G->connect(DMRA, TheCall, Callee, CalleeVFG, CtrlFlow);
                     if (G == CalleeVFG) continue;
                     G->mergeAndDelete(CalleeVFG);
-                    CalleeVFG = G; // update the graph G
+                    // errs() << "delete " << CalleeVFG << "\n";
+                    for (auto *FF : VFGFuncMap.at(CalleeVFG)) {
+                        VFGFuncMap.at(G).insert(FF);
+                        LocalVFGMap.at(FF).first = G;
+                    }
                 }
-            } else {
-                errs() << I << "\n";
-                llvm_unreachable("unknown call type");
             }
         }
     }

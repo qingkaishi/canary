@@ -4,4 +4,5 @@ add_library(CanarySupport STATIC
         CFG.cpp
         ProgressBar.cpp
         ThreadPool.cpp
+        TimeRecorder.cpp
 )

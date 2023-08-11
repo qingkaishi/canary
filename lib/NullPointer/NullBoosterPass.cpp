@@ -18,26 +18,30 @@
 
 #include <llvm/IR/Dominators.h>
 #include "DyckAA/DyckAliasAnalysis.h"
+#include "DyckAA/DyckValueFlowAnalysis.h"
 #include "NullPointer/NullBoosterPass.h"
 #include "NullPointer/NullCheckAnalysis.h"
 #include "Support/TimeRecorder.h"
 
 char NullBoosterPass::ID = 0;
-static RegisterPass<NullBoosterPass> X("bona", "soundly checking if a pointer may be nullptr.");
+static RegisterPass<NullBoosterPass> X("nullptr", "soundly checking if a pointer may be nullptr.");
 
 NullBoosterPass::NullBoosterPass() : ModulePass(ID) {}
 
 NullBoosterPass::~NullBoosterPass() = default;
 
 void NullBoosterPass::getAnalysisUsage(AnalysisUsage &AU) const {
-    AU.addRequired<DyckAliasAnalysis>();
-    AU.addRequired<DominatorTreeWrapperPass>();
+    //AU.addRequired<DyckAliasAnalysis>();
+    AU.addRequired<DyckValueFlowAnalysis>();
+    //AU.addRequired<DominatorTreeWrapperPass>(); // used by nca
     AU.setPreservesAll();
 }
 
 bool NullBoosterPass::runOnModule(Module &M) {
     TimeRecorder TR("Running NullBoosterPass");
-    NullCheckAnalysis NCA(this, &M);
-    NCA.run();
+    auto *VFG = getAnalysis<DyckValueFlowAnalysis>().getDyckVFGraph();
+    outs() << VFG << "\n";
+    //NullCheckAnalysis NCA(this, &M);
+    //NCA.run();
     return false;
 }

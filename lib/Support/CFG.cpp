@@ -19,8 +19,7 @@
 #include <llvm/IR/CFG.h>
 #include "Support/CFG.h"
 
-CFG::CFG(Function *F) {
-    assert(F && "Cannot create a CFG for a null ptr!");
+CFG::CFG(Function *F) : AnalyzedVec(F->size(), false) {
     ReachableVecPtr = new ReachableVec[F->size()];
     int Idx = 0;
     for (auto &B: *F) {
