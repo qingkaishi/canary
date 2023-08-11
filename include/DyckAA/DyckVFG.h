@@ -56,8 +56,6 @@ private:
 public:
     DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M);
 
-    DyckVFG(DyckAliasAnalysis *DAA, CFG* DMRA, Function *F);
-
     ~DyckVFG();
 
     DyckVFGNode *getVFGNode(Value *) const;
@@ -65,9 +63,9 @@ public:
 private:
     DyckVFGNode *getOrCreateVFGNode(Value *);
 
-    void connect(DyckModRefAnalysis *, Call*, Function*, DyckVFG *, CFG *);
+    void connect(DyckModRefAnalysis *, Call*, Function*, CFG *);
 
-    void mergeAndDelete(DyckVFG *);
+    void buildLocalVFG(DyckAliasAnalysis *DAA, CFG* DMRA, Function *F);
 };
 
 #endif //DyckAA_DYCKVFG_H
