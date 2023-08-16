@@ -26,6 +26,7 @@
 #include <set>
 #include <unordered_map>
 
+#include "DyckAA/DyckValueFlowAnalysis.h"
 #include "NullPointer/NullEquivalenceAnalysis.h"
 
 using namespace llvm;
@@ -49,14 +50,14 @@ private:
     /// The function we analyze
     Function *F;
 
-    /// driver pass
-    Pass *Driver;
-
     /// Dominator tree
     DominatorTree *DT;
 
     /// ptr groups
     NullEquivalenceAnalysis NEA;
+
+    /// vfg
+    DyckVFG *VFG;
 
     /// init nonnull set
     std::set<Value *> InitNonNulls;

@@ -33,17 +33,12 @@ using namespace llvm;
 /// a ptr in a group is nonnull, then all ptrs in the group are nonnull
 class NullEquivalenceAnalysis {
 private:
-    Pass *Driver;
-
     DisjointSet<Value *> DisSet;
 
 public:
     NullEquivalenceAnalysis(Pass *, Function *);
 
     Value *get(Value *);
-
-private:
-
 };
 
 #endif //NULLPOINTER_NULLEQUIVALENCEANALYSIS_H

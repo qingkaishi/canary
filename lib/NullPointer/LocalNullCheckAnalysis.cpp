@@ -27,7 +27,7 @@
 #include "NullPointer/LocalNullCheckAnalysis.h"
 #include "Support/API.h"
 
-LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Driver(P), NEA(P, F) {
+LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), NEA(P, F) {
     // mark nonnull groups
     auto MustNotNull = [](Value *V) -> bool {
         V = V->stripPointerCastsAndAliases();
@@ -74,7 +74,8 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), Dri
 
     for (auto &B: *F) for (auto &I: B) InstNonNullMap[&I] = 0;
 
-    DT = nullptr; //&Driver->getAnalysis<DominatorTreeWrapperPass>(*F).getDomTree();
+    DT = nullptr; //&P->getAnalysis<DominatorTreeWrapperPass>(*F).getDomTree();
+    VFG = P->getAnalysis<DyckValueFlowAnalysis>().getDyckVFGraph();
     label();
 }
 

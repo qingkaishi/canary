@@ -31,17 +31,13 @@ NullBoosterPass::NullBoosterPass() : ModulePass(ID) {}
 NullBoosterPass::~NullBoosterPass() = default;
 
 void NullBoosterPass::getAnalysisUsage(AnalysisUsage &AU) const {
-    AU.addRequired<DyckAliasAnalysis>();
-    AU.addRequired<DyckValueFlowAnalysis>();
-    AU.addRequired<DominatorTreeWrapperPass>(); // used by nca
     AU.setPreservesAll();
+    AU.addRequired<DyckValueFlowAnalysis>(); // used by nca
+    AU.addRequired<DominatorTreeWrapperPass>(); // used by nca
 }
 
 bool NullBoosterPass::runOnModule(Module &M) {
     TimeRecorder TR("Running NullBoosterPass");
-    auto *VFG = getAnalysis<DyckValueFlowAnalysis>().getDyckVFGraph();
-    outs() << VFG << "\n";
-    NullCheckAnalysis NCA(this, &M);
-    NCA.run();
+    NullCheckAnalysis(this, &M).run();
     return false;
 }

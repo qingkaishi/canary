@@ -30,6 +30,7 @@ using namespace llvm;
 
 class DyckAliasAnalysis;
 class DyckModRefAnalysis;
+class Call;
 
 class DyckVFGNode {
 private:
