@@ -41,7 +41,7 @@
 
 #include <memory>
 
-#include "NullPointer/NullBoosterPass.h"
+#include "NullPointer/NullCheckAnalysis.h"
 #include "Transform/LowerConstantExpr.h"
 
 using namespace llvm;
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
     Passes.add(createLoopSimplifyPass());
     Passes.add(new LowerConstantExpr());
     Passes.add(new NotificationPass("Done!\n"));
-    Passes.add(new NullBoosterPass());
+    Passes.add(new NullCheckAnalysis());
 
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {

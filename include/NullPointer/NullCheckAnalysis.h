@@ -29,21 +29,22 @@ using namespace llvm;
 
 class LocalNullCheckAnalysis;
 
-class NullCheckAnalysis {
+class NullCheckAnalysis : public ModulePass {
 private:
-    Pass *Driver;
-
-    Module *M;
-
     std::unordered_map<Function *, LocalNullCheckAnalysis *> AnalysisMap;
 
 public:
-    NullCheckAnalysis(Pass *P, Module *M) : Driver(P), M(M) {}
+    static char ID;
 
-    ~NullCheckAnalysis();
+    NullCheckAnalysis() : ModulePass(ID) {}
 
-    void run();
+    ~NullCheckAnalysis() override;
 
+    bool runOnModule(Module &M) override;
+
+    void getAnalysisUsage(AnalysisUsage &AU) const override;
+
+public:
     /// \p Ptr must be an operand of \p Inst
     /// return true if \p Ptr at \p Inst may be a null pointer
     bool mayNull(Value *Ptr, Instruction *Inst);

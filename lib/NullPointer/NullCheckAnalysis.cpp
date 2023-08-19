@@ -22,10 +22,39 @@
 #include "Support/ThreadPool.h"
 #include "Support/TimeRecorder.h"
 
+char NullCheckAnalysis::ID = 0;
+static RegisterPass<NullCheckAnalysis> X("nullptr", "soundly checking if a pointer may be nullptr.");
 
 NullCheckAnalysis::~NullCheckAnalysis() {
     for (auto &It: AnalysisMap) delete It.second;
     decltype(AnalysisMap)().swap(AnalysisMap);
+}
+
+void NullCheckAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
+    AU.setPreservesAll();
+    AU.addRequired<DyckValueFlowAnalysis>();
+    AU.addRequired<DominatorTreeWrapperPass>();
+}
+
+bool NullCheckAnalysis::runOnModule(Module &M) {
+    // record time
+    TimeRecorder TR("Running NullCheckAnalysis");
+
+    // allocate space for each function for thread safety
+    for (auto &F: M) if (!F.empty()) AnalysisMap[&F] = nullptr;
+
+    // run local nca for each function concurrently
+    for (auto &F: M)
+        if (!F.empty())
+            ThreadPool::get()->enqueue([this, &F]() {
+                auto *LNCA = new LocalNullCheckAnalysis(this, &F);
+                AnalysisMap.at(&F) = LNCA;
+                LNCA->run();
+            });
+
+    // wait for all tasks to finish
+    ThreadPool::get()->wait();
+    return false;
 }
 
 bool NullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
@@ -33,24 +62,4 @@ bool NullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
     if (It != AnalysisMap.end())
         return It->second->mayNull(Ptr, Inst);
     else return true;
-}
-
-void NullCheckAnalysis::run() {
-    // record time
-    TimeRecorder TR("Running NullCheckAnalysis");
-
-    // allocate space for each function for thread safety
-    for (auto &F: *M) if (!F.empty()) AnalysisMap[&F] = nullptr;
-
-    // run local nca for each function concurrently
-    for (auto &F: *M)
-        if (!F.empty())
-            ThreadPool::get()->enqueue([this, &F]() {
-                auto *LNCA = new LocalNullCheckAnalysis(Driver, &F);
-                AnalysisMap.at(&F) = LNCA;
-                LNCA->run();
-            });
-
-    // wait for all tasks to finish
-    ThreadPool::get()->wait();
 }
