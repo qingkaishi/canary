@@ -17,6 +17,7 @@
  */
 
 #include <llvm/IR/GetElementPtrTypeIterator.h>
+#include <llvm/IR/InstIterator.h>
 #include "AAAnalyzer.h"
 #include "Support/TimeRecorder.h"
 
@@ -60,11 +61,9 @@ void AAAnalyzer::intraProcedureAnalysis() {
             continue;
         }
         DyckCallGraphNode *DF = DyckCG->getOrInsertFunction(&F);
-        for (auto &B: F) {
-            for (auto &I: B) {
-                InstNum++;
-                handleInst(&I, DF);
-            }
+        for (auto &I: instructions(F)) {
+            InstNum++;
+            handleInst(&I, DF);
         }
     }
     DEBUG_WITH_TYPE("dyckaa-stats", errs() << "\n# Instructions: " << InstNum << "\n");
@@ -822,9 +821,8 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
 
             this->handleInvokeCallInst(CallI, CV, &Args, Parent);
 
-            if (!CallI->getType()->isVoidTy()) {
+            if (!CallI->getType()->isVoidTy())
                 wrapValue(CallI);
-            }
 
             Mask |= (~0);
         }
@@ -953,11 +951,8 @@ void AAAnalyzer::handleInvokeCallInst(Instruction *Ret, Value *CV, std::vector<V
 }
 
 void AAAnalyzer::handleCommonFunctionCall(Call *C, DyckCallGraphNode *Caller, DyckCallGraphNode *Callee) {
-    // for better precise, if callee is an empty function, we do not
-    // match the args and parameters.
-    if (Callee->getLLVMFunction()->empty()) {
-        return;
-    }
+    // for better precise, if callee is an empty function, we do not match the args and parameters.
+    if (Callee->getLLVMFunction()->empty()) return;
 
     if (auto *CallInstruction = dyn_cast_or_null<CallInst>(C->getInstruction())) {
         //return<->call
