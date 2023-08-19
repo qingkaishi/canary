@@ -27,7 +27,7 @@
 #include "NullPointer/LocalNullCheckAnalysis.h"
 #include "Support/API.h"
 
-LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), NEA(P, F) {
+LocalNullCheckAnalysis::LocalNullCheckAnalysis(NullFlowAnalysis *NFA, Function *F) : F(F), NEA(F), NFA(NFA), DT(*F) {
     // mark nonnull groups
     auto MustNotNull = [](Value *V) -> bool {
         V = V->stripPointerCastsAndAliases();
@@ -74,10 +74,10 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(Pass *P, Function *F) : F(F), NEA
 
     for (auto &B: *F) for (auto &I: B) InstNonNullMap[&I] = 0;
 
-    DT = nullptr; //&P->getAnalysis<DominatorTreeWrapperPass>(*F).getDomTree();
-    VFG = P->getAnalysis<DyckValueFlowAnalysis>().getDyckVFGraph();
     label();
 }
+
+LocalNullCheckAnalysis::~LocalNullCheckAnalysis() = default;
 
 bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
     // not used as a ptr
@@ -361,8 +361,6 @@ void LocalNullCheckAnalysis::nca() {
 }
 
 void LocalNullCheckAnalysis::label() {
-    if (!DT) return;
-
     for (auto &I: instructions(*F)) {
         auto *Br = dyn_cast<BranchInst>(&I);
         if (!Br || !Br->isConditional()) continue;
@@ -403,9 +401,9 @@ void LocalNullCheckAnalysis::label(Edge E) {
 
     std::set<BasicBlock *> UnreachableBlocks;
     SmallVector<BasicBlock *, 10> Candidates;
-    DT->getDescendants(End, Candidates);
+    DT.getDescendants(End, Candidates);
     for (auto *B: Candidates) {
-        if (!DT->dominates({Start, End}, B)) continue;
+        if (!DT.dominates({Start, End}, B)) continue;
         UnreachableBlocks.insert(B);
     }
 

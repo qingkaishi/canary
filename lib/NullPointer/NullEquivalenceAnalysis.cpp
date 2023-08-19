@@ -19,7 +19,7 @@
 #include <llvm/IR/Instructions.h>
 #include "NullPointer/NullEquivalenceAnalysis.h"
 
-NullEquivalenceAnalysis::NullEquivalenceAnalysis(Pass *, Function *F) {
+NullEquivalenceAnalysis::NullEquivalenceAnalysis(Function *F) {
     // init
     for (unsigned K = 0; K < F->arg_size(); ++K) {
         auto *Arg = F->getArg(K);

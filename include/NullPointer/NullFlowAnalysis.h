@@ -16,29 +16,34 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef NULLPOINTER_NULLEQUIVALENCEANALYSIS_H
-#define NULLPOINTER_NULLEQUIVALENCEANALYSIS_H
+#ifndef NULLPOINTER_NULLFLOWANALYSIS_H
+#define NULLPOINTER_NULLFLOWANALYSIS_H
 
-#include <llvm/ADT/BitVector.h>
-#include <llvm/IR/Dominators.h>
-#include <llvm/IR/Function.h>
 #include <llvm/Pass.h>
-#include <set>
-#include <unordered_map>
-
-#include "Support/DisjointSet.h"
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/Debug.h>
+#include "DyckAA/DyckVFG.h"
 
 using namespace llvm;
 
-/// a ptr in a group is nonnull, then all ptrs in the group are nonnull
-class NullEquivalenceAnalysis {
+class NullFlowAnalysis : public ModulePass {
 private:
-    DisjointSet<Value *> DisSet;
+    DyckVFG *VFG;
 
 public:
-    explicit NullEquivalenceAnalysis(Function *);
+    static char ID;
 
-    Value *get(Value *);
+    NullFlowAnalysis();
+
+    ~NullFlowAnalysis() override;
+
+    bool runOnModule(Module &M) override;
+
+    void getAnalysisUsage(AnalysisUsage &AU) const override;
+
+public:
+    void recompute();
 };
 
-#endif //NULLPOINTER_NULLEQUIVALENCEANALYSIS_H
+#endif // NULLPOINTER_NULLFLOWANALYSIS_H

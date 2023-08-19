@@ -19,6 +19,7 @@
 #include <llvm/IR/Module.h>
 #include "NullPointer/LocalNullCheckAnalysis.h"
 #include "NullPointer/NullCheckAnalysis.h"
+#include "NullPointer/NullFlowAnalysis.h"
 #include "Support/ThreadPool.h"
 #include "Support/TimeRecorder.h"
 
@@ -32,13 +33,15 @@ NullCheckAnalysis::~NullCheckAnalysis() {
 
 void NullCheckAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.setPreservesAll();
-    AU.addRequired<DyckValueFlowAnalysis>();
-    AU.addRequired<DominatorTreeWrapperPass>();
+    AU.addRequired<NullFlowAnalysis>();
 }
 
 bool NullCheckAnalysis::runOnModule(Module &M) {
     // record time
     TimeRecorder TR("Running NullCheckAnalysis");
+
+    // get the null flow analysis
+    auto *NFA = &getAnalysis<NullFlowAnalysis>();
 
     // allocate space for each function for thread safety
     for (auto &F: M) if (!F.empty()) AnalysisMap[&F] = nullptr;
@@ -46,8 +49,8 @@ bool NullCheckAnalysis::runOnModule(Module &M) {
     // run local nca for each function concurrently
     for (auto &F: M)
         if (!F.empty())
-            ThreadPool::get()->enqueue([this, &F]() {
-                auto *LNCA = new LocalNullCheckAnalysis(this, &F);
+            ThreadPool::get()->enqueue([this, NFA, &F]() {
+                auto *LNCA = new LocalNullCheckAnalysis(NFA, &F);
                 AnalysisMap.at(&F) = LNCA;
                 LNCA->run();
             });

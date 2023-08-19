@@ -16,29 +16,32 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef NULLPOINTER_NULLEQUIVALENCEANALYSIS_H
-#define NULLPOINTER_NULLEQUIVALENCEANALYSIS_H
+#include "DyckAA/DyckValueFlowAnalysis.h"
+#include "NullPointer/NullFlowAnalysis.h"
+#include "Support/TimeRecorder.h"
 
-#include <llvm/ADT/BitVector.h>
-#include <llvm/IR/Dominators.h>
-#include <llvm/IR/Function.h>
-#include <llvm/Pass.h>
-#include <set>
-#include <unordered_map>
+char NullFlowAnalysis::ID = 0;
+static RegisterPass<NullFlowAnalysis> X("nfa", "null value flow");
 
-#include "Support/DisjointSet.h"
+NullFlowAnalysis::NullFlowAnalysis() : ModulePass(ID) {
+    VFG = nullptr;
+}
 
-using namespace llvm;
+NullFlowAnalysis::~NullFlowAnalysis() = default;
 
-/// a ptr in a group is nonnull, then all ptrs in the group are nonnull
-class NullEquivalenceAnalysis {
-private:
-    DisjointSet<Value *> DisSet;
+void NullFlowAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
+    AU.setPreservesAll();
+    AU.addRequired<DyckValueFlowAnalysis>();
+}
 
-public:
-    explicit NullEquivalenceAnalysis(Function *);
+bool NullFlowAnalysis::runOnModule(Module &M) {
+    TimeRecorder DyckVFA("Running NFA");
+    auto *VFA = &getAnalysis<DyckValueFlowAnalysis>();
+    VFG = VFA->getDyckVFGraph();
+    recompute();
+    return false;
+}
 
-    Value *get(Value *);
-};
-
-#endif //NULLPOINTER_NULLEQUIVALENCEANALYSIS_H
+void NullFlowAnalysis::recompute() {
+    // todo
+}

@@ -28,6 +28,7 @@
 
 #include "DyckAA/DyckValueFlowAnalysis.h"
 #include "NullPointer/NullEquivalenceAnalysis.h"
+#include "NullPointer/NullFlowAnalysis.h"
 
 using namespace llvm;
 
@@ -50,20 +51,22 @@ private:
     /// The function we analyze
     Function *F;
 
-    /// Dominator tree
-    DominatorTree *DT;
-
     /// ptr groups
     NullEquivalenceAnalysis NEA;
-
-    /// vfg
-    DyckVFG *VFG;
 
     /// init nonnull set
     std::set<Value *> InitNonNulls;
 
+    /// nfa
+    NullFlowAnalysis *NFA;
+
+    /// dt
+    DominatorTree DT;
+
 public:
-    explicit LocalNullCheckAnalysis(Pass* P, Function *F);
+    LocalNullCheckAnalysis(NullFlowAnalysis* NFA, Function *F);
+
+    ~LocalNullCheckAnalysis();
 
     /// \p Ptr must be an operand of \p Inst
     /// return true if \p Ptr at \p Inst may be a null pointer
