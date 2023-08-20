@@ -20,8 +20,8 @@
 #include "NullPointer/LocalNullCheckAnalysis.h"
 #include "NullPointer/NullCheckAnalysis.h"
 #include "NullPointer/NullFlowAnalysis.h"
+#include "Support/RecursiveTimer.h"
 #include "Support/ThreadPool.h"
-#include "Support/TimeRecorder.h"
 
 static cl::opt<unsigned> Round("nca-round", cl::init(1), cl::Hidden, cl::desc("# rounds"));
 
@@ -40,7 +40,7 @@ void NullCheckAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 
 bool NullCheckAnalysis::runOnModule(Module &M) {
     // record time
-    TimeRecorder TR("Running NullCheckAnalysis");
+    RecursiveTimer TR("Running NullCheckAnalysis");
 
     // get the null flow analysis
     auto *NFA = &getAnalysis<NullFlowAnalysis>();

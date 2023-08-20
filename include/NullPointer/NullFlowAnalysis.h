@@ -33,6 +33,8 @@ private:
 
     std::set<std::pair<DyckVFGNode *, DyckVFGNode *>> NonNullEdges;
 
+    std::set<DyckVFGNode *> NonNullNodes;
+
 public:
     static char ID;
 
@@ -51,6 +53,9 @@ public:
 
     /// update NonNullEdges so that we can call recompute()
     void add(Value *, Value *);
+
+    /// return true if the input value is not null
+    bool notNull(Value *) const;
 };
 
 #endif // NULLPOINTER_NULLFLOWANALYSIS_H

@@ -24,8 +24,7 @@
 #include "AAAnalyzer.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckCallGraph.h"
-#include "MRAnalyzer.h"
-#include "Support/TimeRecorder.h"
+#include "Support/RecursiveTimer.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc("Output alias sets and their relations"));
@@ -71,7 +70,7 @@ DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
 }
 
 bool DyckAliasAnalysis::runOnModule(Module &M) {
-    TimeRecorder DyckAA("Running DyckAA");
+    RecursiveTimer DyckAA("Running DyckAA");
 
     // alias analysis
     AAAnalyzer AA(&M, DyckPTG, DyckCG);

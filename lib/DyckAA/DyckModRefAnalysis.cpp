@@ -19,7 +19,7 @@
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckModRefAnalysis.h"
 #include "MRAnalyzer.h"
-#include "Support/TimeRecorder.h"
+#include "Support/RecursiveTimer.h"
 
 char DyckModRefAnalysis::ID = 0;
 static RegisterPass<DyckModRefAnalysis> X("dyckmr", "m/r based on the unification based alias analysis");
@@ -35,7 +35,7 @@ void DyckModRefAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
 bool DyckModRefAnalysis::runOnModule(Module &M) {
-    TimeRecorder DyckMRA("Running DyckMRA");
+    RecursiveTimer DyckMRA("Running DyckMRA");
     auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
     MRAnalyzer MR(&M, DyckAA->getDyckGraph(), DyckAA->getDyckCallGraph());
     MR.intraProcedureAnalysis();

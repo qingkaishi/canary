@@ -18,7 +18,7 @@
 
 #include "DyckAA/DyckValueFlowAnalysis.h"
 #include "NullPointer/NullFlowAnalysis.h"
-#include "Support/TimeRecorder.h"
+#include "Support/RecursiveTimer.h"
 
 char NullFlowAnalysis::ID = 0;
 static RegisterPass<NullFlowAnalysis> X("nfa", "null value flow");
@@ -34,9 +34,12 @@ void NullFlowAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
 bool NullFlowAnalysis::runOnModule(Module &M) {
-    TimeRecorder DyckVFA("Running NFA");
+    RecursiveTimer DyckVFA("Running NFA");
     auto *VFA = &getAnalysis<DyckValueFlowAnalysis>();
     VFG = VFA->getDyckVFGraph();
+
+    // todo init non-null nodes and edges, and then call recompute
+
     recompute();
     return false;
 }
@@ -62,4 +65,11 @@ void NullFlowAnalysis::add(Value *V1, Value *V2) {
         if (!V2N) return;
     }
     NonNullEdges.emplace(V1N, V2N);
+}
+
+bool NullFlowAnalysis::notNull(Value *V) const {
+    assert(V);
+    auto *N = VFG->getVFGNode(V);
+    if (!N) return true;
+    return NonNullNodes.count(N);
 }

@@ -19,7 +19,7 @@
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckModRefAnalysis.h"
 #include "DyckAA/DyckValueFlowAnalysis.h"
-#include "Support/TimeRecorder.h"
+#include "Support/RecursiveTimer.h"
 
 char DyckValueFlowAnalysis::ID = 0;
 static RegisterPass<DyckValueFlowAnalysis> X("dyckvfa", "vfa based on the unification based alias analysis");
@@ -43,7 +43,7 @@ DyckVFG *DyckValueFlowAnalysis::getDyckVFGraph() const {
 }
 
 bool DyckValueFlowAnalysis::runOnModule(Module &M) {
-    TimeRecorder DyckVFA("Running DyckVFA");
+    RecursiveTimer DyckVFA("Running DyckVFA");
     auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
     auto *DyckMRA = &getAnalysis<DyckModRefAnalysis>();
     VFG = new DyckVFG(DyckAA, DyckMRA, &M);

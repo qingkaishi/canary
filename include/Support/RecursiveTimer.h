@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SUPPORT_TIMERECORDER_H
-#define SUPPORT_TIMERECORDER_H
+#ifndef SUPPORT_RECURSIVETIMER_H
+#define SUPPORT_RECURSIVETIMER_H
 
 #include <llvm/Support/raw_os_ostream.h>
 
@@ -26,7 +26,7 @@
 
 using namespace llvm;
 
-class TimeRecorder {
+class RecursiveTimer {
 private:
     std::chrono::steady_clock::time_point Begin;
     std::string Prefix;
@@ -34,13 +34,13 @@ private:
 public:
     /// the prefix should be in a style of "Doing sth" or "Sth"
     /// @{
-    explicit TimeRecorder(const char *Prefix);
+    explicit RecursiveTimer(const char *Prefix);
 
-    explicit TimeRecorder(const std::string &Prefix);
+    explicit RecursiveTimer(const std::string &Prefix);
     /// @}
 
     /// end of the recorder
-    ~TimeRecorder();
+    ~RecursiveTimer();
 };
 
-#endif //SUPPORT_TIMERECORDER_H
+#endif //SUPPORT_RECURSIVETIMER_H

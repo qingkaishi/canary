@@ -49,7 +49,6 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(NullFlowAnalysis *NFA, Function *
         if (I.getType()->isPointerTy() && MustNotNull(&I)) InitNonNulls.insert(NEA.get(&I));
     }
 
-
     // init nca
     for (unsigned K = 0; K < F->arg_size(); ++K) {
         auto *Arg = F->getArg(K);

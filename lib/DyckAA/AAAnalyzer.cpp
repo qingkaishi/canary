@@ -19,7 +19,7 @@
 #include <llvm/IR/GetElementPtrTypeIterator.h>
 #include <llvm/IR/InstIterator.h>
 #include "AAAnalyzer.h"
-#include "Support/TimeRecorder.h"
+#include "Support/RecursiveTimer.h"
 
 static cl::opt<unsigned> FunctionTypeCheckLevel("function-type-check-level", cl::init(4), cl::Hidden,
                                                 cl::desc("The level of checking the compatability of function types"
@@ -51,7 +51,7 @@ AAAnalyzer::~AAAnalyzer() {
 }
 
 void AAAnalyzer::intraProcedureAnalysis() {
-    TimeRecorder IntraAA("Running intra-procedural analysis");
+    RecursiveTimer IntraAA("Running intra-procedural analysis");
     long InstNum = 0;
     long IntrinsicsNum = 0;
     for (auto &F: *Mod) {
@@ -71,19 +71,19 @@ void AAAnalyzer::intraProcedureAnalysis() {
 }
 
 void AAAnalyzer::interProcedureAnalysis() {
-    TimeRecorder IntraAA("Running inter-procedural analysis");
+    RecursiveTimer IntraAA("Running inter-procedural analysis");
 
     unsigned IterationCounter = 0;
     while (true) {
         if (IterationCounter++ >= NumInterIteration.getValue())
             break;
-        TimeRecorder IterationTimer("Iteration " + std::to_string(IterationCounter));
+        RecursiveTimer IterationTimer("Iteration " + std::to_string(IterationCounter));
 
         bool Finished = true;
         CFLGraph->qirunAlgorithm();
 
         if (IterationCounter == 1) { // direct calls
-            TimeRecorder DirectCallTimer("Handling direct calls");
+            RecursiveTimer DirectCallTimer("Handling direct calls");
             auto CGNodeIt = DyckCG->nodes_begin();
             while (CGNodeIt != DyckCG->nodes_end()) {
                 DyckCallGraphNode *CGNode = *CGNodeIt;
@@ -101,7 +101,7 @@ void AAAnalyzer::interProcedureAnalysis() {
         }
 
         { // indirect call
-            TimeRecorder DirectCallTimer("Handling indirect calls");
+            RecursiveTimer DirectCallTimer("Handling indirect calls");
             int NumProcessedFunctions = 0;
             auto DFIt = DyckCG->begin();
             while (DFIt != DyckCG->end()) {
