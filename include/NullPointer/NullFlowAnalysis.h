@@ -43,7 +43,9 @@ public:
     void getAnalysisUsage(AnalysisUsage &AU) const override;
 
 public:
-    void recompute();
+    /// return true if some changes happen
+    /// return false if nothing is changed
+    bool recompute();
 };
 
 #endif // NULLPOINTER_NULLFLOWANALYSIS_H

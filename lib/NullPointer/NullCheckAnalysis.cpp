@@ -23,8 +23,10 @@
 #include "Support/ThreadPool.h"
 #include "Support/TimeRecorder.h"
 
+static cl::opt<unsigned> Round("nca-round", cl::init(1), cl::Hidden, cl::desc("# rounds"));
+
 char NullCheckAnalysis::ID = 0;
-static RegisterPass<NullCheckAnalysis> X("nullptr", "soundly checking if a pointer may be nullptr.");
+static RegisterPass<NullCheckAnalysis> X("nca", "soundly checking if a pointer may be nullptr.");
 
 NullCheckAnalysis::~NullCheckAnalysis() {
     for (auto &It: AnalysisMap) delete It.second;
@@ -46,17 +48,19 @@ bool NullCheckAnalysis::runOnModule(Module &M) {
     // allocate space for each function for thread safety
     for (auto &F: M) if (!F.empty()) AnalysisMap[&F] = nullptr;
 
-    // run local nca for each function concurrently
-    for (auto &F: M)
-        if (!F.empty())
+    unsigned Count = 0;
+    do {
+        for (auto &F: M) {
+            if (F.empty()) continue;
             ThreadPool::get()->enqueue([this, NFA, &F]() {
-                auto *LNCA = new LocalNullCheckAnalysis(NFA, &F);
-                AnalysisMap.at(&F) = LNCA;
+                auto *&LNCA = AnalysisMap.at(&F);
+                if (!LNCA) LNCA = new LocalNullCheckAnalysis(NFA, &F);
                 LNCA->run();
             });
+        }
+        ThreadPool::get()->wait(); // wait for all tasks to finish
+    } while (++Count < Round.getValue() && NFA->recompute());
 
-    // wait for all tasks to finish
-    ThreadPool::get()->wait();
     return false;
 }
 

@@ -23,8 +23,7 @@
 char NullFlowAnalysis::ID = 0;
 static RegisterPass<NullFlowAnalysis> X("nfa", "null value flow");
 
-NullFlowAnalysis::NullFlowAnalysis() : ModulePass(ID) {
-    VFG = nullptr;
+NullFlowAnalysis::NullFlowAnalysis() : ModulePass(ID), VFG(nullptr) {
 }
 
 NullFlowAnalysis::~NullFlowAnalysis() = default;
@@ -42,6 +41,7 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
     return false;
 }
 
-void NullFlowAnalysis::recompute() {
+bool NullFlowAnalysis::recompute() {
     // todo
+    return false;
 }
