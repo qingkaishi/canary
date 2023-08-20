@@ -42,6 +42,24 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
 }
 
 bool NullFlowAnalysis::recompute() {
+    std::set<std::pair<DyckVFGNode *, DyckVFGNode *>> WorkingNonNulLEdges;
+    WorkingNonNulLEdges.swap(NonNullEdges); // clear NonNulLEdges for next round
+
     // todo
+    //  1. find all (new, to avoid duplicate computation) non-null vfg-edges;
+    //  2. propagate all (new) non-null vfg-edges
+    //  (we do not use nodes, because a node may not be null via only one edge)
     return false;
+}
+
+void NullFlowAnalysis::add(Value *V1, Value *V2) {
+    if (!V1) return;
+    auto *V1N = VFG->getVFGNode(V1);
+    if (!V1N) return;
+    DyckVFGNode *V2N = nullptr;
+    if (V2) {
+        V2N = VFG->getVFGNode(V2);
+        if (!V2N) return;
+    }
+    NonNullEdges.emplace(V1N, V2N);
 }

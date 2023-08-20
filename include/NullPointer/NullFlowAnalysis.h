@@ -31,6 +31,8 @@ class NullFlowAnalysis : public ModulePass {
 private:
     DyckVFG *VFG;
 
+    std::set<std::pair<DyckVFGNode *, DyckVFGNode *>> NonNullEdges;
+
 public:
     static char ID;
 
@@ -46,6 +48,9 @@ public:
     /// return true if some changes happen
     /// return false if nothing is changed
     bool recompute();
+
+    /// update NonNullEdges so that we can call recompute()
+    void add(Value *, Value *);
 };
 
 #endif // NULLPOINTER_NULLFLOWANALYSIS_H
