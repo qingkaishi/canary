@@ -61,6 +61,12 @@ bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
     return getAliasSet(V1)->count(V2);
 }
 
+bool DyckAliasAnalysis::mayNull(Value *V) const {
+    auto *DyckNode = DyckPTG->findDyckVertex(V);
+    if (!DyckNode) return false;
+    return DyckNode->containsNull();
+}
+
 DyckCallGraph *DyckAliasAnalysis::getDyckCallGraph() const {
     return DyckCG;
 }
@@ -76,6 +82,17 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
     AAAnalyzer AA(&M, DyckPTG, DyckCG);
     AA.intraProcedureAnalysis();
     AA.interProcedureAnalysis();
+
+    // a post-processing procedure
+    for (auto *DyckNode: DyckPTG->getVertices()) {
+        auto *AliasSet = (const std::set<Value *> *) DyckNode->getEquivalentSet();
+        if (!AliasSet) continue;
+        for (auto *V: *AliasSet) {
+            if (!isa<ConstantPointerNull>(V)) continue;
+            DyckNode->setContainsNull();
+            break;
+        }
+    }
 
     /* call graph */
     if (DotCallGraph) {

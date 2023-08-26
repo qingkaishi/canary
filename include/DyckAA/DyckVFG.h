@@ -29,25 +29,32 @@
 using namespace llvm;
 
 class DyckAliasAnalysis;
+
 class DyckModRefAnalysis;
+
 class Call;
 
 class DyckVFGNode {
 private:
+    /// the value this node represents
     Value *V;
 
-    std::set<DyckVFGNode *> Targets;
+    /// labeled edge, 0 - epsilon, pos - call, neg - return
+    /// @{
+    typedef std::set<std::pair<DyckVFGNode *, int>> TargetSetTy;
+    TargetSetTy Targets;
+    /// @}
 
 public:
     explicit DyckVFGNode(Value *V) : V(V) {}
 
-    void addTarget(DyckVFGNode *N) { Targets.insert(N); }
+    void addTarget(DyckVFGNode *N, int L = 0) { Targets.emplace(N, L); }
 
     Value *getValue() const { return V; }
 
-    std::set<DyckVFGNode *>::const_iterator begin() const { return Targets.begin(); }
+    TargetSetTy::const_iterator begin() const { return Targets.begin(); }
 
-    std::set<DyckVFGNode *>::const_iterator end() const { return Targets.end(); }
+    TargetSetTy::const_iterator end() const { return Targets.end(); }
 };
 
 class DyckVFG {
@@ -55,7 +62,7 @@ private:
     std::unordered_map<Value *, DyckVFGNode *> ValueNodeMap;
 
 public:
-    DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis* DMRA, Module *M);
+    DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M);
 
     ~DyckVFG();
 
@@ -64,9 +71,9 @@ public:
 private:
     DyckVFGNode *getOrCreateVFGNode(Value *);
 
-    void connect(DyckModRefAnalysis *, Call*, Function*, CFG *);
+    void connect(DyckModRefAnalysis *, Call *, Function *, CFG *);
 
-    void buildLocalVFG(DyckAliasAnalysis *DAA, CFG* DMRA, Function *F);
+    void buildLocalVFG(DyckAliasAnalysis *DAA, CFG *DMRA, Function *F);
 };
 
 #endif //DyckAA_DYCKVFG_H

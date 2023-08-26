@@ -177,7 +177,7 @@ void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, CFG *
         auto *ActualNode = getOrCreateVFGNode(Actual);
         auto *Formal = Callee->getArg(K);
         auto *FormalNode = getOrCreateVFGNode(Formal);
-        ActualNode->addTarget(FormalNode);
+        ActualNode->addTarget(FormalNode, C->id());
     }
     // connect direct outputs
     if (!C->getInstruction()->getType()->isVoidTy()) {
@@ -187,7 +187,7 @@ void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, CFG *
             if (!RetInst) continue;
             if (RetInst->getNumOperands() != 1) continue;
             auto *FormalRet = getOrCreateVFGNode(Inst.getOperand(0));
-            FormalRet->addTarget(ActualRet);
+            FormalRet->addTarget(ActualRet, -C->id());
         }
     }
 
@@ -201,7 +201,7 @@ void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, CFG *
     collectValues(DMRA->ref_begin(Callee), DMRA->ref_end(Callee), RefCallerValues, RefCalleeValues, C, Callee, Ctrl);
     for (auto *CallerVal: RefCallerValues)
         for (auto *CalleeVal: RefCalleeValues)
-            getOrCreateVFGNode(CallerVal)->addTarget(getOrCreateVFGNode(CalleeVal));
+            getOrCreateVFGNode(CallerVal)->addTarget(getOrCreateVFGNode(CalleeVal), C->id());
 
     // connect indirect outputs
     //  1. get mods, get mod values (in caller and callee)
@@ -210,5 +210,5 @@ void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, CFG *
     collectValues(DMRA->mod_begin(Callee), DMRA->mod_end(Callee), ModCallerValues, ModCalleeValues, C, Callee, Ctrl);
     for (auto *CalleeVal: ModCalleeValues)
         for (auto *CallerVal: ModCallerValues)
-            getOrCreateVFGNode(CalleeVal)->addTarget(getOrCreateVFGNode(CallerVal));
+            getOrCreateVFGNode(CalleeVal)->addTarget(getOrCreateVFGNode(CallerVal), -C->id());
 }

@@ -30,6 +30,7 @@ private:
     static int GlobalNodeIndex;
     int NodeIndex;
     const char *NodeName;
+    bool ContainsNull = false;
 
     std::set<void *> InLables;
     std::set<void *> OutLables;
@@ -109,6 +110,12 @@ public:
     /// Get the equivalent set of non-null value.
     /// Use it after you call DyckGraph::qirunAlgorithm().
     std::set<void *> *getEquivalentSet();
+
+    /// the equivalent set contains null pointer
+    void setContainsNull() { ContainsNull = true; }
+
+    /// return true if the equivalent set contains null pointer
+    bool containsNull() const { return ContainsNull; }
 
 private:
     void addSource(DyckGraphNode *, void *Label);

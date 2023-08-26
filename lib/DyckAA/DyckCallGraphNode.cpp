@@ -18,6 +18,8 @@
 
 #include "DyckAA/DyckCallGraphNode.h"
 
+static int GlobalCallID = 0;
+
 Call::Call(CallKind K, Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args) : Kind(K) {
     assert(CalledValue != nullptr && "Error when create a call: called value is null!");
     assert(Args != nullptr && "Error when create a call: args is null!");
@@ -25,6 +27,7 @@ Call::Call(CallKind K, Instruction *Inst, Value *CalledValue, std::vector<Value 
     this->CalledValue = CalledValue;
     this->Inst = Inst;
     this->Args = *Args;
+    this->CallId = ++GlobalCallID;
 }
 
 CommonCall::CommonCall(Instruction *Inst, Function *Func, std::vector<Value *> *Args)

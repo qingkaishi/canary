@@ -56,6 +56,9 @@ public:
     /// return true if \p V1 is an alias of \p V2
     bool mayAlias(Value *V1, Value *V2) const;
 
+    /// return true if \p V is an alias of nullptr
+    bool mayNull(Value *V) const;
+
     /// get the call graph based on dyck-aa
     DyckCallGraph *getDyckCallGraph() const;
 

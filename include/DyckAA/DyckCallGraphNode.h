@@ -50,12 +50,19 @@ public:
 protected:
     CallKind Kind;
 
-    // if it has a return value, this is the return value; 
-    // it may be null, because there exists some implicit calls, like those in pthread_create
-    // it may be a callinst or invoke inst, currently only call inst because all invokes are lowered to call
+    /// if it has a return value, this is the return value;
+    /// it may be null, because there exists some implicit calls, like those in pthread_create
+    /// it may be a callinst or invoke inst, currently only call inst because all invokes are lowered to call
     Instruction *Inst;
+
+    /// the called value
     Value *CalledValue;
+
+    /// the arguments
     std::vector<Value *> Args;
+
+    /// unique id
+    int CallId;
 
 public:
     Call(CallKind K, Instruction *Inst, Value *CalledValue, std::vector<Value *> *Args);
@@ -71,6 +78,8 @@ public:
     Value *getArg(unsigned K) const { return Args[K]; }
 
     const std::vector<Value *> &getArgs() const { return Args; }
+
+    int id() const { return CallId; }
 };
 
 class CommonCall : public Call {
@@ -172,9 +181,13 @@ public:
 
     pair_value_iterator<CallRecordVecTy::iterator, DyckCallGraphNode *> child_end() { return {CallRecords.end()}; }
 
-    pair_value_iterator<CallRecordVecTy::const_iterator, DyckCallGraphNode *> child_begin() const { return {CallRecords.begin()}; }
+    pair_value_iterator<CallRecordVecTy::const_iterator, DyckCallGraphNode *> child_begin() const {
+        return {CallRecords.begin()};
+    }
 
-    pair_value_iterator<CallRecordVecTy::const_iterator, DyckCallGraphNode *> child_end() const { return {CallRecords.end()}; }
+    pair_value_iterator<CallRecordVecTy::const_iterator, DyckCallGraphNode *> child_end() const {
+        return {CallRecords.end()};
+    }
 
     CallRecordVecTy::iterator child_edge_begin() { return CallRecords.begin(); }
 

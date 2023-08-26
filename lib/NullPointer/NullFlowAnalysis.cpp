@@ -16,8 +16,11 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <llvm/IR/InstIterator.h>
+#include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckValueFlowAnalysis.h"
 #include "NullPointer/NullFlowAnalysis.h"
+#include "Support/API.h"
 #include "Support/RecursiveTimer.h"
 
 char NullFlowAnalysis::ID = 0;
@@ -31,14 +34,42 @@ NullFlowAnalysis::~NullFlowAnalysis() = default;
 void NullFlowAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.setPreservesAll();
     AU.addRequired<DyckValueFlowAnalysis>();
+    AU.addRequired<DyckAliasAnalysis>();
 }
 
 bool NullFlowAnalysis::runOnModule(Module &M) {
     RecursiveTimer DyckVFA("Running NFA");
     auto *VFA = &getAnalysis<DyckValueFlowAnalysis>();
     VFG = VFA->getDyckVFGraph();
+    auto *DAA = &getAnalysis<DyckAliasAnalysis>();
 
-    // todo init non-null nodes and edges, and then call recompute
+    // init non-null nodes and edges, and then call recompute
+    auto MustNotNull = [DAA](Value *V) -> bool {
+        V = V->stripPointerCastsAndAliases();
+        if (isa<GlobalValue>(V)) return true;
+        if (auto CI = dyn_cast<Instruction>(V))
+            return API::isMemoryAllocate(CI);
+        return !DAA->mayNull(V);
+    };
+    for (auto &F : M) {
+        for (auto &I : instructions(&F)) {
+            if (MustNotNull(&I)) {
+                if (auto INode = VFG->getVFGNode(&I)) {
+                    NonNullNodes.insert(INode);
+                    NonNullEdges.emplace(INode, nullptr);
+                }
+            }
+            for (unsigned K = 0; K < I.getNumOperands(); ++K) {
+                auto *Op = I.getOperand(K);
+                if (MustNotNull(Op)) {
+                    if (auto OpNode = VFG->getVFGNode(Op)) {
+                        NonNullNodes.insert(OpNode);
+                        NonNullEdges.emplace(OpNode, nullptr);
+                    }
+                }
+            }
+        }
+    }
 
     recompute();
     return false;
