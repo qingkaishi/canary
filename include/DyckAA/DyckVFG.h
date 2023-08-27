@@ -25,6 +25,7 @@
 #include <set>
 #include <unordered_map>
 #include "Support/CFG.h"
+#include "Support/MapIterators.h"
 
 using namespace llvm;
 
@@ -41,20 +42,29 @@ private:
 
     /// labeled edge, 0 - epsilon, pos - call, neg - return
     /// @{
-    typedef std::set<std::pair<DyckVFGNode *, int>> TargetSetTy;
-    TargetSetTy Targets;
+    using EdgeSetTy = std::set<std::pair<DyckVFGNode *, int>>;
+    EdgeSetTy Targets;
+    EdgeSetTy Sources;
     /// @}
 
 public:
     explicit DyckVFGNode(Value *V) : V(V) {}
 
-    void addTarget(DyckVFGNode *N, int L = 0) { Targets.emplace(N, L); }
+    void addTarget(DyckVFGNode *N, int L = 0) {
+        assert(N);
+        this->Targets.emplace(N, L);
+        N->Sources.emplace(this, L);
+    }
 
     Value *getValue() const { return V; }
 
-    TargetSetTy::const_iterator begin() const { return Targets.begin(); }
+    EdgeSetTy::const_iterator begin() const { return Targets.begin(); }
 
-    TargetSetTy::const_iterator end() const { return Targets.end(); }
+    EdgeSetTy::const_iterator end() const { return Targets.end(); }
+
+    EdgeSetTy::const_iterator in_begin() const { return Sources.begin(); }
+
+    EdgeSetTy::const_iterator in_end() const { return Sources.end(); }
 };
 
 class DyckVFG {
@@ -67,6 +77,10 @@ public:
     ~DyckVFG();
 
     DyckVFGNode *getVFGNode(Value *) const;
+
+    value_iterator<std::unordered_map<Value *, DyckVFGNode *>::iterator> node_begin() { return {ValueNodeMap.begin()}; }
+
+    value_iterator<std::unordered_map<Value *, DyckVFGNode *>::iterator> node_end() { return {ValueNodeMap.end()}; }
 
 private:
     DyckVFGNode *getOrCreateVFGNode(Value *);

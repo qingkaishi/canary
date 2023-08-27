@@ -33,6 +33,8 @@ private:
 
     std::set<std::pair<DyckVFGNode *, DyckVFGNode *>> NonNullEdges;
 
+    std::set<std::pair<DyckVFGNode *, DyckVFGNode *>> NewNonNullEdges;
+
     std::set<DyckVFGNode *> NonNullNodes;
 
 public:
