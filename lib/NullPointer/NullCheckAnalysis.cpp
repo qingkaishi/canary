@@ -46,13 +46,14 @@ bool NullCheckAnalysis::runOnModule(Module &M) {
     auto *NFA = &getAnalysis<NullFlowAnalysis>();
 
     // allocate space for each function for thread safety
-    for (auto &F: M) if (!F.empty()) AnalysisMap[&F] = nullptr;
+    std::set<Function *> Funcs;
+    for (auto &F: M) if (!F.empty()) { AnalysisMap[&F] = nullptr; Funcs.insert(&F); }
 
     unsigned Count = 1;
     do {
         RecursiveTimer Iteration("NCA Iteration " + std::to_string(Count));
         for (auto &F: M) {
-            if (F.empty()) continue;
+            if (!Funcs.count(&F)) continue;
             ThreadPool::get()->enqueue([this, NFA, &F]() {
                 auto *&LNCA = AnalysisMap.at(&F);
                 if (!LNCA) LNCA = new LocalNullCheckAnalysis(NFA, &F);
@@ -60,7 +61,8 @@ bool NullCheckAnalysis::runOnModule(Module &M) {
             });
         }
         ThreadPool::get()->wait(); // wait for all tasks to finish
-    } while (Count++ < Round.getValue() && NFA->recompute());
+        Funcs.clear();
+    } while (Count++ < Round.getValue() && NFA->recompute(Funcs));
 
     return false;
 }

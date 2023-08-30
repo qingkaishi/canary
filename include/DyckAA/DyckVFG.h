@@ -58,6 +58,8 @@ public:
 
     Value *getValue() const { return V; }
 
+    Function *getFunction() const;
+
     EdgeSetTy::const_iterator begin() const { return Targets.begin(); }
 
     EdgeSetTy::const_iterator end() const { return Targets.end(); }

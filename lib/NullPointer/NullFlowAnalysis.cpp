@@ -94,7 +94,7 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
     return false;
 }
 
-bool NullFlowAnalysis::recompute() {
+bool NullFlowAnalysis::recompute(std::set<Function *> &NewNonNullFunctions) {
     std::set<DyckVFGNode *> PossibleNonNullNodes;
     unsigned K = 0, Limits = IncrementalLimits < 0 ? UINT32_MAX : IncrementalLimits;
     for (auto &NIt: NewNonNullEdges) {
@@ -103,14 +103,9 @@ bool NullFlowAnalysis::recompute() {
             if (++K > Limits) break;
             auto *Src = EIt->first;
             auto *Tgt = EIt->second;
-            if (Tgt) {
-                if (!NonNullNodes.count(Tgt)) PossibleNonNullNodes.insert(Tgt);
-                NonNullEdges.emplace(Src, Tgt);
-            } else {
-                for (auto &It: *Src)
-                    if (!NonNullNodes.count(It.first)) PossibleNonNullNodes.insert(It.first);
-                NonNullNodes.insert(Src);
-            }
+            assert(Src && Tgt);
+            if (!NonNullNodes.count(Tgt)) PossibleNonNullNodes.insert(Tgt);
+            NonNullEdges.emplace(Src, Tgt);
             EIt = NIt.second.erase(EIt);
         }
     }
@@ -137,6 +132,7 @@ bool NullFlowAnalysis::recompute() {
             }
             if (!AllInNonNull) continue;
             NonNullNodes.insert(N);
+            if (auto *NF = N->getFunction()) NewNonNullFunctions.insert(NF);
         }
         for (auto &T: *N) WorkList.push_back(T.first);
     }
@@ -151,14 +147,10 @@ bool NullFlowAnalysis::notNull(Value *V) const {
 }
 
 void NullFlowAnalysis::add(Function *F, Value *V1, Value *V2) {
-    if (!V1) return;
     auto *V1N = VFG->getVFGNode(V1);
-    if (!V1N) return;
-    DyckVFGNode *V2N = nullptr;
-    if (V2) {
-        V2N = VFG->getVFGNode(V2);
-        if (!V2N) return;
-    }
+    if(!V1N) return;
+    auto *V2N = VFG->getVFGNode(V2);
+    if (!V2N) return;
     NewNonNullEdges.at(F).emplace(V1N, V2N);
 }
 
@@ -172,11 +164,22 @@ void NullFlowAnalysis::add(Function *F, CallInst *CI, unsigned int K) {
     if (auto *CC = dyn_cast<CommonCall>(C)) {
         auto *Callee = CC->getCalledFunction();
         if (K < Callee->arg_size()) add(F, Actual, CC->getCalledFunction()->getArg(K));
-        else assert(Callee->isVarArg());
+        else
+            assert(Callee->isVarArg());
     } else {
         auto *PC = dyn_cast<PointerCall>(C);
         for (auto *Callee: *PC)
             if (K < Callee->arg_size()) add(F, Actual, Callee->getArg(K));
-            else assert(Callee->isVarArg());
+            else
+                assert(Callee->isVarArg());
     }
+}
+
+void NullFlowAnalysis::add(Function *F, Value *Ret) {
+    if (!Ret) return;
+    auto *RetN = VFG->getVFGNode(Ret);
+    if (!RetN) return;
+    auto &Set = NewNonNullEdges.at(F);
+    for (auto &TargetIt: *RetN)
+        Set.emplace(RetN, TargetIt.first);
 }

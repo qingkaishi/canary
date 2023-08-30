@@ -164,7 +164,7 @@ void LocalNullCheckAnalysis::tag() {
             if (OpKMustNonNull) {
                 Orig = Orig | (1 << K);
                 if (isa<ReturnInst>(&I)) {
-                    NFA->add(F, OpK, nullptr);
+                    NFA->add(F, OpK);
                 } else if (auto *CI = dyn_cast<CallInst>(&I)) {
                     if (K < CI->getNumArgOperands()) NFA->add(F, CI, K);
                 } else {

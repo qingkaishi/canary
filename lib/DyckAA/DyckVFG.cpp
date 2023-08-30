@@ -212,3 +212,13 @@ void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, CFG *
         for (auto *CallerVal: ModCallerValues)
             getOrCreateVFGNode(CalleeVal)->addTarget(getOrCreateVFGNode(CallerVal), -C->id());
 }
+
+Function *DyckVFGNode::getFunction() const {
+    if (!V) return nullptr;
+    if (auto *Arg = dyn_cast<Argument>(V)) {
+        return Arg->getParent();
+    } else if (auto *Inst = dyn_cast<Instruction>(V)) {
+        return Inst->getFunction();
+    }
+    return nullptr;
+}

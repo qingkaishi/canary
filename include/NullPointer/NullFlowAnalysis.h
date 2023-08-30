@@ -54,13 +54,15 @@ public:
 public:
     /// return true if some changes happen
     /// return false if nothing is changed
-    bool recompute();
+    bool recompute(std::set<Function *> &);
 
     /// update NewNonNullEdges so that we can call recompute()
     /// @{
     void add(Function *, Value *, Value *);
 
-    void add(Function *, CallInst *, unsigned K);
+    void add(Function *, CallInst *, unsigned K); // for call
+
+    void add(Function *, Value *); // for return
     /// @}
 
     /// return true if the input value is not null
