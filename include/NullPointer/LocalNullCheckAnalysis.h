@@ -54,9 +54,6 @@ private:
     /// ptr groups
     NullEquivalenceAnalysis NEA;
 
-    /// init nonnull set
-    std::set<Value *> InitNonNulls;
-
     /// nfa
     NullFlowAnalysis *NFA;
 

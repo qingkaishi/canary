@@ -28,33 +28,12 @@
 #include "Support/API.h"
 
 LocalNullCheckAnalysis::LocalNullCheckAnalysis(NullFlowAnalysis *NFA, Function *F) : F(F), NEA(F), NFA(NFA), DT(*F) {
-    // mark nonnull groups
-    auto MustNotNull = [](Value *V) -> bool {
-        V = V->stripPointerCastsAndAliases();
-        if (isa<GlobalValue>(V)) return true;
-        if (auto CI = dyn_cast<Instruction>(V))
-            return API::isMemoryAllocate(CI);
-        return false;
-    };
-
-    for (unsigned K = 0; K < F->arg_size(); ++K) {
-        auto *Arg = F->getArg(K);
-        if (Arg->getType()->isPointerTy() && MustNotNull(Arg)) InitNonNulls.insert(NEA.get(Arg));
-    }
-    for (auto &I: instructions(*F)) {
-        for (unsigned K = 0; K < I.getNumOperands(); ++K) {
-            auto Op = I.getOperand(K);
-            if (Op->getType()->isPointerTy() && MustNotNull(Op)) InitNonNulls.insert(NEA.get(Op));
-        }
-        if (I.getType()->isPointerTy() && MustNotNull(&I)) InitNonNulls.insert(NEA.get(&I));
-    }
-
     // init nca
     for (unsigned K = 0; K < F->arg_size(); ++K) {
         auto *Arg = F->getArg(K);
         if (!Arg->getType()->isPointerTy()) continue;
         auto ArgX = NEA.get(Arg);
-        if (InitNonNulls.count(ArgX)) continue;
+        if (NFA->notNull(Arg) || NFA->notNull(ArgX)) continue;
         unsigned ID = PtrIDMap.size();
         PtrIDMap[ArgX] = ID;
     }
@@ -63,7 +42,7 @@ LocalNullCheckAnalysis::LocalNullCheckAnalysis(NullFlowAnalysis *NFA, Function *
             auto Op = I.getOperand(K);
             if (!Op->getType()->isPointerTy()) continue;
             auto OpX = NEA.get(Op);
-            if (InitNonNulls.count(OpX)) continue;
+            if (NFA->notNull(OpX) || NFA->notNull(Op)) continue;
             auto It = PtrIDMap.find(OpX);
             if (It != PtrIDMap.end()) continue;
             unsigned ID = PtrIDMap.size();
@@ -83,7 +62,7 @@ bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
     if (!Ptr->getType()->isPointerTy()) return false;
 
     // must be nonnull
-    if (InitNonNulls.count(NEA.get(Ptr))) return false;
+    if (NFA->notNull(Ptr) || NFA->notNull(NEA.get(Ptr))) return false;
 
     // ptrs in unreachable blocks are considered nonnull
     bool AllPredUnreachable = true;
