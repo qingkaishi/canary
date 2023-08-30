@@ -23,7 +23,7 @@
 #include "Support/RecursiveTimer.h"
 #include "Support/ThreadPool.h"
 
-static cl::opt<unsigned> Round("nca-round", cl::init(1), cl::Hidden, cl::desc("# rounds"));
+static cl::opt<unsigned> Round("nca-round", cl::init(2), cl::Hidden, cl::desc("# rounds"));
 
 char NullCheckAnalysis::ID = 0;
 static RegisterPass<NullCheckAnalysis> X("nca", "soundly checking if a pointer may be nullptr.");
@@ -48,8 +48,9 @@ bool NullCheckAnalysis::runOnModule(Module &M) {
     // allocate space for each function for thread safety
     for (auto &F: M) if (!F.empty()) AnalysisMap[&F] = nullptr;
 
-    unsigned Count = 0;
+    unsigned Count = 1;
     do {
+        RecursiveTimer Iteration("NCA Iteration " + std::to_string(Count));
         for (auto &F: M) {
             if (F.empty()) continue;
             ThreadPool::get()->enqueue([this, NFA, &F]() {
@@ -59,7 +60,7 @@ bool NullCheckAnalysis::runOnModule(Module &M) {
             });
         }
         ThreadPool::get()->wait(); // wait for all tasks to finish
-    } while (++Count < Round.getValue() && NFA->recompute());
+    } while (Count++ < Round.getValue() && NFA->recompute());
 
     return false;
 }

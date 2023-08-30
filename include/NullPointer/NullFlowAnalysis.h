@@ -24,16 +24,19 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Debug.h>
 #include "DyckAA/DyckVFG.h"
+#include "DyckAA/DyckAliasAnalysis.h"
 
 using namespace llvm;
 
 class NullFlowAnalysis : public ModulePass {
 private:
+    DyckAliasAnalysis *DAA;
+
     DyckVFG *VFG;
 
     std::set<std::pair<DyckVFGNode *, DyckVFGNode *>> NonNullEdges;
 
-    std::set<std::pair<DyckVFGNode *, DyckVFGNode *>> NewNonNullEdges;
+    std::map<Function *, std::set<std::pair<DyckVFGNode *, DyckVFGNode *>>> NewNonNullEdges;
 
     std::set<DyckVFGNode *> NonNullNodes;
 
@@ -53,8 +56,12 @@ public:
     /// return false if nothing is changed
     bool recompute();
 
-    /// update NonNullEdges so that we can call recompute()
-    void add(Value *, Value *);
+    /// update NewNonNullEdges so that we can call recompute()
+    /// @{
+    void add(Function *, Value *, Value *);
+
+    void add(Function *, CallInst *, unsigned K);
+    /// @}
 
     /// return true if the input value is not null
     bool notNull(Value *) const;

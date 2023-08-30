@@ -100,7 +100,7 @@ bool LocalNullCheckAnalysis::mayNull(Value *Ptr, Instruction *Inst) {
 }
 
 void LocalNullCheckAnalysis::run() {
-    outs() << "Running on " << F->getName() << " (# Ptrs: " << PtrIDMap.size() << "; # Blocks: " << F->size() << ")\n";
+    // outs() << "Running on " << F->getName() << " (# Ptrs: " << PtrIDMap.size() << "; # Blocks: " << F->size() << ")\n";
 
     // 1. init a map from each instruction to a set of nonnull pointers
     init();
@@ -163,6 +163,13 @@ void LocalNullCheckAnalysis::tag() {
             auto OpKMustNonNull = NonNulls->test(It->second);
             if (OpKMustNonNull) {
                 Orig = Orig | (1 << K);
+                if (isa<ReturnInst>(&I)) {
+                    NFA->add(F, OpK, nullptr);
+                } else if (auto *CI = dyn_cast<CallInst>(&I)) {
+                    if (K < CI->getNumArgOperands()) NFA->add(F, CI, K);
+                } else {
+                    // ... omit others
+                }
             }
         }
     }

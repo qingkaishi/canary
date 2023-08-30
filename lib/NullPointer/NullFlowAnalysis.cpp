@@ -29,7 +29,7 @@ static cl::opt<int> IncrementalLimits("nfa-limit", cl::init(10), cl::Hidden,
 char NullFlowAnalysis::ID = 0;
 static RegisterPass<NullFlowAnalysis> X("nfa", "null value flow");
 
-NullFlowAnalysis::NullFlowAnalysis() : ModulePass(ID), VFG(nullptr) {
+NullFlowAnalysis::NullFlowAnalysis() : ModulePass(ID), DAA(nullptr), VFG(nullptr) {
 }
 
 NullFlowAnalysis::~NullFlowAnalysis() = default;
@@ -44,10 +44,10 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
     RecursiveTimer DyckVFA("Running NFA");
     auto *VFA = &getAnalysis<DyckValueFlowAnalysis>();
     VFG = VFA->getDyckVFGraph();
-    auto *DAA = &getAnalysis<DyckAliasAnalysis>();
+    DAA = &getAnalysis<DyckAliasAnalysis>();
 
     // init may-null nodes
-    auto MustNotNull = [DAA](Value *V) -> bool {
+    auto MustNotNull = [this](Value *V) -> bool {
         V = V->stripPointerCastsAndAliases();
         if (isa<GlobalValue>(V)) return true;
         if (auto CI = dyn_cast<Instruction>(V))
@@ -56,6 +56,7 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
     };
     std::set<DyckVFGNode *> MayNullNodes;
     for (auto &F: M) {
+        if (!F.empty()) NewNonNullEdges[&F];
         for (auto &I: instructions(&F)) {
             if (I.getType()->isPointerTy() && !MustNotNull(&I)) {
                 if (auto INode = VFG->getVFGNode(&I)) {
@@ -94,27 +95,28 @@ bool NullFlowAnalysis::runOnModule(Module &M) {
 }
 
 bool NullFlowAnalysis::recompute() {
-    if (NewNonNullEdges.empty()) return false;
-
-    unsigned OrigNonNullSize = NonNullNodes.size();
     std::set<DyckVFGNode *> PossibleNonNullNodes;
     unsigned K = 0, Limits = IncrementalLimits < 0 ? UINT32_MAX : IncrementalLimits;
-    auto EIt = NewNonNullEdges.begin();
-    while (EIt != NewNonNullEdges.end()) {
-        if (++K > Limits) break;
-        auto *Src = EIt->first;
-        auto *Tgt = EIt->second;
-        if (Tgt) {
-            if (!NonNullNodes.count(Tgt)) PossibleNonNullNodes.insert(Tgt);
-            NonNullEdges.emplace(Src, Tgt);
-        } else {
-            for (auto &It: *Src)
-                if (!NonNullNodes.count(It.first)) PossibleNonNullNodes.insert(It.first);
-            NonNullNodes.insert(Src);
+    for (auto &NIt: NewNonNullEdges) {
+        auto EIt = NIt.second.begin();
+        while (EIt != NIt.second.end()) {
+            if (++K > Limits) break;
+            auto *Src = EIt->first;
+            auto *Tgt = EIt->second;
+            if (Tgt) {
+                if (!NonNullNodes.count(Tgt)) PossibleNonNullNodes.insert(Tgt);
+                NonNullEdges.emplace(Src, Tgt);
+            } else {
+                for (auto &It: *Src)
+                    if (!NonNullNodes.count(It.first)) PossibleNonNullNodes.insert(It.first);
+                NonNullNodes.insert(Src);
+            }
+            EIt = NIt.second.erase(EIt);
         }
-        EIt = NewNonNullEdges.erase(EIt);
     }
+    if (PossibleNonNullNodes.empty()) return false;
 
+    unsigned OrigNonNullSize = NonNullNodes.size();
     std::vector<DyckVFGNode *> WorkList(PossibleNonNullNodes.size());
     K = 0;
     for (auto *N: PossibleNonNullNodes) WorkList[K++] = N;
@@ -141,7 +143,14 @@ bool NullFlowAnalysis::recompute() {
     return OrigNonNullSize != NonNullNodes.size();
 }
 
-void NullFlowAnalysis::add(Value *V1, Value *V2) {
+bool NullFlowAnalysis::notNull(Value *V) const {
+    assert(V);
+    auto *N = VFG->getVFGNode(V);
+    if (!N) return true;
+    return NonNullNodes.count(N);
+}
+
+void NullFlowAnalysis::add(Function *F, Value *V1, Value *V2) {
     if (!V1) return;
     auto *V1N = VFG->getVFGNode(V1);
     if (!V1N) return;
@@ -150,12 +159,24 @@ void NullFlowAnalysis::add(Value *V1, Value *V2) {
         V2N = VFG->getVFGNode(V2);
         if (!V2N) return;
     }
-    NewNonNullEdges.emplace(V1N, V2N);
+    NewNonNullEdges.at(F).emplace(V1N, V2N);
 }
 
-bool NullFlowAnalysis::notNull(Value *V) const {
-    assert(V);
-    auto *N = VFG->getVFGNode(V);
-    if (!N) return true;
-    return NonNullNodes.count(N);
+void NullFlowAnalysis::add(Function *F, CallInst *CI, unsigned int K) {
+    auto *DCG = DAA->getDyckCallGraph();
+    auto *DCGNode = DCG->getFunction(F);
+    if (!DCGNode) return;
+    auto *C = DCGNode->getCall(CI);
+    if (!C) return;
+    auto *Actual = CI->getArgOperand(K);
+    if (auto *CC = dyn_cast<CommonCall>(C)) {
+        auto *Callee = CC->getCalledFunction();
+        if (K < Callee->arg_size()) add(F, Actual, CC->getCalledFunction()->getArg(K));
+        else assert(Callee->isVarArg());
+    } else {
+        auto *PC = dyn_cast<PointerCall>(C);
+        for (auto *Callee: *PC)
+            if (K < Callee->arg_size()) add(F, Actual, Callee->getArg(K));
+            else assert(Callee->isVarArg());
+    }
 }
