@@ -24,22 +24,33 @@
 #include "DyckAA/DyckModRefAnalysis.h"
 #include "DyckAA/DyckVFG.h"
 #include "Support/CFG.h"
+#include "Support/RecursiveTimer.h"
+#include "Support/ThreadPool.h"
 
 DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
     // create a VFG for each function
-    std::map<Function *, CFG *> LocalCFGMap;
+    std::map<Function *, CFGRef> LocalCFGMap;
     for (auto &F: *M) {
         if (F.empty()) continue;
-        auto *NewCFG = new CFG(&F);
-        buildLocalVFG(DAA, NewCFG, &F);
-        LocalCFGMap[&F] = NewCFG;
+        LocalCFGMap[&F] = nullptr;
+        buildLocalVFG(F);
     }
+
+    for (auto &F: *M) {
+        if (F.empty()) continue;
+        ThreadPool::get()->enqueue([this, DAA, &F, &LocalCFGMap](){
+            auto LocalCFG = std::make_shared<CFG>(&F);
+            LocalCFGMap.at(&F) = LocalCFG;
+            buildLocalVFG(DAA, LocalCFG.get(), &F);
+        });
+    }
+    ThreadPool::get()->wait();
 
     // connect local VFGs
     auto *DyckCG = DAA->getDyckCallGraph();
     for (auto &F: *M) {
         if (F.empty()) continue;
-        auto *CtrlFlow = LocalCFGMap.at(&F);
+        auto *CtrlFlow = LocalCFGMap.at(&F).get();
         auto *CGNode = DyckCG->getFunction(&F);
         if (!CGNode) continue;
         for (auto &I: instructions(F)) {
@@ -59,11 +70,9 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
             }
         }
     }
-
-    for (auto &It: LocalCFGMap) delete It.second;
 }
 
-void DyckVFG::buildLocalVFG(DyckAliasAnalysis *DAA, CFG *CtrlFlow, Function *F) {
+void DyckVFG::buildLocalVFG(Function &F) {
     // direct value flow through cast, gep-0-0, select, phi
     for (auto &I: instructions(F)) {
         if (isa<CastInst>(I) || isa<PHINode>(I)) {
@@ -95,9 +104,17 @@ void DyckVFG::buildLocalVFG(DyckAliasAnalysis *DAA, CFG *CtrlFlow, Function *F) 
                 auto *FromNode = getOrCreateVFGNode(GEP->getPointerOperand());
                 FromNode->addTarget(ToNode);
             }
+        } else if (isa<LoadInst>(I)) {
+            getOrCreateVFGNode(&I);
+            getOrCreateVFGNode(I.getOperand(0));
+        } else if(isa<StoreInst>(I)) {
+            getOrCreateVFGNode(I.getOperand(0));
+            getOrCreateVFGNode(I.getOperand(1));
         }
     }
+}
 
+void DyckVFG::buildLocalVFG(DyckAliasAnalysis *DAA, CFG *CtrlFlow, Function *F) const {
     // indirect value flow through load/store
     auto *DG = DAA->getDyckGraph();
     std::map<DyckGraphNode *, std::vector<LoadInst *>> LoadMap; // ptr -> load
@@ -122,9 +139,15 @@ void DyckVFG::buildLocalVFG(DyckAliasAnalysis *DAA, CFG *CtrlFlow, Function *F) 
         if (StoreIt == StoreMap.end()) continue;
         auto &Stores = StoreIt->second;
         for (auto *Load: Loads) {
-            auto *LdNode = getOrCreateVFGNode(Load);
-            for (auto *Store: Stores)
-                if (CtrlFlow->reachable(Store, Load)) getOrCreateVFGNode(Store->getValueOperand())->addTarget(LdNode);
+            auto *LdNode = getVFGNode(Load);
+            assert(LdNode);
+            for (auto *Store: Stores) {
+                if (CtrlFlow->reachable(Store, Load)) {
+                    auto *StNode = getVFGNode(Store->getValueOperand());
+                    assert(StNode);
+                    StNode->addTarget(LdNode);
+                }
+            }
         }
     }
 }

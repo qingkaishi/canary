@@ -48,4 +48,6 @@ private:
     void analyze(BasicBlock *);
 };
 
+typedef std::shared_ptr<CFG> CFGRef;
+
 #endif //SUPPORT_CFG_H

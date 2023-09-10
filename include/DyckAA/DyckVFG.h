@@ -89,7 +89,9 @@ private:
 
     void connect(DyckModRefAnalysis *, Call *, Function *, CFG *);
 
-    void buildLocalVFG(DyckAliasAnalysis *DAA, CFG *DMRA, Function *F);
+    void buildLocalVFG(DyckAliasAnalysis *DAA, CFG *DMRA, Function *F) const;
+
+    void buildLocalVFG(Function &);
 };
 
 #endif //DyckAA_DYCKVFG_H
