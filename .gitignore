@@ -3,10 +3,10 @@ cmake-build-*
 build
 *.a
 *.o
-bench/*.ll
-bench/*/*.ll
-bench/*/*/*.ll
-bench/*/*/*/*.ll
+benchmarks/*.ll
+benchmarks/*/*.ll
+benchmarks/*/*/*.ll
+benchmarks/*/*/*/*.ll
 *.log
 *+Asserts
 nbproject

@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
     Passes.add(createLoopSimplifyPass());
     Passes.add(new LowerConstantExpr());
     Passes.add(new NotificationPass("Done!\n"));
-    Passes.add(new NullCheckAnalysis());
+    if (!OutputAssembly.getValue()) Passes.add(new NullCheckAnalysis());
 
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {
