@@ -16,7 +16,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/Analysis/CallGraph.h>
 #include <llvm/Analysis/LoopPass.h>
 #include <llvm/Analysis/TargetLibraryInfo.h>
 #include <llvm/Analysis/TargetTransformInfo.h>
@@ -42,6 +41,7 @@
 #include <memory>
 
 #include "NullPointer/NullCheckAnalysis.h"
+#include "Support/RecursiveTimer.h"
 #include "Transform/LowerConstantExpr.h"
 
 using namespace llvm;
@@ -54,29 +54,7 @@ static cl::opt<std::string> OutputFilename("o", cl::desc("<output bitcode file>"
 
 static cl::opt<bool> OutputAssembly("S", cl::desc("Write output as LLVM assembly"), cl::init(false));
 
-
-class NotificationPass : public ModulePass {
-private:
-    const char *Message;
-
-public:
-    static char ID;
-
-    explicit NotificationPass(const char *M) : ModulePass(ID), Message(M) {}
-
-    ~NotificationPass() override = default;
-
-    void getAnalysisUsage(AnalysisUsage &AU) const override {
-        AU.setPreservesAll();
-    }
-
-    bool runOnModule(Module &) override {
-        outs() << Message;
-        return false;
-    }
-};
-
-char NotificationPass::ID = 0;
+static cl::opt<bool> EnableLoopUnrolling("x", cl::desc("Break loops before analysis"), cl::init(true));
 
 int main(int argc, char **argv) {
     InitLLVM X(argc, argv);
@@ -120,15 +98,20 @@ int main(int argc, char **argv) {
 
     legacy::PassManager Passes;
 
-    Passes.add(new NotificationPass("Start preprocessing the input bitcode ... "));
+    RecursiveTimer *TransformTimer = nullptr, *AnalysisTimer = nullptr;
+    Passes.add(new RecursiveTimerPass(TransformTimer, "Transforming the bitcode"));
     Passes.add(createLowerAtomicPass());
     Passes.add(createLowerInvokePass());
     Passes.add(createPromoteMemoryToRegisterPass());
     Passes.add(createSCCPPass());
     Passes.add(createLoopSimplifyPass());
     Passes.add(new LowerConstantExpr());
-    Passes.add(new NotificationPass("Done!\n"));
-    if (!OutputAssembly.getValue()) Passes.add(new NullCheckAnalysis());
+    Passes.add(new RecursiveTimerPass(TransformTimer));
+    if (!OutputAssembly.getValue()) {
+        Passes.add(new RecursiveTimerPass(AnalysisTimer, "Analyzing the bitcode"));
+        Passes.add(new NullCheckAnalysis());
+        Passes.add(new RecursiveTimerPass(AnalysisTimer));
+    }
 
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {

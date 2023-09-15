@@ -20,6 +20,7 @@
 #define SUPPORT_RECURSIVETIMER_H
 
 #include <llvm/Support/raw_os_ostream.h>
+#include <llvm/Pass.h>
 
 #include <chrono>
 #include <string>
@@ -41,6 +42,35 @@ public:
 
     /// end of the recorder
     ~RecursiveTimer();
+};
+
+class RecursiveTimerPass : public ModulePass {
+private:
+    RecursiveTimer *&T;
+    const char *Msg;
+
+public:
+    static char ID;
+
+    explicit RecursiveTimerPass(RecursiveTimer *&T) : ModulePass(ID), T(T), Msg(nullptr) {
+    }
+
+    RecursiveTimerPass(RecursiveTimer *&T, const char *M) : ModulePass(ID), T(T), Msg(M) {
+    }
+
+    ~RecursiveTimerPass() override = default;
+
+    void getAnalysisUsage(AnalysisUsage &AU) const override { AU.setPreservesAll(); }
+
+    bool runOnModule(Module &) override {
+        if (!T) {
+            T = new RecursiveTimer(Msg);
+        } else {
+            delete T;
+            T = nullptr;
+        }
+        return false;
+    }
 };
 
 #endif //SUPPORT_RECURSIVETIMER_H

@@ -41,3 +41,5 @@ RecursiveTimer::~RecursiveTimer() {
     auto Unit = Milli > 1000 ? "s" : "ms";
     outs() << Tab(--DepthOfTimeRecorder) << Prefix << " takes " << Time << Unit << "!\n";
 }
+
+char RecursiveTimerPass::ID = 0;
