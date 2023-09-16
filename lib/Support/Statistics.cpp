@@ -56,7 +56,7 @@ void Statistics::run(Module &M) {
             }
         }
     }
-    outs() << "# instructions: " << NumInstructions
-           << ", # ptr instructions: " << NumPointerInstructions
-           << ", # deref instructions: " << NumDerefInstructions << "\n";
+    outs() << "# total instructions: " << NumInstructions << ", "
+           << "# ptr instructions: " << NumPointerInstructions << ", "
+           << "# deref instructions: " << NumDerefInstructions << ".\n";
 }
