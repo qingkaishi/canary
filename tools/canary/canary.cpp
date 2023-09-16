@@ -42,6 +42,7 @@
 
 #include "NullPointer/NullCheckAnalysis.h"
 #include "Support/RecursiveTimer.h"
+#include "Support/Statistics.h"
 #include "Transform/LowerConstantExpr.h"
 
 using namespace llvm;
@@ -54,7 +55,7 @@ static cl::opt<std::string> OutputFilename("o", cl::desc("<output bitcode file>"
 
 static cl::opt<bool> OutputAssembly("S", cl::desc("Write output as LLVM assembly"), cl::init(false));
 
-static cl::opt<bool> EnableLoopUnrolling("x", cl::desc("Break loops before analysis"), cl::init(true));
+static cl::opt<bool> OnlyStatistics("s", cl::desc("Only output statistics"), cl::init(false));
 
 int main(int argc, char **argv) {
     InitLLVM X(argc, argv);
@@ -94,6 +95,9 @@ int main(int argc, char **argv) {
     if (verifyModule(*M, &errs())) {
         errs() << argv[0] << ": error: input module is broken!\n";
         return 1;
+    } else {
+        Statistics().run(*M);
+        if (OnlyStatistics) return 0;
     }
 
     legacy::PassManager Passes;
