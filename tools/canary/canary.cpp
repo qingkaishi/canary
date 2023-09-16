@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
         errs() << argv[0] << ": error: input module is broken!\n";
         return 1;
     } else {
-        Statistics().run(*M);
+        Statistics::run(*M);
         if (OnlyStatistics) return 0;
     }
 

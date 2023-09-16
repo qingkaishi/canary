@@ -26,9 +26,7 @@ using namespace llvm;
 
 class Statistics {
 public:
-    Statistics();
-
-    void run(Module &);
+    static void run(Module &);
 };
 
 #endif //SUPPORT_STATISTICS_H

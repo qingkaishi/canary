@@ -21,8 +21,6 @@
 #include <llvm/IR/Instructions.h>
 #include "Support/Statistics.h"
 
-Statistics::Statistics() = default;
-
 void Statistics::run(Module &M) {
     unsigned NumInstructions = 0;
     unsigned NumPointerInstructions = 0;
