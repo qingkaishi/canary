@@ -16,11 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/Analysis/LoopPass.h>
-#include <llvm/Analysis/TargetLibraryInfo.h>
-#include <llvm/Analysis/TargetTransformInfo.h>
 #include <llvm/Bitcode/BitcodeWriterPass.h>
-#include <llvm/IR/DebugInfo.h>
 #include <llvm/IR/IRPrintingPasses.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
@@ -28,13 +24,11 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/InitializePasses.h>
-#include <llvm/LinkAllIR.h>
 #include <llvm/Support/Debug.h>
 #include <llvm/Support/InitLLVM.h>
-#include <llvm/Support/PluginLoader.h>
-#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/Signals.h>
 #include <llvm/Support/ToolOutputFile.h>
-#include <llvm/Support/YAMLTraits.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Utils.h>
 
@@ -102,19 +96,20 @@ int main(int argc, char **argv) {
 
     legacy::PassManager Passes;
 
-    RecursiveTimer *TransformTimer = nullptr, *AnalysisTimer = nullptr;
-    Passes.add(new RecursiveTimerPass(TransformTimer, "Transforming the bitcode"));
+    auto *TransformTimer = new RecursiveTimerPass("Transforming the bitcode");
+    Passes.add(TransformTimer->start());
     Passes.add(createLowerAtomicPass());
     Passes.add(createLowerInvokePass());
     Passes.add(createPromoteMemoryToRegisterPass());
     Passes.add(createSCCPPass());
     Passes.add(createLoopSimplifyPass());
     Passes.add(new LowerConstantExpr());
-    Passes.add(new RecursiveTimerPass(TransformTimer));
+    Passes.add(TransformTimer->done());
     if (!OutputAssembly.getValue()) {
-        Passes.add(new RecursiveTimerPass(AnalysisTimer, "Analyzing the bitcode"));
+        auto *AnalysisTimer = new RecursiveTimerPass("Analyzing the bitcode");
+        Passes.add(AnalysisTimer->start());
         Passes.add(new NullCheckAnalysis());
-        Passes.add(new RecursiveTimerPass(AnalysisTimer));
+        Passes.add(AnalysisTimer->done());
     }
 
     std::unique_ptr<ToolOutputFile> Out;

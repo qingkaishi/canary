@@ -24,6 +24,7 @@
 
 #include <chrono>
 #include <string>
+#include <utility>
 
 using namespace llvm;
 
@@ -46,31 +47,45 @@ public:
 
 class RecursiveTimerPass : public ModulePass {
 private:
-    RecursiveTimer *&T;
-    const char *Msg;
+    RecursiveTimer **TimerPtr;
+    std::string Message;
+    bool Internal;
 
 public:
     static char ID;
 
-    explicit RecursiveTimerPass(RecursiveTimer *&T) : ModulePass(ID), T(T), Msg(nullptr) {
+    explicit RecursiveTimerPass(const char *Prefix) : ModulePass(ID), TimerPtr(new RecursiveTimer *),
+                                                      Message(Prefix), Internal(false) {
+        *TimerPtr = nullptr;
     }
 
-    RecursiveTimerPass(RecursiveTimer *&T, const char *M) : ModulePass(ID), T(T), Msg(M) {
+    explicit RecursiveTimerPass(std::string Prefix) : ModulePass(ID), TimerPtr(new RecursiveTimer *),
+                                                      Message(std::move(Prefix)), Internal(false) {
+        *TimerPtr = nullptr;
     }
 
-    ~RecursiveTimerPass() override = default;
+    ~RecursiveTimerPass() override { if (!Internal) delete TimerPtr; }
 
     void getAnalysisUsage(AnalysisUsage &AU) const override { AU.setPreservesAll(); }
 
     bool runOnModule(Module &) override {
-        if (!T) {
-            T = new RecursiveTimer(Msg);
+        if (!*TimerPtr) {
+            *TimerPtr = new RecursiveTimer(Message);
         } else {
-            delete T;
-            T = nullptr;
+            delete *TimerPtr;
+            *TimerPtr = nullptr;
         }
         return false;
     }
+
+private:
+    explicit RecursiveTimerPass(RecursiveTimer **Timer) : ModulePass(ID), TimerPtr(Timer), Internal(true) {
+    }
+
+public:
+    Pass *start() { return this; }
+
+    Pass *done() { return new RecursiveTimerPass(TimerPtr); }
 };
 
 #endif //SUPPORT_RECURSIVETIMER_H
