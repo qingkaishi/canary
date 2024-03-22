@@ -20,7 +20,7 @@
 #define SUPPORT_API_H
 
 #include <llvm/IR/Instruction.h>
-
+#include <set>
 using namespace llvm;
 
 class API {
