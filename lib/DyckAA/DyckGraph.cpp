@@ -19,10 +19,13 @@
 #include <cassert>
 #include <cstdio>
 #include <stack>
+#include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckGraphEdgeLabel.h"
+#include "llvm/IR/Instruction.h"
 #include "llvm/IR/Value.h"
 #include "DyckAA/DyckGraph.h"
-
+#include "Support/API.h"
+#include <llvm/Support/raw_ostream.h>
 DyckGraph::DyckGraph() {
     DerefEdgeLabel = new DereferenceEdgeLabel;
 }
@@ -125,7 +128,10 @@ DyckGraphNode *DyckGraph::combine(DyckGraphNode *NodeX, DyckGraphNode *NodeY) {
     assert(Vertices.count(NodeX));
     assert(Vertices.count(NodeY));
     if (NodeX == NodeY) return NodeX;
-
+    if(PrintCSourceFunctions && (NodeX->isAliasOfHeapAlloc() || NodeY->isAliasOfHeapAlloc())){
+        NodeX->setAliasOfHeapAlloc();
+        NodeY->setAliasOfHeapAlloc();
+    }
     if (NodeX->degree() < NodeY->degree()) {
         DyckGraphNode *Temp = NodeX;
         NodeX = NodeY;
@@ -224,6 +230,10 @@ bool DyckGraph::qirunAlgorithm() {
             X = Y;
             Y = Temp;
         }
+        if(X->isAliasOfHeapAlloc() || Y->isAliasOfHeapAlloc()){
+            X->setAliasOfHeapAlloc();
+            Y->setAliasOfHeapAlloc();
+        }
         //outs()<<"HERE0.3\n"; outs().flush();
         assert(X != Y);
         Vertices.erase(Y);
@@ -303,7 +313,7 @@ bool DyckGraph::qirunAlgorithm() {
 }
 
 std::pair<DyckGraphNode *, bool> DyckGraph::retrieveDyckVertex(llvm::Value *Val, const char *Name) {
-    if (Val == nullptr) {
+    if (Val == nullptr) { 
         auto *Node = new DyckGraphNode(nullptr);
         Vertices.insert(Node);
         return std::make_pair(Node, false);
@@ -314,6 +324,10 @@ std::pair<DyckGraphNode *, bool> DyckGraph::retrieveDyckVertex(llvm::Value *Val,
         return std::make_pair(It->second, true);
     } else {
         auto *Node = new DyckGraphNode(Val, Name);
+        if(isa<llvm::Instruction>(Val) && API::isHeapAllocate((llvm::Instruction *)Val)){
+            outs() << *Val << "\n";
+            Node->setAliasOfHeapAlloc();
+        }
         Vertices.insert(Node);
         ValVertexMap.insert(std::pair<llvm::Value *, DyckGraphNode *>(Val, Node));
         return std::make_pair(Node, false);

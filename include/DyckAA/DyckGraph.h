@@ -19,9 +19,7 @@
 #ifndef DYCKAA_DYCKHALFGRAPH_H
 #define DYCKAA_DYCKHALFGRAPH_H
 
-#include <stack>
 #include <unordered_map>
-
 #include "DyckAA/DyckGraphNode.h"
 
 class DyckGraphEdgeLabel;
@@ -32,7 +30,7 @@ class DyckGraph {
 private:
     std::set<DyckGraphNode *> Vertices;
 
-    std::unordered_map<void *, DyckGraphNode *> ValVertexMap;
+    std::unordered_map<llvm::Value *, DyckGraphNode *> ValVertexMap;
 
     /// edge labels
     /// @{
@@ -67,9 +65,9 @@ public:
     /// if value's vertex has been initialized, it will be returned with true;
     /// otherwise, it will be initialized and returned with false;
     /// If a new vertex is initialized, it will be added into the graph.
-    std::pair<DyckGraphNode *, bool> retrieveDyckVertex(void *Val, const char *Name = nullptr);
+    std::pair<DyckGraphNode *, bool> retrieveDyckVertex(llvm::Value *Val, const char *Name = nullptr);
 
-    DyckGraphNode *findDyckVertex(void *Val);
+    DyckGraphNode *findDyckVertex(llvm::Value *Val);
 
     /// Get reachable nodes
     /// @{
@@ -94,9 +92,9 @@ public:
     DyckGraphEdgeLabel *getDereferenceEdgeLabel() const { return DerefEdgeLabel; }
 
 private:
-    void removeFromWorkList(std::multimap<DyckGraphNode *, void *> &, DyckGraphNode *, void *);
+    void removeFromWorkList(std::multimap<DyckGraphNode *, DyckGraphEdgeLabel *> &, DyckGraphNode *, DyckGraphEdgeLabel *);
 
-    bool containsInWorkList(std::multimap<DyckGraphNode *, void *> &, DyckGraphNode *, void *);
+    bool containsInWorkList(std::multimap<DyckGraphNode *, DyckGraphEdgeLabel *> &, DyckGraphNode *, DyckGraphEdgeLabel *);
 };
 
 #endif // DYCKAA_DYCKHALFGRAPH_H

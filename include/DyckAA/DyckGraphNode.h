@@ -19,9 +19,10 @@
 #ifndef DYCKAA_DYCKGRAPHNODE_H
 #define DYCKAA_DYCKGRAPHNODE_H
 
+#include "DyckAA/DyckGraphEdgeLabel.h"
 #include <map>
 #include <set>
-
+#include <llvm/IR/Value.h>
 class DyckGraph;
 
 class DyckGraphNode {
@@ -31,20 +32,20 @@ private:
     int NodeIndex;
     const char *NodeName;
     bool ContainsNull = false;
+    bool AliasOfHeapAlloc = false;
+    std::set<DyckGraphEdgeLabel *> InLables;
+    std::set<DyckGraphEdgeLabel *> OutLables;
 
-    std::set<void *> InLables;
-    std::set<void *> OutLables;
-
-    std::map<void *, std::set<DyckGraphNode *>> InNodes;
-    std::map<void *, std::set<DyckGraphNode *>> OutNodes;
+    std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> InNodes;
+    std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> OutNodes;
 
     /// only store non-null value
-    std::set<void *> EquivClass;
+    std::set<llvm::Value *> EquivClass;
 
     /// The constructor is not visible. The first argument is the pointer of the value that you want to encapsulate.
     /// The second argument is the name of the vertex, which will be used in void DyckGraph::printAsDot() function.
     /// please use DyckGraph::retrieveDyckVertex for initialization.
-    explicit DyckGraphNode(void *V, const char *Name = nullptr);
+    explicit DyckGraphNode(llvm::Value *V, const char *Name = nullptr);
 
 public:
     ~DyckGraphNode();
@@ -57,50 +58,50 @@ public:
     const char *getName();
 
     /// Get the source vertices corresponding the label
-    std::set<DyckGraphNode *> *getInVertices(void *Label);
+    std::set<DyckGraphNode *> *getInVertices(DyckGraphEdgeLabel *Label);
 
     /// Get the target vertices corresponding the label
-    std::set<DyckGraphNode *> *getOutVertices(void *Label);
+    std::set<DyckGraphNode *> *getOutVertices(DyckGraphEdgeLabel *Label);
 
     /// Get a single source vertex corresponding the label
     /// if there are multiple such vertices or zero, return null
-    DyckGraphNode *getInVertex(void *Label);
+    DyckGraphNode *getInVertex(DyckGraphEdgeLabel *Label);
 
     /// Get a single target vertex corresponding the label
     /// if there are multiple such vertices or zero, return null
-    DyckGraphNode *getOutVertex(void *Label);
+    DyckGraphNode *getOutVertex(DyckGraphEdgeLabel *Label);
 
     /// Get the number of vertices that are the targets of this vertex, and have the edge label: label.
-    unsigned int outNumVertices(void *Label);
+    unsigned int outNumVertices(DyckGraphEdgeLabel *Label);
 
     /// Get the number of vertices that are the sources of this vertex, and have the edge label: label.
-    unsigned int inNumVertices(void *Label);
+    unsigned int inNumVertices(DyckGraphEdgeLabel *Label);
 
     /// Total degree of the vertex
     unsigned int degree();
 
     /// Get all the labels in the edges that point to the vertex's targets.
-    std::set<void *> &getOutLabels();
+    std::set<DyckGraphEdgeLabel *> &getOutLabels();
 
     /// Get all the labels in the edges that point to the vertex.
-    std::set<void *> &getInLabels();
+    std::set<DyckGraphEdgeLabel *> &getInLabels();
 
     /// Get all the vertex's targets.
     /// The return value is a map which maps labels to a set of vertices.
-    std::map<void *, std::set<DyckGraphNode *>> &getOutVertices();
+    std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> &getOutVertices();
 
     /// Get all the vertex's sources.
     /// The return value is a map which maps labels to a set of vertices.
-    std::map<void *, std::set<DyckGraphNode *>> &getInVertices();
+    std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> &getInVertices();
 
     /// Add a target with a label. Meanwhile, this vertex will be a source of ver.
-    void addTarget(DyckGraphNode *Node, void *Label);
+    void addTarget(DyckGraphNode *Node, DyckGraphEdgeLabel *Label);
 
     /// Remove a target. Meanwhile, this vertex will be removed from ver's sources
-    void removeTarget(DyckGraphNode *Node, void *Label);
+    void removeTarget(DyckGraphNode *Node, DyckGraphEdgeLabel *Label);
 
     /// Return true if the vertex contains a target ver, and the edge label is "label"
-    bool containsTarget(DyckGraphNode *Tar, void *Label);
+    bool containsTarget(DyckGraphNode *Tar, DyckGraphEdgeLabel *Label);
 
     /// For qirun's algorithm DyckGraph::qirunAlgorithm().
     /// The representatives of all the vertices in the equivalent set of this vertex
@@ -109,18 +110,22 @@ public:
 
     /// Get the equivalent set of non-null value.
     /// Use it after you call DyckGraph::qirunAlgorithm().
-    std::set<void *> *getEquivalentSet();
+    std::set<llvm::Value *> *getEquivalentSet();
 
     /// the equivalent set contains null pointer
     void setContainsNull() { ContainsNull = true; }
 
     /// return true if the equivalent set contains null pointer
     bool containsNull() const { return ContainsNull; }
+    
+    void setAliasOfHeapAlloc(){ AliasOfHeapAlloc = true;}
+    
+    bool isAliasOfHeapAlloc(){ return AliasOfHeapAlloc;}
 
 private:
-    void addSource(DyckGraphNode *, void *Label);
+    void addSource(DyckGraphNode *, DyckGraphEdgeLabel *Label);
 
-    void removeSource(DyckGraphNode *, void *Label);
+    void removeSource(DyckGraphNode *, DyckGraphEdgeLabel *Label);
 };
 
 #endif // DYCKAA_DYCKGRAPHNODE_H

@@ -16,16 +16,18 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/FileSystem.h>
 #include <cstdio>
-#include <stack>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
+#include <string>
 
 #include "AAAnalyzer.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckCallGraph.h"
 #include "DyckAA/DyckGraph.h"
 #include "Support/RecursiveTimer.h"
+#include "llvm/IR/Function.h"
+#include "llvm/Support/CommandLine.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc("Output alias sets and their relations"));
@@ -36,14 +38,21 @@ static cl::opt<bool> DotCallGraph("dot-dyck-callgraph", cl::init(false), cl::Hid
 static cl::opt<bool> CountFP("count-fp", cl::init(false), cl::Hidden,
                              cl::desc("Calculate how many functions a function pointer may point to."));
 
+bool PrintCSourceFunctions = false;
+
+static cl::opt<bool, true> PrintCSourceFunctionsFlag(
+    "print-c-source-functions", cl::Hidden,
+    cl::desc("Works for collecting the functions which may return dynamic allocated memory pointers."),
+    cl::location(PrintCSourceFunctions));
+
 char DyckAliasAnalysis::ID = 0;
 static RegisterPass<DyckAliasAnalysis> X("dyckaa", "a unification based alias analysis");
 
-DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
+DyckAliasAnalysis::DyckAliasAnalysis()
+    : ModulePass(ID) {
     DyckPTG = new DyckGraph;
     DyckCG = new DyckCallGraph;
 }
-
 
 DyckAliasAnalysis::~DyckAliasAnalysis() {
     delete DyckCG;
@@ -56,7 +65,7 @@ void DyckAliasAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 
 const std::set<Value *> *DyckAliasAnalysis::getAliasSet(Value *Ptr) const {
     DyckGraphNode *V = DyckPTG->retrieveDyckVertex(Ptr).first;
-    return (const std::set<Value *> *) V->getEquivalentSet();
+    return (const std::set<Value *> *)V->getEquivalentSet();
 }
 
 bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
@@ -65,7 +74,8 @@ bool DyckAliasAnalysis::mayAlias(Value *V1, Value *V2) const {
 
 bool DyckAliasAnalysis::mayNull(Value *V) const {
     auto *DyckNode = DyckPTG->findDyckVertex(V);
-    if (!DyckNode) return false;
+    if (!DyckNode)
+        return false;
     return DyckNode->containsNull();
 }
 
@@ -86,11 +96,13 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
     AA.interProcedureAnalysis();
 
     // a post-processing procedure
-    for (auto *DyckNode: DyckPTG->getVertices()) {
-        auto *AliasSet = (const std::set<Value *> *) DyckNode->getEquivalentSet();
-        if (!AliasSet) continue;
-        for (auto *V: *AliasSet) {
-            if (!isa<ConstantPointerNull>(V)) continue;
+    for (auto *DyckNode : DyckPTG->getVertices()) {
+        auto *AliasSet = (const std::set<Value *> *)DyckNode->getEquivalentSet();
+        if (!AliasSet)
+            continue;
+        for (auto *V : *AliasSet) {
+            if (!isa<ConstantPointerNull>(V))
+                continue;
             DyckNode->setContainsNull();
             break;
         }
@@ -113,6 +125,9 @@ bool DyckAliasAnalysis::runOnModule(Module &M) {
         outs() << "Printing alias set information...\n";
         this->printAliasSetInformation();
         outs() << "Done!\n\n";
+    }
+    if (PrintCSourceFunctions) {
+        this->printCSourceFunctions();
     }
 
     DEBUG_WITH_TYPE("validate-dyckgraph", DyckPTG->validation(__FILE__, __LINE__));
@@ -139,7 +154,7 @@ void DyckAliasAnalysis::printAliasSetInformation() {
 
             auto AsIt = AliasSet->begin();
             while (AsIt != AliasSet->end()) {
-                auto *Val = (Value *) (*AsIt);
+                auto *Val = (Value *)(*AsIt);
                 if (Val->getType()->isPointerTy())
                     Size++;
                 AsIt++;
@@ -154,7 +169,7 @@ void DyckAliasAnalysis::printAliasSetInformation() {
             It++;
         }
         errs() << TotalSize << "\n";
-        double PairNum = (((double) TotalSize - 1) / 2) * TotalSize;
+        double PairNum = (((double)TotalSize - 1) / 2) * TotalSize;
 
         unsigned NoAliasNum = 0;
         for (unsigned K = 0; K < AliasSetSizes.size(); K++) {
@@ -163,16 +178,16 @@ void DyckAliasAnalysis::printAliasSetInformation() {
                 NoAliasNum = NoAliasNum + KSize * AliasSetSizes[J];
             }
         }
-        //errs() << noAliasNum << "\n";
+        // errs() << noAliasNum << "\n";
 
-        double PercentOfNoAlias = NoAliasNum / (double) PairNum * 100;
+        double PercentOfNoAlias = NoAliasNum / (double)PairNum * 100;
 
         fclose(Log);
         outs() << "Done!\n";
 
         outs() << "===== Alias Analysis Evaluator Report =====\n";
         outs() << "   " << PairNum << " Total Alias Queries Performed\n";
-        outs() << "   " << NoAliasNum << " no alias responses (" << (unsigned long) PercentOfNoAlias << "%)\n\n";
+        outs() << "   " << NoAliasNum << " no alias responses (" << (unsigned long)PercentOfNoAlias << "%)\n\n";
     }
 
     /*if (DotAliasSet) */
@@ -189,7 +204,23 @@ void DyckAliasAnalysis::printAliasSetInformation() {
         auto RepIt = Reps.begin();
         while (RepIt != Reps.end()) {
             Idx++;
-            fprintf(AliasRel, "a%d[label=%d];\n", Idx, Idx);
+            std::set<llvm::Value *> *EqSets = (*RepIt)->getEquivalentSet();
+            std::string LabelDesc;
+            raw_string_ostream LabelDescBuilder(LabelDesc);
+            std::string LabelColor("black");
+            if ((*RepIt)->isAliasOfHeapAlloc()) {
+                LabelColor = "red";
+            }
+            for (auto Val : *EqSets) {
+                assert(Val != nullptr && "Error: val is null in an equiv set!");
+                if (isa<Function>(Val)) {
+                    LabelDescBuilder << ((Function *)Val)->getName() << "\n";
+                }
+                else {
+                    LabelDescBuilder << *Val << "\n";
+                }
+            }
+            fprintf(AliasRel, "a%d[color=\"%s\"label=\"%s\"];\n", Idx, LabelColor.c_str(), LabelDesc.c_str());
             TheMap.insert(std::pair<DyckGraphNode *, int>(*RepIt, Idx));
             RepIt++;
         }
@@ -201,7 +232,7 @@ void DyckAliasAnalysis::printAliasSetInformation() {
 
             auto OvIt = OutVs.begin();
             while (OvIt != OutVs.end()) {
-                auto *Label = (DyckGraphEdgeLabel *) OvIt->first;
+                auto *Label = (DyckGraphEdgeLabel *)OvIt->first;
                 std::set<DyckGraphNode *> *oVs = &OvIt->second;
 
                 auto OIt = oVs->begin();
@@ -252,13 +283,14 @@ void DyckAliasAnalysis::printAliasSetInformation() {
             std::set<llvm::Value *> *ESet = Rep->getEquivalentSet();
             auto EIt = ESet->begin();
             while (EIt != ESet->end()) {
-                auto *Val = (Value *) ((*EIt));
+                auto *Val = (Value *)((*EIt));
                 assert(Val != nullptr && "Error: val is null in an equiv set!");
                 Log << "[" << Idx << "]";
 
                 if (isa<Function>(Val)) {
-                    Log << ((Function *) Val)->getName() << "\n";
-                } else {
+                    Log << ((Function *)Val)->getName() << "\n";
+                }
+                else {
                     Log << *Val << "\n";
                 }
                 EIt++;
@@ -270,5 +302,25 @@ void DyckAliasAnalysis::printAliasSetInformation() {
         Log.flush();
         Log.close();
         outs() << "Done! \n";
+    }
+}
+
+void DyckAliasAnalysis::printCSourceFunctions() {
+
+    std::error_code EC;
+    raw_fd_ostream c_marked_functions("c_mark_functions.log", EC);
+    for (auto &CGNodeIt : *DyckCG) {
+        DyckCallGraphNode *CGNode = CGNodeIt.second;
+        if (!CGNodeIt.first || CGNodeIt.first->isDeclaration()) {
+            continue;
+        }
+        for (auto Ret : CGNode->getReturns()) {
+            auto *RetInst = (ReturnInst *)Ret;
+            DyckGraphNode *GNode = DyckPTG->retrieveDyckVertex(Ret).first;
+            if (GNode && GNode->isAliasOfHeapAlloc()) {
+                c_marked_functions << CGNodeIt.first->getName() << "\n";
+                break;
+            }
+        }
     }
 }
