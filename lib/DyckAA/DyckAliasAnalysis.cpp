@@ -311,11 +311,14 @@ void DyckAliasAnalysis::printCSourceFunctions() {
     raw_fd_ostream c_marked_functions("c_mark_functions.log", EC);
     for (auto &CGNodeIt : *DyckCG) {
         DyckCallGraphNode *CGNode = CGNodeIt.second;
+        // overlook fake function node and declared fucntion nodes .
         if (!CGNodeIt.first || CGNodeIt.first->isDeclaration()) {
             continue;
         }
         for (auto Ret : CGNode->getReturns()) {
             auto *RetInst = (ReturnInst *)Ret;
+            // if one of return operands is alias of heap allocated memory, 
+            // the output the function's name.
             DyckGraphNode *GNode = DyckPTG->retrieveDyckVertex(Ret).first;
             if (GNode && GNode->isAliasOfHeapAlloc()) {
                 c_marked_functions << CGNodeIt.first->getName() << "\n";
