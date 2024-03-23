@@ -1,12 +1,16 @@
 .idea
 cmake-build-*
 build
+test_dir
+.github
+.cache
 *.a
 *.o
 benchmarks/*.ll
 benchmarks/*/*.ll
 benchmarks/*/*/*.ll
 benchmarks/*/*/*/*.ll
+*.dot
 *.log
 *+Asserts
 nbproject
