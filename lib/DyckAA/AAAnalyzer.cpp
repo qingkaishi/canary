@@ -306,15 +306,15 @@ void AAAnalyzer::combineFunctionGroups(FunctionType *FTyX, FunctionType *FTyY) {
 
 DyckGraphNode *AAAnalyzer::addField(DyckGraphNode *Val, long FieldIndex, DyckGraphNode *Field) {
     if (!Field) {
-        auto *ValRepSet = Val->getOutVertices((void *) (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
+        auto *ValRepSet = Val->getOutVertices((CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
         if (ValRepSet && !ValRepSet->empty()) {
             Field = *(ValRepSet->begin());
         } else {
             Field = CFLGraph->retrieveDyckVertex(nullptr).first;
-            Val->addTarget(Field, (void *) (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
+            Val->addTarget(Field, (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
         }
     } else {
-        Val->addTarget(Field, (void *) (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
+        Val->addTarget(Field, (CFLGraph->getOrInsertIndexEdgeLabel(FieldIndex)));
     }
     return Field;
 }
@@ -377,7 +377,7 @@ DyckGraphNode *AAAnalyzer::handleGEP(GEPOperator *GEP) {
 
             // the label representation and feature impl is temporal.
             // s3: y--(fieldIdx offLabel)-->?3
-            Current->addTarget(FieldPtr, (void *) (CFLGraph->getOrInsertOffsetEdgeLabel(FieldIdx)));
+            Current->addTarget(FieldPtr, (CFLGraph->getOrInsertOffsetEdgeLabel(FieldIdx)));
 
             // update current
             Current = FieldPtr;

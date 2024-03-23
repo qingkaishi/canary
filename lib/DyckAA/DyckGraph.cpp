@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <stack>
 #include "DyckAA/DyckGraphEdgeLabel.h"
+#include "llvm/IR/Value.h"
 #include "DyckAA/DyckGraph.h"
 
 DyckGraph::DyckGraph() {
@@ -73,7 +74,7 @@ void DyckGraph::printAsDot(const char *FileName) const {
         else
             fprintf(FileDesc, "\ta%d;\n", (*VIt)->getIndex());
 
-        std::map<void *, std::set<DyckGraphNode *>> &Outs = (*VIt)->getOutVertices();
+        std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> &Outs = (*VIt)->getOutVertices();
         auto OIt = Outs.begin();
         while (OIt != Outs.end()) {
             long Label = (long) (OIt->first);
@@ -92,8 +93,8 @@ void DyckGraph::printAsDot(const char *FileName) const {
     fclose(FileDesc);
 }
 
-void DyckGraph::removeFromWorkList(std::multimap<DyckGraphNode *, void *> &List, DyckGraphNode *Node, void *Label) {
-    typedef std::multimap<DyckGraphNode *, void *>::iterator CIT;
+void DyckGraph::removeFromWorkList(std::multimap<DyckGraphNode *, DyckGraphEdgeLabel *> &List, DyckGraphNode *Node, DyckGraphEdgeLabel *Label) {
+    typedef std::multimap<DyckGraphNode *, DyckGraphEdgeLabel *>::iterator CIT;
     typedef std::pair<CIT, CIT> Range;
     Range NodeRange = List.equal_range(Node);
     auto Next = NodeRange.first;
@@ -106,8 +107,8 @@ void DyckGraph::removeFromWorkList(std::multimap<DyckGraphNode *, void *> &List,
     }
 }
 
-bool DyckGraph::containsInWorkList(std::multimap<DyckGraphNode *, void *> &List, DyckGraphNode *v, void *l) {
-    typedef std::multimap<DyckGraphNode *, void *>::iterator CIT;
+bool DyckGraph::containsInWorkList(std::multimap<DyckGraphNode *, DyckGraphEdgeLabel *> &List, DyckGraphNode *v, DyckGraphEdgeLabel *l) {
+    typedef std::multimap<DyckGraphNode *, DyckGraphEdgeLabel *>::iterator CIT;
     typedef std::pair<CIT, CIT> Range;
     Range NodeRange = List.equal_range(v);
     auto Next = NodeRange.first;
@@ -131,7 +132,7 @@ DyckGraphNode *DyckGraph::combine(DyckGraphNode *NodeX, DyckGraphNode *NodeY) {
         NodeY = Temp;
     }
 
-    std::set<void *> &YOutLabels = NodeY->getOutLabels();
+    std::set<DyckGraphEdgeLabel *> &YOutLabels = NodeY->getOutLabels();
     auto YOIt = YOutLabels.begin();
     while (YOIt != YOutLabels.end()) {
         if (NodeY->containsTarget(NodeY, *YOIt)) {
@@ -162,7 +163,7 @@ DyckGraphNode *DyckGraph::combine(DyckGraphNode *NodeX, DyckGraphNode *NodeY) {
         YOIt++;
     }
 
-    std::set<void *> &YInLabels = NodeY->getInLabels();
+    std::set<DyckGraphEdgeLabel *> &YInLabels = NodeY->getInLabels();
     auto YIIt = YInLabels.begin();
     while (YIIt != YInLabels.end()) {
         std::set<DyckGraphNode *> *Ws = &NodeY->getInVertices()[*YIIt];
@@ -192,14 +193,14 @@ DyckGraphNode *DyckGraph::combine(DyckGraphNode *NodeX, DyckGraphNode *NodeY) {
 
 bool DyckGraph::qirunAlgorithm() {
     bool Ret = true;
-    std::multimap<DyckGraphNode *, void *> Worklist;
+    std::multimap<DyckGraphNode *, DyckGraphEdgeLabel *> Worklist;
     auto VIt = Vertices.begin();
     while (VIt != Vertices.end()) {
-        std::set<void *> &OutLabels = (*VIt)->getOutLabels();
+        std::set<DyckGraphEdgeLabel *> &OutLabels = (*VIt)->getOutLabels();
         auto LabelIt = OutLabels.begin();
         while (LabelIt != OutLabels.end()) {
             if ((*VIt)->outNumVertices(*LabelIt) > 1) {
-                Worklist.insert(std::pair<DyckGraphNode *, void *>(*VIt, *LabelIt));
+                Worklist.insert(std::pair<DyckGraphNode *, DyckGraphEdgeLabel *>(*VIt, *LabelIt));
             }
             LabelIt++;
         }
@@ -233,14 +234,14 @@ bool DyckGraph::qirunAlgorithm() {
         //outs()<<"HERE0.4\n"; outs().flush();
         Y->mvEquivalentSetTo(X/*->getRepresentative()*/);
         //outs()<<"HERE1\n"; outs().flush();
-        std::set<void *> &YOutLabels = Y->getOutLabels();
+        std::set<DyckGraphEdgeLabel *> &YOutLabels = Y->getOutLabels();
         auto YOIt = YOutLabels.begin();
         while (YOIt != YOutLabels.end()) {
             if (Y->containsTarget(Y, *YOIt)) {
                 if (!X->containsTarget(X, *YOIt)) {
                     X->addTarget(X, *YOIt);
                     if (X->outNumVertices(*YOIt) > 1 && !containsInWorkList(Worklist, X, *YOIt)) {
-                        Worklist.insert(std::pair<DyckGraphNode *, void *>(X, *YOIt));
+                        Worklist.insert(std::pair<DyckGraphNode *, DyckGraphEdgeLabel *>(X, *YOIt));
                     }
                 }
                 Y->removeTarget(Y, *YOIt);
@@ -259,7 +260,7 @@ bool DyckGraph::qirunAlgorithm() {
                 if (!X->containsTarget(*W, *YOIt)) {
                     X->addTarget(*W, *YOIt);
                     if (X->outNumVertices(*YOIt) > 1 && !containsInWorkList(Worklist, X, *YOIt)) {
-                        Worklist.insert(std::pair<DyckGraphNode *, void *>(X, *YOIt));
+                        Worklist.insert(std::pair<DyckGraphNode *, DyckGraphEdgeLabel *>(X, *YOIt));
                     }
                 }
                 // cannot use removeTarget function, which will affect iterator
@@ -275,7 +276,7 @@ bool DyckGraph::qirunAlgorithm() {
             YOIt++;
         }
         //outs()<<"HERE3\n"; outs().flush();
-        std::set<void *> &YInLabels = Y->getInLabels();
+        std::set<DyckGraphEdgeLabel *> &YInLabels = Y->getInLabels();
         auto YIIt = YInLabels.begin();
         while (YIIt != YInLabels.end()) {
             std::set<DyckGraphNode *> *Ws = &Y->getInVertices()[*YIIt];
@@ -301,7 +302,7 @@ bool DyckGraph::qirunAlgorithm() {
     return Ret;
 }
 
-std::pair<DyckGraphNode *, bool> DyckGraph::retrieveDyckVertex(void *Val, const char *Name) {
+std::pair<DyckGraphNode *, bool> DyckGraph::retrieveDyckVertex(llvm::Value *Val, const char *Name) {
     if (Val == nullptr) {
         auto *Node = new DyckGraphNode(nullptr);
         Vertices.insert(Node);
@@ -314,12 +315,12 @@ std::pair<DyckGraphNode *, bool> DyckGraph::retrieveDyckVertex(void *Val, const 
     } else {
         auto *Node = new DyckGraphNode(Val, Name);
         Vertices.insert(Node);
-        ValVertexMap.insert(std::pair<void *, DyckGraphNode *>(Val, Node));
+        ValVertexMap.insert(std::pair<llvm::Value *, DyckGraphNode *>(Val, Node));
         return std::make_pair(Node, false);
     }
 }
 
-DyckGraphNode *DyckGraph::findDyckVertex(void *Val) {
+DyckGraphNode *DyckGraph::findDyckVertex(llvm::Value *Val) {
     auto It = ValVertexMap.find(Val);
     if (It != ValVertexMap.end()) {
         return It->second;
@@ -364,7 +365,10 @@ void DyckGraph::getReachableVertices(const std::set<DyckGraphNode *> &Sources, s
         Visited.insert(Top);
 
         std::set<DyckGraphNode *> Tars;
-        Top->getOutVertices(&Tars);
+        for(auto label_map_node:Top->getOutVertices()){
+            Tars.insert(label_map_node.second.begin(), label_map_node.second.end());
+        }
+        // Top->getOutVertices(&Tars);
         auto TIt = Tars.begin();
         while (TIt != Tars.end()) {
             DyckGraphNode *DGN = (*TIt);
@@ -373,6 +377,7 @@ void DyckGraph::getReachableVertices(const std::set<DyckGraphNode *> &Sources, s
             TIt++;
         }
     }
+    Reachable.insert(Visited.begin(), Visited.end());
 }
 
 void DyckGraph::getReachableVertices(DyckGraphNode *Source, std::set<DyckGraphNode *> &Reachable) {

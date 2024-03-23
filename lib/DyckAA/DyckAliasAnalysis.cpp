@@ -24,6 +24,7 @@
 #include "AAAnalyzer.h"
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckCallGraph.h"
+#include "DyckAA/DyckGraph.h"
 #include "Support/RecursiveTimer.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
@@ -42,6 +43,7 @@ DyckAliasAnalysis::DyckAliasAnalysis() : ModulePass(ID) {
     DyckPTG = new DyckGraph;
     DyckCG = new DyckCallGraph;
 }
+
 
 DyckAliasAnalysis::~DyckAliasAnalysis() {
     delete DyckCG;
@@ -131,7 +133,7 @@ void DyckAliasAnalysis::printAliasSetInformation() {
         unsigned TotalSize = 0;
         auto It = AllReps.begin();
         while (It != AllReps.end()) {
-            std::set<void *> *AliasSet = (*It)->getEquivalentSet();
+            std::set<llvm::Value *> *AliasSet = (*It)->getEquivalentSet();
 
             unsigned long Size = 0;
 
@@ -195,7 +197,7 @@ void DyckAliasAnalysis::printAliasSetInformation() {
         RepIt = Reps.begin();
         while (RepIt != Reps.end()) {
             DyckGraphNode *DGN = *RepIt;
-            std::map<void *, std::set<DyckGraphNode *>> &OutVs = DGN->getOutVertices();
+            std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> &OutVs = DGN->getOutVertices();
 
             auto OvIt = OutVs.begin();
             while (OvIt != OutVs.end()) {
@@ -247,7 +249,7 @@ void DyckAliasAnalysis::printAliasSetInformation() {
             Idx++;
             DyckGraphNode *Rep = *RepsIt;
 
-            std::set<void *> *ESet = Rep->getEquivalentSet();
+            std::set<llvm::Value *> *ESet = Rep->getEquivalentSet();
             auto EIt = ESet->begin();
             while (EIt != ESet->end()) {
                 auto *Val = (Value *) ((*EIt));

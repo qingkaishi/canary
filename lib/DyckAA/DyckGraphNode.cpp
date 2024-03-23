@@ -17,10 +17,11 @@
  */
 
 #include "DyckAA/DyckGraphNode.h"
+#include "DyckAA/DyckGraphEdgeLabel.h"
 
 int DyckGraphNode::GlobalNodeIndex = 0;
 
-DyckGraphNode::DyckGraphNode(void *V, const char *Name) {
+DyckGraphNode::DyckGraphNode(llvm::Value *V, const char *Name) {
     NodeName = Name;
     NodeIndex = GlobalNodeIndex++;
     if (V) EquivClass.insert(V);
@@ -32,7 +33,7 @@ const char *DyckGraphNode::getName() {
     return NodeName;
 }
 
-unsigned int DyckGraphNode::outNumVertices(void *Label) {
+unsigned int DyckGraphNode::outNumVertices(DyckGraphEdgeLabel *Label) {
     auto It = OutNodes.find(Label);
     if (It != OutNodes.end()) {
         return It->second.size();
@@ -40,7 +41,7 @@ unsigned int DyckGraphNode::outNumVertices(void *Label) {
     return 0;
 }
 
-unsigned int DyckGraphNode::inNumVertices(void *Label) {
+unsigned int DyckGraphNode::inNumVertices(DyckGraphEdgeLabel *Label) {
     auto It = InNodes.find(Label);
     if (It != InNodes.end()) {
         return It->second.size();
@@ -66,31 +67,31 @@ unsigned int DyckGraphNode::degree() {
     return Ret;
 }
 
-std::set<void *> *DyckGraphNode::getEquivalentSet() {
+std::set<llvm::Value *> *DyckGraphNode::getEquivalentSet() {
     return &this->EquivClass;
 }
 
 void DyckGraphNode::mvEquivalentSetTo(DyckGraphNode *RootRep) {
     if (RootRep == this) return;
 
-    std::set<void *> *RootEC = RootRep->getEquivalentSet();
-    std::set<void *> *ThisEC = this->getEquivalentSet();
+    std::set<llvm::Value *> *RootEC = RootRep->getEquivalentSet();
+    std::set<llvm::Value *> *ThisEC = this->getEquivalentSet();
     RootEC->insert(ThisEC->begin(), ThisEC->end());
 }
 
-std::set<void *> &DyckGraphNode::getOutLabels() {
+std::set<DyckGraphEdgeLabel *> &DyckGraphNode::getOutLabels() {
     return OutLables;
 }
 
-std::map<void *, std::set<DyckGraphNode *>> &DyckGraphNode::getOutVertices() {
+std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> &DyckGraphNode::getOutVertices() {
     return OutNodes;
 }
 
-std::set<void *> &DyckGraphNode::getInLabels() {
+std::set<DyckGraphEdgeLabel *> &DyckGraphNode::getInLabels() {
     return InLables;
 }
 
-std::map<void *, std::set<DyckGraphNode *>> &DyckGraphNode::getInVertices() {
+std::map<DyckGraphEdgeLabel *, std::set<DyckGraphNode *>> &DyckGraphNode::getInVertices() {
     return InNodes;
 }
 
@@ -98,44 +99,44 @@ int DyckGraphNode::getIndex() const {
     return NodeIndex;
 }
 
-void DyckGraphNode::addTarget(DyckGraphNode *Node, void *Label) {
+void DyckGraphNode::addTarget(DyckGraphNode *Node, DyckGraphEdgeLabel *Label) {
     OutLables.insert(Label);
     OutNodes[Label].insert(Node);
     Node->addSource(this, Label);
 }
 
-void DyckGraphNode::removeTarget(DyckGraphNode *Node, void *Label) {
+void DyckGraphNode::removeTarget(DyckGraphNode *Node, DyckGraphEdgeLabel *Label) {
     auto It = OutNodes.find(Label);
     if (It != OutNodes.end())
         It->second.erase(Node);
     Node->removeSource(this, Label);
 }
 
-bool DyckGraphNode::containsTarget(DyckGraphNode *Tar, void *Label) {
+bool DyckGraphNode::containsTarget(DyckGraphNode *Tar, DyckGraphEdgeLabel *Label) {
     auto It = OutNodes.find(Label);
     if (It != OutNodes.end()) return It->second.count(Tar);
     return false;
 }
 
-std::set<DyckGraphNode *> *DyckGraphNode::getInVertices(void *Label) {
+std::set<DyckGraphNode *> *DyckGraphNode::getInVertices(DyckGraphEdgeLabel *Label) {
     auto It = InNodes.find(Label);
     if (It != InNodes.end()) return &It->second;
     return nullptr;
 }
 
-std::set<DyckGraphNode *> *DyckGraphNode::getOutVertices(void *Label) {
+std::set<DyckGraphNode *> *DyckGraphNode::getOutVertices(DyckGraphEdgeLabel *Label) {
     auto It = OutNodes.find(Label);
     if (It != OutNodes.end()) return &It->second;
     return nullptr;
 }
 
-DyckGraphNode *DyckGraphNode::getInVertex(void *Label) {
+DyckGraphNode *DyckGraphNode::getInVertex(DyckGraphEdgeLabel *Label) {
     auto *Set = getInVertices(Label);
     if (Set && Set->size() == 1) return *Set->begin();
     return nullptr;
 }
 
-DyckGraphNode *DyckGraphNode::getOutVertex(void *Label) {
+DyckGraphNode *DyckGraphNode::getOutVertex(DyckGraphEdgeLabel *Label) {
     auto *Set = getOutVertices(Label);
     if (Set && Set->size() == 1) return *Set->begin();
     return nullptr;
@@ -143,12 +144,12 @@ DyckGraphNode *DyckGraphNode::getOutVertex(void *Label) {
 
 // the followings are private functions
 
-void DyckGraphNode::addSource(DyckGraphNode *Node, void *Label) {
+void DyckGraphNode::addSource(DyckGraphNode *Node, DyckGraphEdgeLabel *Label) {
     InLables.insert(Label);
     InNodes[Label].insert(Node);
 }
 
-void DyckGraphNode::removeSource(DyckGraphNode *Node, void *Label) {
+void DyckGraphNode::removeSource(DyckGraphNode *Node, DyckGraphEdgeLabel *Label) {
     auto It = InNodes.find(Label);
     if (It != InNodes.end()) It->second.erase(Node);
 }
