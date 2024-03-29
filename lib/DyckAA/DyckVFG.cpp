@@ -24,6 +24,7 @@
 #include "Support/CFG.h"
 #include "Support/RecursiveTimer.h"
 #include "Support/ThreadPool.h"
+#include "llvm/Support/raw_ostream.h"
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
 
@@ -65,13 +66,14 @@ DyckVFG::DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M) {
             if (auto *CC = dyn_cast_or_null<CommonCall>(TheCall)) {
                 auto *Callee = dyn_cast<Function>(CC->getCalledFunction());
                 assert(Callee);
-                if (Callee->empty())
+                if (Callee->empty() && Callee->arg_empty()){
                     continue;
+                }
                 connect(DMRA, TheCall, Callee, CtrlFlow);
             }
             else if (auto *PC = dyn_cast_or_null<PointerCall>(TheCall)) {
                 for (Function *Callee : *PC) {
-                    if (Callee->empty())
+                    if (Callee->empty() && Callee->arg_empty())
                         continue;
                     connect(DMRA, TheCall, Callee, CtrlFlow);
                 }
@@ -214,7 +216,7 @@ static void collectValues(std::set<DyckGraphNode *>::iterator Begin, std::set<Dy
 }
 
 void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, CFG *Ctrl) {
-    // connect direct inputs
+    // connect direct inputs 
     for (unsigned K = 0; K < C->numArgs(); ++K) {
         if (K >= Callee->arg_size())
             continue; // ignore var args
@@ -237,7 +239,10 @@ void DyckVFG::connect(DyckModRefAnalysis *DMRA, Call *C, Function *Callee, CFG *
             FormalRet->addTarget(ActualRet, -C->id());
         }
     }
-
+    // if this function does not contain any basicblock 
+    if(Callee->empty()){
+        return ;
+    }
     // this callee does not contain mod/refs except for formal parameters/rets
     if (!DMRA->count(Callee))
         return;
