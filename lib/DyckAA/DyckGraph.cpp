@@ -325,7 +325,7 @@ std::pair<DyckGraphNode *, bool> DyckGraph::retrieveDyckVertex(llvm::Value *Val,
     } else {
         auto *Node = new DyckGraphNode(Val, Name);
         if(isa<llvm::Instruction>(Val) && API::isHeapAllocate((llvm::Instruction *)Val)){
-            outs() << *Val << "\n";
+            // outs() << *Val << "\n";
             Node->setAliasOfHeapAlloc();
         }
         Vertices.insert(Node);
