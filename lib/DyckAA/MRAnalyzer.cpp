@@ -20,6 +20,8 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include "MRAnalyzer.h"
+#include "DyckAA/DyckGraphEdgeLabel.h"
+#include "llvm/Support/Casting.h"
 
 MRAnalyzer::MRAnalyzer(Module *M, DyckGraph *DG, DyckCallGraph *DCG) : M(M), DG(DG), DCG(DCG) {
 }
@@ -67,7 +69,8 @@ void MRAnalyzer::runOnFunction(DyckCallGraphNode *CGNode) {
             auto *RefNode = DG->findDyckVertex(Ref);
             if (!RefNode) continue;
             // check if reachable from parameters
-            if (ParReachableNodes.count(RefNode)) Refs.insert(RefNode);
+            if (ParReachableNodes.count(RefNode)) 
+                Refs.insert(RefNode);
         }
         if (F->onlyReadsMemory()) continue; // a read only function
         if (auto *SI = dyn_cast<StoreInst>(&I)) {
@@ -76,8 +79,10 @@ void MRAnalyzer::runOnFunction(DyckCallGraphNode *CGNode) {
             if (!PtrNode) continue;
             auto *ModNode = PtrNode->getOutVertex(DG->getDereferenceEdgeLabel());
             // check if reachable from parameters and returns
-            if (ParReachableNodes.count(ModNode) || RetReachableNodes.count(ModNode)) Mods.insert(ModNode);
-        } else {
+            if (ParReachableNodes.count(ModNode) || RetReachableNodes.count(ModNode)) 
+                Mods.insert(ModNode);
+        }
+        else {
             // todo other instructions that may revise a memory
         }
     }
