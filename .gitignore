@@ -2,6 +2,7 @@
 cmake-build-*
 build
 test_dir
+compile_commands.json
 .github
 .cache
 *.a
