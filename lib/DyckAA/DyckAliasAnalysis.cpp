@@ -18,6 +18,7 @@
 
 #include <cstdio>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/LineIterator.h>
 #include <llvm/Support/raw_ostream.h>
 #include <string>
 
@@ -25,9 +26,13 @@
 #include "DyckAA/DyckAliasAnalysis.h"
 #include "DyckAA/DyckCallGraph.h"
 #include "DyckAA/DyckGraph.h"
+#include "Support/API.h"
 #include "Support/RecursiveTimer.h"
+#include "llvm/IR/Argument.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Instruction.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/MemoryBuffer.h"
 
 static cl::opt<bool> PrintAliasSetInformation("print-alias-set-info", cl::init(false), cl::Hidden,
                                               cl::desc("Output alias sets and their relations"));
@@ -44,6 +49,9 @@ static cl::opt<bool, true> PrintCSourceFunctionsFlag(
     "print-c-source-functions", cl::Hidden,
     cl::desc("Works for collecting the functions which may return dynamic allocated memory pointers."),
     cl::location(PrintCSourceFunctions));
+
+static cl::opt<std::string> CSourceFunctions("c-source-functions", cl::value_desc("filename"), cl::Hidden,
+                                             cl::desc("path to file which contains the names of c source functions."));
 
 char DyckAliasAnalysis::ID = 0;
 static RegisterPass<DyckAliasAnalysis> X("dyckaa", "a unification based alias analysis");
@@ -89,7 +97,7 @@ DyckGraph *DyckAliasAnalysis::getDyckGraph() const {
 
 bool DyckAliasAnalysis::runOnModule(Module &M) {
     RecursiveTimer DyckAA("Running DyckAA");
-
+    readCSourceFunctions();
     // alias analysis
     AAAnalyzer AA(&M, DyckPTG, DyckCG);
     AA.intraProcedureAnalysis();
@@ -220,6 +228,12 @@ void DyckAliasAnalysis::printAliasSetInformation() {
                     LabelDescBuilder << *Val << "\n";
                 }
             }
+
+            auto LabelDescIdx = LabelDesc.find('\"');
+            while (LabelDescIdx != std::string::npos) {
+                LabelDesc.insert(LabelDescIdx, "\\");
+                LabelDescIdx = LabelDesc.find('\"', LabelDescIdx + 2);
+            }
             fprintf(AliasRel, "a%d[color=\"%s\"label=\"%s\"];\n", Idx, LabelColor.c_str(), LabelDesc.c_str());
             TheMap.insert(std::pair<DyckGraphNode *, int>(*RepIt, Idx));
             RepIt++;
@@ -290,6 +304,13 @@ void DyckAliasAnalysis::printAliasSetInformation() {
                 if (isa<Function>(Val)) {
                     Log << ((Function *)Val)->getName() << "\n";
                 }
+                else if (auto Inst = dyn_cast<Instruction>(Val)) {
+
+                    Log << *Inst << "\n";
+                }
+                else if (auto Arg = dyn_cast<Argument>(Val)) {
+                    Log << Arg->getParent()->getName() << *Arg << "\n";
+                }
                 else {
                     Log << *Val << "\n";
                 }
@@ -317,7 +338,7 @@ void DyckAliasAnalysis::printCSourceFunctions() {
         }
         for (auto Ret : CGNode->getReturns()) {
             auto *RetInst = (ReturnInst *)Ret;
-            // if one of return operands is alias of heap allocated memory, 
+            // if one of return operands is alias of heap allocated memory,
             // the output the function's name.
             DyckGraphNode *GNode = DyckPTG->retrieveDyckVertex(Ret).first;
             if (GNode && GNode->isAliasOfHeapAlloc()) {
@@ -326,4 +347,18 @@ void DyckAliasAnalysis::printCSourceFunctions() {
             }
         }
     }
+}
+
+void DyckAliasAnalysis::readCSourceFunctions() {
+    outs() << CSourceFunctions;
+    if (CSourceFunctions.getValue().empty())
+        return;
+    outs() << "<<<<<<<<<< read function names from file"
+           << "\n";
+    auto CSFBuffer = MemoryBuffer::getFile(CSourceFunctions.getValue());
+    std::set<std::string> CSFName;
+    for (auto It = line_iterator(*CSFBuffer->get()); !It.is_at_eof(); It++) {
+        CSFName.insert((*It).str());
+    }
+    API::HeapAllocFunctions.insert(CSFName.begin(), CSFName.end());
 }
