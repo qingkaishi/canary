@@ -78,6 +78,7 @@ private:
     /// alias of the variables which receives the return value from heap
     /// allocated functions.
     void printCSourceFunctions();
+    void readCSourceFunctions();
 };
 
 #endif // DYCKAA_DYCKALIASANALYSIS_H
