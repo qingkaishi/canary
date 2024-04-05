@@ -6,4 +6,5 @@ add_library(CanarySupport STATIC
         RecursiveTimer.cpp
         Statistics.cpp
         ThreadPool.cpp
+        RNameDemangle.cpp
 )
