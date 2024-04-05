@@ -19,13 +19,17 @@
 #ifndef DyckAA_DYCKVFG_H
 #define DyckAA_DYCKVFG_H
 
+#include "DyckAA/DyckGraphNode.h"
+#include "Support/CFG.h"
+#include "Support/MapIterators.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <map>
 #include <set>
 #include <unordered_map>
-#include "Support/CFG.h"
-#include "Support/MapIterators.h"
+#include <vector>
 
 using namespace llvm;
 
@@ -36,7 +40,7 @@ class DyckModRefAnalysis;
 class Call;
 
 class DyckVFGNode {
-private:
+  private:
     /// the value this node represents
     Value *V;
 
@@ -47,8 +51,9 @@ private:
     EdgeSetTy Sources;
     /// @}
 
-public:
-    explicit DyckVFGNode(Value *V) : V(V) {}
+  public:
+    explicit DyckVFGNode(Value *V)
+        : V(V) {}
 
     void addTarget(DyckVFGNode *N, int L = 0) {
         assert(N);
@@ -56,42 +61,60 @@ public:
         N->Sources.emplace(this, L);
     }
 
-    Value *getValue() const { return V; }
+    Value *getValue() const {
+        return V;
+    }
 
     Function *getFunction() const;
 
-    EdgeSetTy::const_iterator begin() const { return Targets.begin(); }
+    EdgeSetTy::const_iterator begin() const {
+        return Targets.begin();
+    }
 
-    EdgeSetTy::const_iterator end() const { return Targets.end(); }
+    EdgeSetTy::const_iterator end() const {
+        return Targets.end();
+    }
 
-    EdgeSetTy::const_iterator in_begin() const { return Sources.begin(); }
+    EdgeSetTy::const_iterator in_begin() const {
+        return Sources.begin();
+    }
 
-    EdgeSetTy::const_iterator in_end() const { return Sources.end(); }
+    EdgeSetTy::const_iterator in_end() const {
+        return Sources.end();
+    }
 };
 
 class DyckVFG {
-private:
+  private:
     std::unordered_map<Value *, DyckVFGNode *> ValueNodeMap;
 
-public:
+  public:
     DyckVFG(DyckAliasAnalysis *DAA, DyckModRefAnalysis *DMRA, Module *M);
 
     ~DyckVFG();
 
     DyckVFGNode *getVFGNode(Value *) const;
 
-    value_iterator<std::unordered_map<Value *, DyckVFGNode *>::iterator> node_begin() { return {ValueNodeMap.begin()}; }
+    value_iterator<std::unordered_map<Value *, DyckVFGNode *>::iterator> node_begin() {
+        return {ValueNodeMap.begin()};
+    }
 
-    value_iterator<std::unordered_map<Value *, DyckVFGNode *>::iterator> node_end() { return {ValueNodeMap.end()}; }
+    value_iterator<std::unordered_map<Value *, DyckVFGNode *>::iterator> node_end() {
+        return {ValueNodeMap.end()};
+    }
 
-private:
+  private:
     DyckVFGNode *getOrCreateVFGNode(Value *);
 
-    void connect(DyckModRefAnalysis *, Call *, Function *, CFG *);
+    void connect(DyckAliasAnalysis *DAA, DyckModRefAnalysis *, Call *, Function *, CFG *);
 
     void buildLocalVFG(DyckAliasAnalysis *DAA, CFG *DMRA, Function *F) const;
+    void connectInsertExtractIndirectFlow(std::map<DyckGraphNode *, std::vector<ExtractValueInst *>>,
+                                          std::map<DyckGraphNode *, std::vector<InsertValueInst *>>,
+                                          std::function<bool(Instruction *, Instruction *)> Reachable,
+                                          int CallId);
 
     void buildLocalVFG(Function &);
 };
 
-#endif //DyckAA_DYCKVFG_H
+#endif // DyckAA_DYCKVFG_H
