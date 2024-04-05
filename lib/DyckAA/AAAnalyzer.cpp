@@ -20,6 +20,7 @@
 #include <llvm/IR/InstIterator.h>
 #include "AAAnalyzer.h"
 #include "Support/RecursiveTimer.h"
+#include "llvm/IR/Instructions.h"
 
 static cl::opt<unsigned> FunctionTypeCheckLevel("function-type-check-level", cl::init(4), cl::Hidden,
                                                 cl::desc("The level of checking the compatability of function types"
@@ -372,6 +373,8 @@ DyckGraphNode *AAAnalyzer::handleGEP(GEPOperator *GEP) {
 
             // s2: ?3--deref-->?2
             auto FieldIdx = (unsigned) (*(CI->getValue().getRawData()));
+            if(FieldIdx == 0)
+                continue;
             DyckGraphNode *Field = this->addField(TheStruct, FieldIdx, nullptr);
             DyckGraphNode *FieldPtr = this->addPtrTo(nullptr, Field);
 
