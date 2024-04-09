@@ -676,6 +676,7 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
         case Instruction::Ret: {
             ReturnInst *RetInst = ((ReturnInst *) Inst);
             if (RetInst->getNumOperands() > 0 && !RetInst->getOperandUse(0)->getType()->isVoidTy()) {
+                Parent->addRetBB(RetInst->getParent());
                 Parent->addRet(RetInst->getOperandUse(0));
             }
         }

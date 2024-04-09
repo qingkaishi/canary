@@ -82,6 +82,9 @@ void DyckCallGraphNode::addArg(Value *Arg) {
 void DyckCallGraphNode::addVAArg(Value *Arg) {
     VAArgs.push_back(Arg);
 }
+void DyckCallGraphNode::addRetBB(BasicBlock *bb){
+    RetBBs.insert(bb); 
+}
 
 std::vector<Value *> &DyckCallGraphNode::getArgs() {
     return Args;

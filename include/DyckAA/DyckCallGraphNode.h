@@ -36,6 +36,7 @@
 #include <map>
 
 #include "Support/MapIterators.h"
+#include "llvm/IR/BasicBlock.h"
 
 using namespace llvm;
 
@@ -125,6 +126,7 @@ typedef std::vector<CallRecordTy> CallRecordVecTy;
 class DyckCallGraphNode {
 private:
     Function *Func;
+    std::set<BasicBlock *> RetBBs;
     std::set<Value *> Rets;
 
     std::vector<Value *> Args;
@@ -151,6 +153,8 @@ public:
 
     void addRet(Value *);
 
+    void addRetBB(BasicBlock *);
+    
     void addArg(Value *);
 
     void addVAArg(Value *);
@@ -174,6 +178,11 @@ public:
     std::set<PointerCall *>::const_iterator pointer_call_begin() const { return PointerCalls.begin(); }
 
     std::set<PointerCall *>::const_iterator pointer_call_end() const { return PointerCalls.end(); }
+
+    std::set<BasicBlock *>::iterator return_bb_begin() { return RetBBs.begin(); }
+
+    std::set<BasicBlock *>::iterator return_bb_end() { return RetBBs.end(); }
+
 
     unsigned pointer_call_size() const { return PointerCalls.size(); }
 
