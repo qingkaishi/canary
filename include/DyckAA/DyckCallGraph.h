@@ -45,12 +45,13 @@
 using namespace llvm;
 
 typedef std::map<Function *, DyckCallGraphNode *> FunctionMapTy;
-
+typedef std::map<int, const Call *> CallSiteMapTy;
 class DyckCallGraph {
 private:
     /// function -> call graph node
     FunctionMapTy FunctionMap;
-
+    /// CallSite ID -> CallSite(Call Instruction)
+    CallSiteMapTy CallSiteMap;
     /// This node has edges to all external functions and those internal
     /// functions that have their address taken.
     DyckCallGraphNode *ExternalCallingNode;
@@ -77,6 +78,9 @@ public:
     DyckCallGraphNode *getOrInsertFunction(Function *);
 
     DyckCallGraphNode *getFunction(Function *) const;
+
+    void constructCallSiteMap();
+    const Call*getCallSite(int id) {return CallSiteMap[id];}
 
     void dotCallGraph(const std::string &ModuleIdentifier);
 
