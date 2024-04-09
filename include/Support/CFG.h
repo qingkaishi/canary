@@ -19,9 +19,11 @@
 #ifndef SUPPORT_CFG_H
 #define SUPPORT_CFG_H
 
+#include <bitset>
 #include <llvm/ADT/BitVector.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
+#include <vector>
 
 using namespace llvm;
 

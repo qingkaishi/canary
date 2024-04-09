@@ -40,6 +40,7 @@
 #include "Support/RecursiveTimer.h"
 #include "Support/Statistics.h"
 #include "Transform/LowerConstantExpr.h"
+#include "llvm/Analysis/PostDominators.h"
 
 using namespace llvm;
 
