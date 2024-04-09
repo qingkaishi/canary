@@ -6,6 +6,7 @@
 #include "DyckAA/DyckModRefAnalysis.h"
 #include "DyckAA/DyckValueFlowAnalysis.h"
 #include "MemoryLeak/MLDVFG.h"
+#include "MemoryLeak/VFGReachable.h"
 #include "llvm/Pass.h"
 
 char MLDValueFlowAnalysis::ID = 0;
@@ -27,8 +28,11 @@ void MLDValueFlowAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
 bool MLDValueFlowAnalysis::runOnModule(llvm::Module &M) {
     auto *DyckVFA = &getAnalysis<DyckValueFlowAnalysis>();
     auto *DyckAA = &getAnalysis<DyckAliasAnalysis>();
+    DyckAA->getDyckCallGraph()->constructCallSiteMap();
     VFG = new MLDVFG(DyckVFA->getDyckVFGraph(), DyckAA->getDyckCallGraph());
     VFG->printVFG();
+    VFGReachable VFGSolver(M, VFG, DyckAA);
+    VFGSolver.solveAllSlices();
     return false;
     ;
 }
