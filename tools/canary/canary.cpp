@@ -29,6 +29,8 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Signals.h>
 #include <llvm/Support/ToolOutputFile.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/FileSystem.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Utils.h>
 
@@ -115,7 +117,13 @@ int main(int argc, char **argv) {
     std::unique_ptr<ToolOutputFile> Out;
     if (!OutputFilename.getValue().empty()) {
         std::error_code EC;
+#if defined(LLVM12)
         Out = std::make_unique<ToolOutputFile>(OutputFilename, EC, sys::fs::F_None);
+#elif defined(LLVM14)
+        Out = std::make_unique<ToolOutputFile>(OutputFilename, EC, sys::fs::OF_None);
+#else
+    #error "Unsupported LLVM version"
+#endif
         if (EC) {
             errs() << EC.message() << '\n';
             return 1;

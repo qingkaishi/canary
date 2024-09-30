@@ -43,7 +43,14 @@ void Statistics::run(Module &M) {
             } else if (auto *CI = dyn_cast<CallInst>(&I)) {
                 if (auto *Callee = CI->getCalledFunction()) {
                     if (Callee->empty()) {
+#if defined(LLVM12)
                         for (unsigned K = 0; K < CI->getNumArgOperands(); ++K) {
+#elif defined(LLVM14)
+                        // refer to llvm-12/include/llvm/IR/InstrTypes.h:1321
+                        for (unsigned K = 0; K < CI->arg_size(); ++K) {
+#else
+    #error "Unsupported LLVM version"
+#endif
                             if (CI->getArgOperand(K)->getType()->isPointerTy()) {
                                 ++NumDerefInstructions;
                                 break;

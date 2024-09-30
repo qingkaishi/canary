@@ -651,7 +651,14 @@ void AAAnalyzer::handleInstrinsic(Instruction *Inst) {
     }
 
     // wrap unhandled operand
+#if defined(LLVM12)
     for (unsigned K = 0; K < CallI->getNumArgOperands(); K++) {
+#elif defined(LLVM14)
+    // refer to llvm-12/include/llvm/IR/InstrTypes.h:1321
+    for (unsigned K = 0; K < CallI->arg_size(); K++) {
+#else
+    #error "Unsupported LLVM version"
+#endif
         if (!(Mask & (1 << K))) {
             wrapValue(CallI->getArgOperand(K));
         }
@@ -814,7 +821,14 @@ void AAAnalyzer::handleInst(Instruction *Inst, DyckCallGraphNode *Parent) {
 
             Value *CV = CallI->getCalledOperand();
             std::vector<Value *> Args;
+#if defined(LLVM12)
             for (unsigned K = 0; K < CallI->getNumArgOperands(); K++) {
+#elif defined(LLVM14)
+            // refer to llvm-12/include/llvm/IR/InstrTypes.h:1321
+            for (unsigned K = 0; K < CallI->arg_size(); K++) {
+#else
+    #error "Unsupported LLVM version"
+#endif
                 wrapValue(CallI->getArgOperand(K));
                 Args.push_back(CallI->getArgOperand(K));
             }

@@ -166,7 +166,14 @@ void LocalNullCheckAnalysis::tag() {
                 if (isa<ReturnInst>(&I)) {
                     NFA->add(F, OpK);
                 } else if (auto *CI = dyn_cast<CallInst>(&I)) {
+#if defined(LLVM12)
                     if (K < CI->getNumArgOperands()) NFA->add(F, CI, K);
+#elif defined(LLVM14)
+                    // refer to llvm-12/include/llvm/IR/InstrTypes.h:1321
+                    if (K < CI->arg_size()) NFA->add(F, CI, K);
+#else
+    #error "Unsupported LLVM version"
+#endif
                 } else {
                     // ... omit others
                 }
@@ -246,7 +253,14 @@ void LocalNullCheckAnalysis::transfer(Edge E, const BitVector &In, BitVector &Ou
             if (auto *Callee = CI->getCalledFunction()) {
                 if (Callee->isIntrinsic() && Callee->getIntrinsicID() >= Intrinsic::memcpy
                     && Callee->getIntrinsicID() <= Intrinsic::memset_element_unordered_atomic) {
+#if defined(LLVM12)
                     for (unsigned K = 0; K < CI->getNumArgOperands(); ++K) {
+#elif defined(LLVM14)
+                    // refer to llvm-12/include/llvm/IR/InstrTypes.h:1321
+                    for (unsigned K = 0; K < CI->arg_size(); ++K) {
+#else
+    #error "Unsupported LLVM version"
+#endif
                         auto Op = CI->getArgOperand(K);
                         if (!Op->getType()->isPointerTy()) continue;
                         Set(Op);
