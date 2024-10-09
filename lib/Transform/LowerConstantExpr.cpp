@@ -19,8 +19,10 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Verifier.h>
-#include <set>
 #include "Transform/LowerConstantExpr.h"
+
+#include <set>
+#include <map>
 
 #define DEBUG_TYPE "LowerConstantExpr"
 

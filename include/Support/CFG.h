@@ -23,6 +23,8 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 
+#include <map>
+
 using namespace llvm;
 
 class CFG {

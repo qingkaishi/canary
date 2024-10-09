@@ -1,17 +1,41 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(canary C CXX)
 
+option(LLVM_CONFIG_PATH "Path to llvm-config executable" "")
+
 unset(LLVMCONFIG CACHE)
-find_program(LLVMCONFIG llvm-config)
-if (NOT LLVMCONFIG)
-    message(STATUS "llvm-config not found!")
-    find_program(LLVMCONFIG llvm-config-12)
+
+if (LLVM_CONFIG_PATH)
+    set(LLVMCONFIG "${LLVM_CONFIG_PATH}")
+else()
+    find_program(LLVMCONFIG llvm-config)
     if (NOT LLVMCONFIG)
-        message(FATAL_ERROR "llvm-config-12 not found!")
-    else ()
-        message(STATUS "llvm-config-12 found!")
-    endif ()
-endif ()
+            message(FATAL_ERROR "llvm-config not found!")
+    endif()
+endif()
+
+execute_process(
+    COMMAND ${LLVMCONFIG} --version
+    OUTPUT_VARIABLE LLVM_VERSION_OUTPUT
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+if (LLVM_VERSION_OUTPUT MATCHES "^([0-9]+)")
+    set(LLVM_MAJOR_VERSION "${CMAKE_MATCH_1}")
+else()
+    message(FATAL_ERROR "Failed to parse LLVM version from: ${LLVM_VERSION_OUTPUT}")
+endif()
+
+if (LLVM_MAJOR_VERSION STREQUAL "12")
+    message(STATUS "Using LLVM version 12")
+    add_definitions(-DLLVM12)
+elseif (LLVM_MAJOR_VERSION STREQUAL "14")
+    message(STATUS "Using LLVM version 14")
+    add_definitions(-DLLVM14)
+else()
+    message(FATAL_ERROR "Unsupported or unknown LLVM version: ${LLVM_VERSION_OUTPUT}")
+endif()
 
 execute_process(COMMAND ${LLVMCONFIG} --cxxflags OUTPUT_VARIABLE CMAKE_CXX_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${LLVMCONFIG} --cflags OUTPUT_VARIABLE CMAKE_C_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
